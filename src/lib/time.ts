@@ -41,6 +41,31 @@ export function minutesUntil(iso: string, now: Date): number {
   return Math.floor((new Date(iso).getTime() - now.getTime()) / 60_000);
 }
 
+/** "YYYY-MM-DD" + "HH:MM"(JST)→ ISO。時刻が空なら null(管理画面フォーム用) */
+export function jstToIso(dateStr: string, timeStr: string): string | null {
+  if (!dateStr || !timeStr) return null;
+  return new Date(`${dateStr}T${timeStr}:00+09:00`).toISOString();
+}
+
+/** ISO → "YYYY-MM-DDTHH:MM"(JST・input[type=datetime-local] 用) */
+export function isoToDatetimeLocal(iso: string): string {
+  const s = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+  return s.replace(" ", "T");
+}
+
+/** "YYYY-MM-DDTHH:MM"(JST)→ ISO */
+export function datetimeLocalToIso(value: string): string {
+  return new Date(`${value}:00+09:00`).toISOString();
+}
+
 /** 分数 → "38分" / "1時間12分" */
 export function formatDuration(min: number): string {
   if (min < 60) return `${min}分`;
