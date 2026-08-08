@@ -89,6 +89,7 @@ export default function HomePage() {
           </h2>
           <TodayTimeline
             items={todayItems}
+            locations={data.locations}
             nextItemId={
               nextItem?.category === "performance" ? nextItem.id : null
             }

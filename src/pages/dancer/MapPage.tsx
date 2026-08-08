@@ -19,31 +19,8 @@ import {
 import LocationDetailCard from "../../components/map/LocationDetailCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
-/** 初期表示: 全マーカーが収まるようにフィット(選択指定がある場合はそこへ) */
-function InitialView({
-  locations,
-  focus,
-}: {
-  locations: Location[];
-  focus: Location | null;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (focus) {
-      map.setView([focus.lat, focus.lng], 17);
-    } else if (locations.length > 0) {
-      map.fitBounds(
-        L.latLngBounds(locations.map((l) => [l.lat, l.lng])),
-        { padding: [40, 40], maxZoom: 16 },
-      );
-    }
-    // 初期表示のみ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return null;
-}
+/** 予定カードからの遷移・現在地表示で使う拡大率 */
+const FOCUS_ZOOM = 18;
 
 interface GeoFix {
   lat: number;
@@ -51,7 +28,39 @@ interface GeoFix {
   accuracy: number;
 }
 
-/** 現在地ボタンが押されたとき(seq更新時)に地図を移動する */
+/** 予定カードから遷移してきた場合: その集合場所を中心に表示 */
+function FocusView({ focus }: { focus: Location | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (focus) map.setView([focus.lat, focus.lng], FOCUS_ZOOM);
+    // 初期表示のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+/** 現在地取得に失敗した場合のフォールバック: 全ピンが収まる表示 */
+function FitAllView({
+  locations,
+  trigger,
+}: {
+  locations: Location[];
+  trigger: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0 && locations.length > 0) {
+      map.fitBounds(
+        L.latLngBounds(locations.map((l) => [l.lat, l.lng])),
+        { padding: [40, 40], maxZoom: 16 },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
+  return null;
+}
+
+/** 現在地ボタン・自動測位で地図を移動する */
 function RecenterOnGeo({
   target,
 }: {
@@ -59,9 +68,7 @@ function RecenterOnGeo({
 }) {
   const map = useMap();
   useEffect(() => {
-    if (target) {
-      map.setView([target.lat, target.lng], Math.max(map.getZoom(), 16));
-    }
+    if (target) map.setView([target.lat, target.lng], FOCUS_ZOOM);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.seq]);
   return null;
@@ -85,35 +92,36 @@ export default function MapPage() {
   const [centerTarget, setCenterTarget] = useState<
     (GeoFix & { seq: number }) | null
   >(null);
+  const [fitTrigger, setFitTrigger] = useState(0);
   const watchIdRef = useRef<number | null>(null);
   const hasCenteredRef = useRef(false);
   const seqRef = useRef(0);
+  const autoStartedRef = useRef(false);
 
-  // 画面を離れたら追跡を停止(バッテリー節約)
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current != null) {
-        navigator.geolocation?.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
+  const locations = useMemo(() => data?.locations ?? [], [data]);
+  const focus = useMemo(
+    () => locations.find((l) => l.id === searchParams.get("loc")) ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locations],
+  );
 
   function centerOn(fix: GeoFix) {
     seqRef.current += 1;
     setCenterTarget({ ...fix, seq: seqRef.current });
   }
 
-  function handleLocateTap() {
-    // 追跡中の再タップ → 現在地へ戻る
-    if (tracking && geo) {
-      centerOn(geo);
-      return;
-    }
+  /**
+   * 現在地の追跡を開始する。
+   * silent=true(タブを開いた時の自動測位)では、拒否・失敗時にエラーを
+   * 表示せず全ピン表示にフォールバックする。
+   */
+  function startTracking(silent: boolean) {
     if (!("geolocation" in navigator)) {
-      setGeoError("この端末では位置情報を利用できません。");
+      if (silent) setFitTrigger((n) => n + 1);
+      else setGeoError("この端末では位置情報を利用できません。");
       return;
     }
-    setGeoError(null);
+    if (!silent) setGeoError(null);
     setTracking(true);
     hasCenteredRef.current = false;
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -133,24 +141,48 @@ export default function MapPage() {
       (err) => {
         setTracking(false);
         setGeo(null);
-        setGeoError(
-          err.code === err.PERMISSION_DENIED
-            ? "位置情報が許可されていません。端末の設定から許可してください。"
-            : "現在地を取得できませんでした。電波状況を確認してください。",
-        );
+        if (silent) {
+          setFitTrigger((n) => n + 1);
+        } else {
+          setGeoError(
+            err.code === err.PERMISSION_DENIED
+              ? "位置情報が許可されていません。端末の設定から許可してください。"
+              : "現在地を取得できませんでした。電波状況を確認してください。",
+          );
+        }
       },
       { enableHighAccuracy: true, maximumAge: 5_000, timeout: 15_000 },
     );
   }
 
-  const locations = useMemo(() => data?.locations ?? [], [data]);
+  // マップタブを直接開いた場合(予定カード経由でない場合)は現在地を中心に表示
+  useEffect(() => {
+    if (loading || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    if (!searchParams.get("loc")) startTracking(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // 画面を離れたら追跡を停止(バッテリー節約)
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current != null) {
+        navigator.geolocation?.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  function handleLocateTap() {
+    // 追跡中の再タップ → 現在地へ戻る
+    if (tracking && geo) {
+      centerOn(geo);
+      return;
+    }
+    startTracking(false);
+  }
+
   const visible = locations.filter((l) => showKind[l.kind]);
   const selected = locations.find((l) => l.id === selectedId) ?? null;
-  const focus = useMemo(
-    () => locations.find((l) => l.id === searchParams.get("loc")) ?? null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locations],
-  );
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -203,14 +235,16 @@ export default function MapPage() {
       <div className="relative flex-1">
         <MapContainer
           center={[33.5597, 133.5388]}
-          zoom={15}
+          zoom={FOCUS_ZOOM}
           className="absolute inset-0 z-0"
         >
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          <InitialView locations={locations} focus={focus} />
+          <FocusView focus={focus} />
+          <FitAllView locations={locations} trigger={fitTrigger} />
           <RecenterOnGeo target={centerTarget} />
           {visible.map((loc) => (
             <Marker

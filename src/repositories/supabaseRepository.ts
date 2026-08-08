@@ -38,7 +38,7 @@ export const supabaseRepository: FestivalRepository = {
         .from("festival_days")
         .select("id, festival_id, date, label, sort_order")
         .eq("festival_id", festivalId)
-        .order("sort_order"),
+        .order("date"),
       supabase
         .from("locations")
         .select(LOCATION_COLUMNS)

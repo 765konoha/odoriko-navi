@@ -22,7 +22,8 @@ export default function SchedulePage() {
     );
   }
 
-  const days = [...data.days].sort((a, b) => a.sortOrder - b.sortOrder);
+  // 開催日は常に日付順(管理画面で後から追加しても順序が崩れないように)
+  const days = [...data.days].sort((a, b) => a.date.localeCompare(b.date));
   const today = findToday(days);
   const currentDay =
     days.find((d) => d.id === selectedDayId) ?? today ?? days[0];

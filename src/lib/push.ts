@@ -62,9 +62,13 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
       auth: json.keys?.auth ?? "",
     });
     // 登録済み(unique制約違反 23505)は成功扱い
-    if (error && error.code !== "23505") return "error";
+    if (error && error.code !== "23505") {
+      console.error("push subscription insert failed:", error);
+      return "error";
+    }
     return "subscribed";
-  } catch {
+  } catch (e) {
+    console.error("push subscribe failed:", e);
     return "error";
   }
 }

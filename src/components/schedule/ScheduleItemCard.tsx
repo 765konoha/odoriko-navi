@@ -1,3 +1,4 @@
+import { Link, useParams } from "react-router-dom";
 import type { Location, ScheduleItem } from "../../types/domain";
 import { formatTime } from "../../lib/time";
 import { CATEGORY_META } from "../../lib/schedule";
@@ -13,10 +14,11 @@ export default function ScheduleItemCard({
   meetingLocation,
   isNext,
 }: Props) {
+  const { festivalSlug } = useParams();
   const meta = CATEGORY_META[item.category];
   const isPerformance = item.category === "performance";
 
-  return (
+  const body = (
     <div
       className={`rounded-2xl bg-white p-4 shadow-sm ${
         item.isCancelled ? "opacity-60" : ""
@@ -56,18 +58,21 @@ export default function ScheduleItemCard({
       <dl className="mt-2 space-y-1 text-base text-slate-700">
         {item.gatherTime && (
           <div className="flex gap-2">
-            <dt className="w-14 shrink-0 text-slate-500">集合</dt>
+            <dt className="w-16 shrink-0 text-slate-500">集合</dt>
             <dd className="font-bold tabular-nums">
               {formatTime(item.gatherTime)}
-              {meetingLocation && (
-                <span className="ml-2 font-normal">{meetingLocation.name}</span>
-              )}
             </dd>
+          </div>
+        )}
+        {meetingLocation && (
+          <div className="flex gap-2">
+            <dt className="w-16 shrink-0 text-slate-500">集合場所</dt>
+            <dd className="font-medium">📍 {meetingLocation.name}</dd>
           </div>
         )}
         {item.startTime && (
           <div className="flex gap-2">
-            <dt className="w-14 shrink-0 text-slate-500">
+            <dt className="w-16 shrink-0 text-slate-500">
               {isPerformance ? "演舞" : "開始"}
             </dt>
             <dd className="font-bold tabular-nums">
@@ -80,15 +85,9 @@ export default function ScheduleItemCard({
             </dd>
           </div>
         )}
-        {!item.gatherTime && meetingLocation && (
-          <div className="flex gap-2">
-            <dt className="w-14 shrink-0 text-slate-500">場所</dt>
-            <dd>{meetingLocation.name}</dd>
-          </div>
-        )}
         {item.venueName && item.venueName !== item.title && (
           <div className="flex gap-2">
-            <dt className="w-14 shrink-0 text-slate-500">会場</dt>
+            <dt className="w-16 shrink-0 text-slate-500">会場</dt>
             <dd>{item.venueName}</dd>
           </div>
         )}
@@ -102,6 +101,25 @@ export default function ScheduleItemCard({
       {item.notes && (
         <p className="mt-2 text-sm text-slate-600">⚠ {item.notes}</p>
       )}
+
+      {meetingLocation && (
+        <p className="mt-2 text-right text-sm font-bold text-blue-700">
+          集合場所を地図で見る ›
+        </p>
+      )}
     </div>
   );
+
+  // 集合場所があるカードはタップでマップへ(該当ピンを中心表示)
+  if (meetingLocation) {
+    return (
+      <Link
+        to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+        className="block"
+      >
+        {body}
+      </Link>
+    );
+  }
+  return body;
 }

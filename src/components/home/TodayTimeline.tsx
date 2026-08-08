@@ -1,15 +1,23 @@
-import type { ScheduleItem } from "../../types/domain";
+import { Link, useParams } from "react-router-dom";
+import type { Location, ScheduleItem } from "../../types/domain";
 import { formatTime } from "../../lib/time";
 import { displayTime } from "../../lib/schedule";
 
 interface Props {
   items: ScheduleItem[];
+  locations: Location[];
   nextItemId: string | null;
   now: Date;
 }
 
 /** 本日の演舞予定の簡易タイムライン */
-export default function TodayTimeline({ items, nextItemId, now }: Props) {
+export default function TodayTimeline({
+  items,
+  locations,
+  nextItemId,
+  now,
+}: Props) {
+  const { festivalSlug } = useParams();
   const performances = items.filter((s) => s.category === "performance");
 
   if (performances.length === 0) {
@@ -27,10 +35,12 @@ export default function TodayTimeline({ items, nextItemId, now }: Props) {
         const isNext = item.id === nextItemId;
         const isDone =
           !isNext && t != null && new Date(t).getTime() < now.getTime();
+        const meetingLocation = item.meetingLocationId
+          ? (locations.find((l) => l.id === item.meetingLocationId) ?? null)
+          : null;
 
-        return (
-          <li
-            key={item.id}
+        const row = (
+          <div
             className={`flex items-center gap-3 px-4 py-3 ${
               isNext ? "bg-amber-50" : ""
             }`}
@@ -46,18 +56,29 @@ export default function TodayTimeline({ items, nextItemId, now }: Props) {
             >
               {t ? formatTime(t) : "--:--"}
             </span>
-            <span
-              className={`flex-1 text-base ${
-                item.isCancelled
-                  ? "text-slate-400 line-through"
-                  : isDone
-                    ? "text-slate-400"
-                    : "font-medium text-slate-900"
-              }`}
-            >
-              {item.title}
-              {!item.isConfirmed && !item.isCancelled && (
-                <span className="ml-1 text-sm text-amber-600">(未確定)</span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={`block text-base ${
+                  item.isCancelled
+                    ? "text-slate-400 line-through"
+                    : isDone
+                      ? "text-slate-400"
+                      : "font-medium text-slate-900"
+                }`}
+              >
+                {item.title}
+                {!item.isConfirmed && !item.isCancelled && (
+                  <span className="ml-1 text-sm text-amber-600">(未確定)</span>
+                )}
+              </span>
+              {meetingLocation && !item.isCancelled && (
+                <span
+                  className={`block truncate text-xs ${
+                    isDone ? "text-slate-300" : "text-slate-500"
+                  }`}
+                >
+                  📍 {meetingLocation.name}
+                </span>
               )}
             </span>
             {item.isCancelled ? (
@@ -71,6 +92,21 @@ export default function TodayTimeline({ items, nextItemId, now }: Props) {
             ) : isDone ? (
               <span className="text-emerald-600">✓</span>
             ) : null}
+          </div>
+        );
+
+        return (
+          <li key={item.id}>
+            {meetingLocation && !item.isCancelled ? (
+              <Link
+                to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+                className="block"
+              >
+                {row}
+              </Link>
+            ) : (
+              row
+            )}
           </li>
         );
       })}
