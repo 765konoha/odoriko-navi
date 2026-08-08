@@ -25,16 +25,16 @@ export default function ScheduleItemCard({
       className={`relative rounded-2xl bg-white p-4 shadow-sm ${
         item.isCancelled ? "opacity-60" : ""
       } ${isNext ? "ring-2 ring-amber-400" : ""} ${
-        isDone ? "border-l-4 border-emerald-500 opacity-70" : ""
+        isDone ? "border-l-4 border-emerald-500" : ""
       }`}
     >
-      {/* 完了スタンプ(判子風) */}
+      {/* 完了スタンプ(朱色の判子風。淡色化の影響を受けないよう本文の外に置く) */}
       {isDone && (
-        <div className="pointer-events-none absolute top-2.5 right-2.5 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-emerald-600/80">
-          <div className="flex h-11 w-11 flex-col items-center justify-center rounded-full border border-emerald-600/50 text-emerald-700">
-            <span className="text-lg leading-none font-bold">完</span>
+        <div className="pointer-events-none absolute top-2 right-2 z-10 flex h-20 w-20 -rotate-12 items-center justify-center rounded-full border-[3px] border-red-600/90 bg-red-50/30">
+          <div className="flex h-[4.1rem] w-[4.1rem] flex-col items-center justify-center rounded-full border-2 border-red-600/50 text-red-600">
+            <span className="text-3xl leading-none font-bold">完</span>
             {isPerformance && count > 0 && (
-              <span className="mt-0.5 text-[9px] leading-none font-bold">
+              <span className="mt-0.5 text-[10px] leading-none font-bold">
                 {Number.isInteger(count) ? count : count.toFixed(1)}回
               </span>
             )}
@@ -42,7 +42,9 @@ export default function ScheduleItemCard({
         </div>
       )}
 
-      <div className={`flex items-center gap-2 ${isDone ? "pr-14" : ""}`}>
+      {/* 完了カードは本文をトーンダウン(スタンプは鮮やかなまま) */}
+      <div className={isDone ? "opacity-55" : ""}>
+      <div className={`flex items-center gap-2 ${isDone ? "pr-20" : ""}`}>
         <span
           className={`rounded px-2 py-0.5 text-xs font-bold ${meta.badgeClass}`}
         >
@@ -68,7 +70,7 @@ export default function ScheduleItemCard({
       <h3
         className={`mt-2 text-lg font-bold ${
           item.isCancelled ? "text-slate-500 line-through" : "text-slate-900"
-        } ${isDone ? "pr-14" : ""}`}
+        } ${isDone ? "pr-20" : ""}`}
       >
         {item.title}
       </h3>
@@ -125,6 +127,7 @@ export default function ScheduleItemCard({
           集合場所を地図で見る ›
         </p>
       )}
+      </div>
     </div>
   );
 

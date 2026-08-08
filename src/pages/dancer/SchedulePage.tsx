@@ -34,6 +34,9 @@ export default function SchedulePage() {
   const nextItem =
     today && currentDay.id === today.id ? findNextItem(items) : null;
   const dayDanceCount = totalDanceCount(items);
+  const activeItems = items.filter((i) => !i.isCancelled);
+  const allDone =
+    activeItems.length > 0 && activeItems.every((i) => i.isCompleted);
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -60,6 +63,14 @@ export default function SchedulePage() {
             </button>
           ))}
         </div>
+      )}
+
+      {allDone && (
+        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-base font-bold text-emerald-800">
+          🎉 この日の予定はすべて完了!
+          <br />
+          お疲れさまでした!
+        </p>
       )}
 
       {dayDanceCount > 0 && (
