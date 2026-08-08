@@ -1,3 +1,5 @@
+import type { FestivalData } from "../types/domain";
+
 // 端末内(localStorage)の既読・確認済み管理。
 // 踊り子はログインしないため、既読状態は端末単位で保持する。
 // キーは祭りスラッグでスコープする(複数祭り対応)。
@@ -43,4 +45,39 @@ export function loadAckedIds(slug: string): string[] {
 
 export function saveAckedIds(slug: string, ids: string[]): void {
   saveIds(ackKey(slug), ids);
+}
+
+// ---------- オフライン用データスナップショット ----------
+
+interface CachedFestivalData {
+  data: FestivalData;
+  /** 取得成功時刻(ISO) */
+  fetchedAt: string;
+}
+
+function cacheKey(slug: string): string {
+  return `odoriko:${slug}:dataCache`;
+}
+
+export function loadDataCache(slug: string): CachedFestivalData | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(slug));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as CachedFestivalData;
+    if (!value?.data?.festival || !value.fetchedAt) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDataCache(slug: string, data: FestivalData): void {
+  try {
+    localStorage.setItem(
+      cacheKey(slug),
+      JSON.stringify({ data, fetchedAt: new Date().toISOString() }),
+    );
+  } catch {
+    // 容量超過等は無視(オンライン時は通常動作に影響しない)
+  }
 }

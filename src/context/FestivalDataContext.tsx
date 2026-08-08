@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { FestivalData } from "../types/domain";
 import { repository } from "../repositories";
+import { loadDataCache, saveDataCache } from "../lib/storage";
 
 // タブ復帰などで連続発火した際の再取得間隔の下限
 const MIN_REFRESH_INTERVAL_MS = 10_000;
@@ -18,8 +19,10 @@ interface FestivalDataState {
   loading: boolean;
   /** 手動・自動の再取得中(初回読み込みは loading) */
   refreshing: boolean;
-  /** 最後にデータ取得に成功した時刻 */
+  /** 最後にデータ取得に成功した時刻(キャッシュ表示中はその取得時刻) */
   lastUpdated: Date | null;
+  /** 現在キャッシュ(前回取得分)を表示中か */
+  isStale: boolean;
   /** 手動更新(強制再取得) */
   refresh: () => Promise<void>;
 }
@@ -33,10 +36,17 @@ export function FestivalDataProvider({
   slug: string;
   children: ReactNode;
 }) {
-  const [data, setData] = useState<FestivalData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // 起動時はまず端末内スナップショットを即表示し、裏で最新を取得する
+  const [data, setData] = useState<FestivalData | null>(() => {
+    return loadDataCache(slug)?.data ?? null;
+  });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(() => {
+    const cached = loadDataCache(slug);
+    return cached ? new Date(cached.fetchedAt) : null;
+  });
+  const [loading, setLoading] = useState(data == null);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isStale, setIsStale] = useState(data != null);
   const lastFetchRef = useRef(0);
   const inFlightRef = useRef(false);
 
@@ -48,9 +58,12 @@ export function FestivalDataProvider({
       const result = await repository.loadFestivalData(slug);
       setData(result);
       setLastUpdated(new Date());
+      setIsStale(false);
       lastFetchRef.current = Date.now();
+      if (result) saveDataCache(slug, result);
     } catch {
-      // 取得失敗時は前回のデータを保持したまま(オフライン等)
+      // 取得失敗時(オフライン等)は前回のデータを保持したまま
+      setIsStale(true);
     } finally {
       inFlightRef.current = false;
       setRefreshing(false);
@@ -58,12 +71,15 @@ export function FestivalDataProvider({
     }
   }, [slug]);
 
-  // 初回読み込み
+  // slug 変更時: キャッシュを反映してから取得
   useEffect(() => {
-    setLoading(true);
-    setData(null);
+    const cached = loadDataCache(slug);
+    setData(cached?.data ?? null);
+    setLastUpdated(cached ? new Date(cached.fetchedAt) : null);
+    setIsStale(cached != null);
+    setLoading(cached == null);
     void doFetch();
-  }, [doFetch]);
+  }, [doFetch, slug]);
 
   // 画面表示・アプリ復帰・オンライン復帰時の自動再取得(連続発火は間引く)
   useEffect(() => {
@@ -86,7 +102,7 @@ export function FestivalDataProvider({
 
   return (
     <FestivalDataContext.Provider
-      value={{ data, loading, refreshing, lastUpdated, refresh: doFetch }}
+      value={{ data, loading, refreshing, lastUpdated, isStale, refresh: doFetch }}
     >
       {children}
     </FestivalDataContext.Provider>
