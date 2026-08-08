@@ -564,7 +564,9 @@ export default function ScheduleAdminPage() {
                   (item.isCompleted ? (
                     <div className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2">
                       <span className="text-sm font-bold text-emerald-700">
-                        ✅ 完了(踊った回数 {fmtCount(item.danceCount ?? 0)}回)
+                        ✅ 完了
+                        {item.category === "performance" &&
+                          `(踊った回数 ${fmtCount(item.danceCount ?? 0)}回)`}
                       </span>
                       <button
                         type="button"
@@ -576,26 +578,33 @@ export default function ScheduleAdminPage() {
                     </div>
                   ) : (
                     <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
-                      <span className="text-sm text-slate-600">踊った回数</span>
-                      <button
-                        type="button"
-                        onClick={() => adjustPending(item, -0.5)}
-                        aria-label="回数を減らす"
-                        className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
-                      >
-                        −
-                      </button>
-                      <span className="w-12 text-center text-base font-bold tabular-nums">
-                        {fmtCount(pendingCountOf(item))}回
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => adjustPending(item, 0.5)}
-                        aria-label="回数を増やす"
-                        className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
-                      >
-                        +
-                      </button>
+                      {/* 回数入力は演舞のみ。その他の種別は完了ボタンだけ */}
+                      {item.category === "performance" && (
+                        <>
+                          <span className="text-sm text-slate-600">
+                            踊った回数
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => adjustPending(item, -0.5)}
+                            aria-label="回数を減らす"
+                            className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                          >
+                            −
+                          </button>
+                          <span className="w-12 text-center text-base font-bold tabular-nums">
+                            {fmtCount(pendingCountOf(item))}回
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => adjustPending(item, 0.5)}
+                            aria-label="回数を増やす"
+                            className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                          >
+                            +
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         onClick={() => void handleComplete(item)}

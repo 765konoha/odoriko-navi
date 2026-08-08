@@ -64,14 +64,3 @@ export function totalDanceCount(items: ScheduleItem[]): number {
     .filter((i) => i.isCompleted)
     .reduce((sum, i) => sum + (i.danceCount ?? 0), 0);
 }
-
-/**
- * 見込み総回数: 完了済みは実績値、未完了の演舞(中止除く)は1回として数える。
- */
-export function plannedDanceCount(items: ScheduleItem[]): number {
-  return items.reduce((sum, i) => {
-    if (i.isCancelled) return sum;
-    if (i.isCompleted) return sum + (i.danceCount ?? 0);
-    return sum + (i.category === "performance" ? 1 : 0);
-  }, 0);
-}

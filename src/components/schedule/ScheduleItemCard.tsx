@@ -38,6 +38,9 @@ export default function ScheduleItemCard({
         {item.isCompleted && !item.isCancelled && (
           <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
             ✓ 完了
+            {item.category === "performance" &&
+              (item.danceCount ?? 0) > 0 &&
+              `・${Number.isInteger(item.danceCount) ? item.danceCount : item.danceCount?.toFixed(1)}回`}
           </span>
         )}
         {!item.isConfirmed && !item.isCancelled && (

@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
-import { findNextItem, findToday, itemsOfDay } from "../../lib/schedule";
+import {
+  findNextItem,
+  findToday,
+  itemsOfDay,
+  totalDanceCount,
+} from "../../lib/schedule";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
@@ -28,6 +33,7 @@ export default function SchedulePage() {
   const items = itemsOfDay(data, currentDay.id);
   const nextItem =
     today && currentDay.id === today.id ? findNextItem(items) : null;
+  const dayDanceCount = totalDanceCount(items);
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -54,6 +60,18 @@ export default function SchedulePage() {
             </button>
           ))}
         </div>
+      )}
+
+      {dayDanceCount > 0 && (
+        <p className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">
+          🥁 この日の踊った回数:{" "}
+          <span className="font-bold tabular-nums">
+            {Number.isInteger(dayDanceCount)
+              ? dayDanceCount
+              : dayDanceCount.toFixed(1)}
+            回
+          </span>
+        </p>
       )}
 
       {items.length === 0 ? (
