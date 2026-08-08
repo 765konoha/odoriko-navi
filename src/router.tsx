@@ -5,6 +5,7 @@ import HomePage from "./pages/dancer/HomePage";
 import SchedulePage from "./pages/dancer/SchedulePage";
 import MapPage from "./pages/dancer/MapPage";
 import AnnouncementsPage from "./pages/dancer/AnnouncementsPage";
+import AnnouncementDetailPage from "./pages/dancer/AnnouncementDetailPage";
 
 export const router = createHashRouter([
   {
@@ -19,6 +20,10 @@ export const router = createHashRouter([
       { path: "schedule", element: <SchedulePage /> },
       { path: "map", element: <MapPage /> },
       { path: "announcements", element: <AnnouncementsPage /> },
+      {
+        path: "announcements/:announcementId",
+        element: <AnnouncementDetailPage />,
+      },
     ],
   },
   {
