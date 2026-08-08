@@ -4,6 +4,7 @@ import { useNow } from "../../hooks/useNow";
 import { findNextItem, findToday, itemsOfDay } from "../../lib/schedule";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
+import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 export default function SchedulePage() {
   const { data, loading } = useFestivalData();
@@ -31,7 +32,10 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <h1 className="text-xl font-bold">スケジュール</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-bold">スケジュール</h1>
+        <RefreshIndicator />
+      </div>
 
       {days.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">

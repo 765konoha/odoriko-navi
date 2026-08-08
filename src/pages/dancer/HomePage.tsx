@@ -9,6 +9,7 @@ import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
+import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
 import { activeAnnouncements } from "../../lib/announcements";
 
@@ -50,15 +51,18 @@ export default function HomePage() {
         />
       ))}
 
-      <header>
-        <h1 className="text-lg font-bold text-slate-700">
-          {data.festival.name}
-        </h1>
-        {today && (
-          <p className="text-sm text-slate-500">
-            {formatDateLabel(today.date)} {today.label}
-          </p>
-        )}
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-bold text-slate-700">
+            {data.festival.name}
+          </h1>
+          {today && (
+            <p className="text-sm text-slate-500">
+              {formatDateLabel(today.date)} {today.label}
+            </p>
+          )}
+        </div>
+        <RefreshIndicator />
       </header>
 
       {today == null ? (

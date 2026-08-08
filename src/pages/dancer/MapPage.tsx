@@ -7,6 +7,7 @@ import { useFestivalData } from "../../context/FestivalDataContext";
 import type { Location, LocationKind } from "../../types/domain";
 import { meetingPointIcon, toiletIcon } from "../../components/map/markerIcons";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
+import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 /** 初期表示: 全マーカーが収まるようにフィット(選択指定がある場合はそこへ) */
 function InitialView({
@@ -97,6 +98,9 @@ export default function MapPage() {
             {label}
           </label>
         ))}
+        <div className="ml-auto self-center">
+          <RefreshIndicator />
+        </div>
       </div>
 
       <div className="relative flex-1">

@@ -21,6 +21,11 @@ export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }
 
+/** Date → "15:42"(最終更新表示用) */
+export function formatClockTime(date: Date): string {
+  return timeFmt.format(date);
+}
+
 /** "2026-08-10" → "8/10(月)" */
 export function formatDateLabel(dateStr: string): string {
   return dateLabelFmt.format(new Date(`${dateStr}T00:00:00+09:00`));
