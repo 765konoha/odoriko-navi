@@ -83,7 +83,11 @@ export default function TodayTimeline({ items, locations, nextItemId }: Props) {
                 NEXT
               </span>
             ) : isDone ? (
-              <span className="text-emerald-600">✓</span>
+              <span className="shrink-0 text-sm font-bold text-emerald-600">
+                ✓
+                {(item.danceCount ?? 0) > 0 &&
+                  ` ${Number.isInteger(item.danceCount) ? item.danceCount : item.danceCount?.toFixed(1)}回`}
+              </span>
             ) : null}
           </div>
         );
