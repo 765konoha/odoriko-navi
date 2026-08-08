@@ -98,15 +98,17 @@ function AnnouncementForm({
             if (fnError) {
               pushInfo =
                 "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。";
-            } else if ((result?.total ?? 0) === 0) {
+            } else if (result?.total === undefined) {
+              // 旧版の関数は total を返さない
+              pushInfo =
+                "お知らせを配信しました。※send-push関数が旧版のようです。最新のコードで再デプロイしてください。";
+            } else if (result.total === 0) {
               pushInfo =
                 "お知らせを配信しました(プッシュ通知をオンにしている端末はまだありません)。";
-            } else if (result?.errors?.length) {
+            } else if (result.errors?.length) {
               pushInfo = `プッシュ通知: ${result.sent ?? 0}/${result.total}台に送信。失敗理由: ${result.errors[0]}`;
-            } else if ((result?.removed ?? 0) > 0 && (result?.sent ?? 0) === 0) {
-              pushInfo = `プッシュ通知: 送信先サービスが購読を無効と回答したため、${result?.removed}件の登録を削除しました(HTTP 404/410)。端末側で通知を一度オフ→オンし直してください。`;
             } else {
-              pushInfo = `プッシュ通知を送信しました(${result?.sent ?? 0}台、無効化された登録の削除 ${result?.removed ?? 0}件)。`;
+              pushInfo = `プッシュ通知を送信しました(${result.sent ?? 0}台)。`;
             }
           } catch {
             pushInfo =

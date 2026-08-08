@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
       errors: [] as string[],
     };
 
+    // 送信失敗時も購読は削除しない(解除はトグルオフ時にクライアントが行う)。
+    // 失敗理由はすべて errors として返す。
     await Promise.all(
       (subs ?? []).map(async (s) => {
         try {
@@ -92,20 +94,11 @@ Deno.serve(async (req) => {
             body?: string;
             message?: string;
           };
-          // 期限切れ・解除済みの購読は削除
-          if (err.statusCode === 404 || err.statusCode === 410) {
-            await admin
-              .from("push_subscriptions")
-              .delete()
-              .eq("endpoint", s.endpoint);
-            result.removed++;
-          } else {
-            const detail = `HTTP ${err.statusCode ?? "?"}: ${
-              (err.body ?? err.message ?? String(e)).slice(0, 300)
-            }`;
-            console.error("push send failed:", detail);
-            if (result.errors.length < 3) result.errors.push(detail);
-          }
+          const detail = `HTTP ${err.statusCode ?? "?"}: ${
+            (err.body ?? err.message ?? String(e)).slice(0, 300)
+          }`;
+          console.error("push send failed:", detail);
+          if (result.errors.length < 3) result.errors.push(detail);
         }
       }),
     );
