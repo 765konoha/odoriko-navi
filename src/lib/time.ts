@@ -36,8 +36,14 @@ export function toDateString(iso: string): string {
   return ymdFmt.format(new Date(iso));
 }
 
-/** 今日の日付 "YYYY-MM-DD"(JST基準) */
+/**
+ * 今日の日付 "YYYY-MM-DD"(JST基準)。
+ * 表示確認用に URL の ?date=YYYY-MM-DD で上書きできる
+ * (例: /odoriko-navi/?date=2026-08-10#/kochi-2026)。
+ */
 export function todayString(): string {
+  const override = new URLSearchParams(window.location.search).get("date");
+  if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) return override;
   return ymdFmt.format(new Date());
 }
 
