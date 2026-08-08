@@ -7,16 +7,10 @@ interface Props {
   items: ScheduleItem[];
   locations: Location[];
   nextItemId: string | null;
-  now: Date;
 }
 
-/** 本日の演舞予定の簡易タイムライン */
-export default function TodayTimeline({
-  items,
-  locations,
-  nextItemId,
-  now,
-}: Props) {
+/** 本日の演舞予定の簡易タイムライン(✓は運営の完了操作ベース) */
+export default function TodayTimeline({ items, locations, nextItemId }: Props) {
   const { festivalSlug } = useParams();
   const performances = items.filter((s) => s.category === "performance");
 
@@ -33,8 +27,7 @@ export default function TodayTimeline({
       {performances.map((item) => {
         const t = displayTime(item);
         const isNext = item.id === nextItemId;
-        const isDone =
-          !isNext && t != null && new Date(t).getTime() < now.getTime();
+        const isDone = !!item.isCompleted;
         const meetingLocation = item.meetingLocationId
           ? (locations.find((l) => l.id === item.meetingLocationId) ?? null)
           : null;

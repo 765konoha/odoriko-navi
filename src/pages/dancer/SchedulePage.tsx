@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
-import { useNow } from "../../hooks/useNow";
 import { findNextItem, findToday, itemsOfDay } from "../../lib/schedule";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
@@ -8,7 +7,6 @@ import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 export default function SchedulePage() {
   const { data, loading } = useFestivalData();
-  const now = useNow();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   if (loading) {
@@ -29,7 +27,7 @@ export default function SchedulePage() {
     days.find((d) => d.id === selectedDayId) ?? today ?? days[0];
   const items = itemsOfDay(data, currentDay.id);
   const nextItem =
-    today && currentDay.id === today.id ? findNextItem(items, now) : null;
+    today && currentDay.id === today.id ? findNextItem(items) : null;
 
   return (
     <div className="space-y-4 px-4 py-4">

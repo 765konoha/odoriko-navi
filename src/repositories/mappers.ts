@@ -51,6 +51,8 @@ export interface ScheduleItemRow {
   tbd_note: string | null;
   is_cancelled: boolean;
   sort_order: number;
+  is_completed: boolean;
+  dance_count: number;
 }
 
 export interface AnnouncementRow {
@@ -106,6 +108,8 @@ export function toScheduleItem(row: ScheduleItemRow): ScheduleItem {
     tbdNote: row.tbd_note ?? undefined,
     isCancelled: row.is_cancelled,
     sortOrder: row.sort_order,
+    isCompleted: row.is_completed ?? false,
+    danceCount: Number(row.dance_count ?? 0),
   };
 }
 
@@ -122,7 +126,7 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
 }
 
 export const SCHEDULE_ITEM_COLUMNS =
-  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order";
+  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count";
 
 export const LOCATION_COLUMNS =
   "id, festival_id, kind, name, lat, lng, address, description";

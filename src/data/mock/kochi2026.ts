@@ -113,6 +113,8 @@ export const kochi2026: FestivalData = {
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 1,
+      isCompleted: true,
+      danceCount: 0,
     },
     {
       id: "s-02",
@@ -127,6 +129,8 @@ export const kochi2026: FestivalData = {
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 2,
+      isCompleted: true,
+      danceCount: 1,
     },
     {
       id: "s-03",
@@ -138,6 +142,8 @@ export const kochi2026: FestivalData = {
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 3,
+      isCompleted: true,
+      danceCount: 0,
     },
     {
       id: "s-04",
@@ -152,6 +158,8 @@ export const kochi2026: FestivalData = {
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 4,
+      isCompleted: true,
+      danceCount: 1.5,
     },
     {
       id: "s-05",

@@ -8,6 +8,7 @@ import type {
   ScheduleItem,
 } from "../../types/domain";
 import {
+  completeScheduleItem,
   createDay,
   createScheduleItem,
   deleteDay,
@@ -15,6 +16,7 @@ import {
   listDays,
   listLocations,
   listScheduleItems,
+  uncompleteScheduleItem,
   updateScheduleItem,
   type ScheduleItemInput,
 } from "../../lib/adminApi";
@@ -112,6 +114,9 @@ function ItemForm({
       tbdNote: form.isConfirmed ? null : form.tbdNote.trim() || null,
       isCancelled: form.isCancelled,
       sortOrder: form.sortOrder,
+      // 完了状態と回数はフォームでは編集せず、カードの完了ボタンで管理する
+      isCompleted: item?.isCompleted ?? false,
+      danceCount: item?.danceCount ?? 0,
     };
     try {
       if (item) {
@@ -307,6 +312,8 @@ export default function ScheduleAdminPage() {
   const [newDayDate, setNewDayDate] = useState("");
   const [newDayLabel, setNewDayLabel] = useState("");
   const [loading, setLoading] = useState(true);
+  // 完了前に入力する「踊った回数」(0.5刻み)。未入力時は演舞=1回、その他=0回
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     if (!festival) return;
@@ -346,6 +353,36 @@ export default function ScheduleAdminPage() {
     if (!window.confirm(`「${item.title}」を削除しますか?`)) return;
     await deleteScheduleItem(item.id);
     await load();
+  }
+
+  function pendingCountOf(item: ScheduleItem): number {
+    return (
+      pendingCounts[item.id] ??
+      (item.danceCount && item.danceCount > 0
+        ? item.danceCount
+        : item.category === "performance"
+          ? 1
+          : 0)
+    );
+  }
+
+  function adjustPending(item: ScheduleItem, delta: number) {
+    const next = Math.max(0, Math.min(9.5, pendingCountOf(item) + delta));
+    setPendingCounts((prev) => ({ ...prev, [item.id]: next }));
+  }
+
+  async function handleComplete(item: ScheduleItem) {
+    await completeScheduleItem(item.id, pendingCountOf(item));
+    await load();
+  }
+
+  async function handleUncomplete(item: ScheduleItem) {
+    await uncompleteScheduleItem(item.id);
+    await load();
+  }
+
+  function fmtCount(n: number): string {
+    return Number.isInteger(n) ? `${n}` : n.toFixed(1);
   }
 
   async function handleAddDay(e: FormEvent) {
@@ -506,6 +543,11 @@ export default function ScheduleAdminPage() {
                       未確定
                     </span>
                   )}
+                  {item.isCompleted && (
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                      ✓ 完了
+                    </span>
+                  )}
                   <span className="ml-auto text-xs text-slate-400">
                     順:{item.sortOrder}
                   </span>
@@ -518,6 +560,51 @@ export default function ScheduleAdminPage() {
                   {item.startTime && `開始 ${formatTime(item.startTime)}`}
                   {item.endTime && `〜${formatTime(item.endTime)}`}
                 </p>
+                {!item.isCancelled &&
+                  (item.isCompleted ? (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2">
+                      <span className="text-sm font-bold text-emerald-700">
+                        ✅ 完了(踊った回数 {fmtCount(item.danceCount ?? 0)}回)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handleUncomplete(item)}
+                        className="ml-auto text-sm font-bold text-slate-500"
+                      >
+                        取り消す
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+                      <span className="text-sm text-slate-600">踊った回数</span>
+                      <button
+                        type="button"
+                        onClick={() => adjustPending(item, -0.5)}
+                        aria-label="回数を減らす"
+                        className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                      >
+                        −
+                      </button>
+                      <span className="w-12 text-center text-base font-bold tabular-nums">
+                        {fmtCount(pendingCountOf(item))}回
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => adjustPending(item, 0.5)}
+                        aria-label="回数を増やす"
+                        className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleComplete(item)}
+                        className="ml-auto rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white"
+                      >
+                        完了
+                      </button>
+                    </div>
+                  ))}
                 <div className="mt-2 flex gap-3">
                   <button
                     type="button"

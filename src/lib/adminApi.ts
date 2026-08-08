@@ -91,6 +91,8 @@ export interface ScheduleItemInput {
   tbdNote: string | null;
   isCancelled: boolean;
   sortOrder: number;
+  isCompleted: boolean;
+  danceCount: number;
 }
 
 function scheduleItemToRow(input: ScheduleItemInput) {
@@ -108,6 +110,8 @@ function scheduleItemToRow(input: ScheduleItemInput) {
     tbd_note: input.tbdNote,
     is_cancelled: input.isCancelled,
     sort_order: input.sortOrder,
+    is_completed: input.isCompleted,
+    dance_count: input.danceCount,
   };
 }
 
@@ -148,6 +152,27 @@ export async function deleteScheduleItem(id: string): Promise<void> {
   const { error } = await client()
     .from("schedule_items")
     .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** 予定を完了にして踊った回数を記録する(0.5回単位) */
+export async function completeScheduleItem(
+  id: string,
+  danceCount: number,
+): Promise<void> {
+  const { error } = await client()
+    .from("schedule_items")
+    .update({ is_completed: true, dance_count: danceCount })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** 完了を取り消す(回数は保持し、集計からは除外される) */
+export async function uncompleteScheduleItem(id: string): Promise<void> {
+  const { error } = await client()
+    .from("schedule_items")
+    .update({ is_completed: false })
     .eq("id", id);
   if (error) throw error;
 }

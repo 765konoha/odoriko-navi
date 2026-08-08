@@ -55,6 +55,10 @@ export interface ScheduleItem {
   tbdNote?: string;
   isCancelled: boolean;
   sortOrder: number;
+  /** 運営が完了ボタンで更新(時刻ではなくこれで進行を判定する) */
+  isCompleted?: boolean;
+  /** 踊った回数(0.5回単位。完了時に運営が入力) */
+  danceCount?: number;
 }
 
 export type AnnouncementPriority = "normal" | "important" | "emergency";

@@ -9,6 +9,7 @@ import {
 import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
+import DanceCountCard from "../../components/home/DanceCountCard";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
@@ -32,7 +33,7 @@ export default function HomePage() {
 
   const today = findToday(data.days);
   const todayItems = today ? itemsOfDay(data, today.id) : [];
-  const nextItem = findNextItem(todayItems, now);
+  const nextItem = findNextItem(todayItems);
   const meetingLocation = nextItem?.meetingLocationId
     ? (data.locations.find((l) => l.id === nextItem.meetingLocationId) ?? null)
     : null;
@@ -115,10 +116,11 @@ export default function HomePage() {
             nextItemId={
               nextItem?.category === "performance" ? nextItem.id : null
             }
-            now={now}
           />
         </section>
       )}
+
+      <DanceCountCard days={data.days} items={data.scheduleItems} />
 
       <footer className="pt-6 pb-2 text-center">
         <Link to="/admin" className="text-xs text-slate-400 underline">

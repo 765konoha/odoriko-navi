@@ -47,17 +47,31 @@ export function findToday(days: FestivalDay[]): FestivalDay | null {
 }
 
 /**
- * 次の予定: 今日の予定のうち、中止でなく代表時刻が現在以降の最初の1件。
+ * 次の予定: 中止でなく、まだ完了していない最初の1件。
+ * (時刻ではなく、運営が管理画面で押す「完了」で進行する)
  */
-export function findNextItem(
-  items: ScheduleItem[],
-  now: Date,
-): ScheduleItem | null {
+export function findNextItem(items: ScheduleItem[]): ScheduleItem | null {
   for (const item of sortItems(items)) {
-    if (item.isCancelled) continue;
-    const t = effectiveTime(item);
-    if (!t) continue;
-    if (new Date(t).getTime() >= now.getTime()) return item;
+    if (item.isCancelled || item.isCompleted) continue;
+    return item;
   }
   return null;
+}
+
+/** 完了済み予定の踊った回数の合計 */
+export function totalDanceCount(items: ScheduleItem[]): number {
+  return items
+    .filter((i) => i.isCompleted)
+    .reduce((sum, i) => sum + (i.danceCount ?? 0), 0);
+}
+
+/**
+ * 見込み総回数: 完了済みは実績値、未完了の演舞(中止除く)は1回として数える。
+ */
+export function plannedDanceCount(items: ScheduleItem[]): number {
+  return items.reduce((sum, i) => {
+    if (i.isCancelled) return sum;
+    if (i.isCompleted) return sum + (i.danceCount ?? 0);
+    return sum + (i.category === "performance" ? 1 : 0);
+  }, 0);
 }

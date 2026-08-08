@@ -35,6 +35,11 @@ export default function ScheduleItemCard({
             中止
           </span>
         )}
+        {item.isCompleted && !item.isCancelled && (
+          <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+            ✓ 完了
+          </span>
+        )}
         {!item.isConfirmed && !item.isCancelled && (
           <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
             未確定
