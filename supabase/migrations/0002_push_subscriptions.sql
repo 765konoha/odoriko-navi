@@ -12,8 +12,12 @@ create table push_subscriptions (
 alter table push_subscriptions enable row level security;
 
 -- 踊り子(未ログイン)が自分の端末の購読を登録・解除できるようにする。
--- endpoint は推測不可能なURLのため、SELECT は誰にも許可しない
--- (送信処理は Edge Function が service_role で行う)。
+-- 注意: WHERE句付きDELETEはPostgreSQLの仕様上、対象行がSELECTポリシーで
+-- 見えることも必要なため、SELECTも許可する(endpoint等が読めても
+-- VAPID秘密鍵なしには通知を送れないため実害はない)。
+create policy "public select push_subscriptions"
+  on push_subscriptions for select to anon, authenticated using (true);
+
 create policy "public insert push_subscriptions"
   on push_subscriptions for insert to anon, authenticated with check (true);
 
