@@ -17,14 +17,32 @@ export default function ScheduleItemCard({
   const { festivalSlug } = useParams();
   const meta = CATEGORY_META[item.category];
   const isPerformance = item.category === "performance";
+  const isDone = !!item.isCompleted && !item.isCancelled;
+  const count = item.danceCount ?? 0;
 
   const body = (
     <div
-      className={`rounded-2xl bg-white p-4 shadow-sm ${
+      className={`relative rounded-2xl bg-white p-4 shadow-sm ${
         item.isCancelled ? "opacity-60" : ""
-      } ${isNext ? "ring-2 ring-amber-400" : ""}`}
+      } ${isNext ? "ring-2 ring-amber-400" : ""} ${
+        isDone ? "border-l-4 border-emerald-500 opacity-70" : ""
+      }`}
     >
-      <div className="flex items-center gap-2">
+      {/* 完了スタンプ(判子風) */}
+      {isDone && (
+        <div className="pointer-events-none absolute top-2.5 right-2.5 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-emerald-600/80">
+          <div className="flex h-11 w-11 flex-col items-center justify-center rounded-full border border-emerald-600/50 text-emerald-700">
+            <span className="text-lg leading-none font-bold">完</span>
+            {isPerformance && count > 0 && (
+              <span className="mt-0.5 text-[9px] leading-none font-bold">
+                {Number.isInteger(count) ? count : count.toFixed(1)}回
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`flex items-center gap-2 ${isDone ? "pr-14" : ""}`}>
         <span
           className={`rounded px-2 py-0.5 text-xs font-bold ${meta.badgeClass}`}
         >
@@ -33,14 +51,6 @@ export default function ScheduleItemCard({
         {item.isCancelled && (
           <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
             中止
-          </span>
-        )}
-        {item.isCompleted && !item.isCancelled && (
-          <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
-            ✓ 完了
-            {item.category === "performance" &&
-              (item.danceCount ?? 0) > 0 &&
-              `・${Number.isInteger(item.danceCount) ? item.danceCount : item.danceCount?.toFixed(1)}回`}
           </span>
         )}
         {!item.isConfirmed && !item.isCancelled && (
@@ -58,7 +68,7 @@ export default function ScheduleItemCard({
       <h3
         className={`mt-2 text-lg font-bold ${
           item.isCancelled ? "text-slate-500 line-through" : "text-slate-900"
-        }`}
+        } ${isDone ? "pr-14" : ""}`}
       >
         {item.title}
       </h3>
