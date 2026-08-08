@@ -15,6 +15,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -34,25 +41,20 @@ Deno.serve(async (req) => {
     const {
       data: { user },
     } = await authClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const { title, body } = await req.json();
-    if (!title) {
-      return new Response(JSON.stringify({ error: "title is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!title) return json({ error: "title is required" }, 400);
 
+    const vapidPublic = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
+    const vapidPrivate = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "").trim();
+    if (!vapidPublic || !vapidPrivate) {
+      return json({ error: "VAPID keys are not configured" }, 500);
+    }
     webpush.setVapidDetails(
       "mailto:miyamoto.shohei@plus-zero.co.jp",
-      Deno.env.get("VAPID_PUBLIC_KEY")!,
-      Deno.env.get("VAPID_PRIVATE_KEY")!,
+      vapidPublic,
+      vapidPrivate,
     );
 
     const admin = createClient(
@@ -69,8 +71,13 @@ Deno.serve(async (req) => {
       body: (body ?? "").slice(0, 180),
     });
 
-    let sent = 0;
-    let removed = 0;
+    const result = {
+      total: (subs ?? []).length,
+      sent: 0,
+      removed: 0,
+      errors: [] as string[],
+    };
+
     await Promise.all(
       (subs ?? []).map(async (s) => {
         try {
@@ -78,28 +85,34 @@ Deno.serve(async (req) => {
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
             payload,
           );
-          sent++;
+          result.sent++;
         } catch (e) {
-          const status = (e as { statusCode?: number }).statusCode;
+          const err = e as {
+            statusCode?: number;
+            body?: string;
+            message?: string;
+          };
           // 期限切れ・解除済みの購読は削除
-          if (status === 404 || status === 410) {
+          if (err.statusCode === 404 || err.statusCode === 410) {
             await admin
               .from("push_subscriptions")
               .delete()
               .eq("endpoint", s.endpoint);
-            removed++;
+            result.removed++;
+          } else {
+            const detail = `HTTP ${err.statusCode ?? "?"}: ${
+              (err.body ?? err.message ?? String(e)).slice(0, 300)
+            }`;
+            console.error("push send failed:", detail);
+            if (result.errors.length < 3) result.errors.push(detail);
           }
         }
       }),
     );
 
-    return new Response(JSON.stringify({ sent, removed }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(result);
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("send-push fatal:", e);
+    return json({ error: String(e) }, 500);
   }
 });

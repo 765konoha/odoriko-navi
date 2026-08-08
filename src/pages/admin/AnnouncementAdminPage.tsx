@@ -89,9 +89,22 @@ function AnnouncementForm({
               "send-push",
               { body: { title: input.title, body: input.body } },
             );
-            pushInfo = fnError
-              ? "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。"
-              : `プッシュ通知を送信しました(${(data as { sent?: number })?.sent ?? 0}台)。`;
+            const result = data as {
+              total?: number;
+              sent?: number;
+              errors?: string[];
+            } | null;
+            if (fnError) {
+              pushInfo =
+                "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。";
+            } else if ((result?.total ?? 0) === 0) {
+              pushInfo =
+                "お知らせを配信しました(プッシュ通知をオンにしている端末はまだありません)。";
+            } else if (result?.errors?.length) {
+              pushInfo = `プッシュ通知: ${result.sent ?? 0}/${result.total}台に送信。失敗理由: ${result.errors[0]}`;
+            } else {
+              pushInfo = `プッシュ通知を送信しました(${result?.sent ?? 0}台)。`;
+            }
           } catch {
             pushInfo =
               "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。";
