@@ -54,7 +54,7 @@ begin
     (fid, 'toilet', '追手筋 仮設トイレ', 33.5610, 133.5375,
      '追手筋西側 廿代町公園横', '祭り期間のみ設置。'),
     (fid, 'toilet', '帯屋町アーケード内 トイレ', 33.5601, 133.5399,
-     '帯屋町2丁目 アーケード中央');
+     '帯屋町2丁目 アーケード中央', null);
 
   insert into schedule_items
     (festival_day_id, title, category, gather_time, start_time, end_time,
