@@ -13,3 +13,26 @@ body {
     sans-serif;
   @apply bg-slate-100 text-slate-900;
 }
+
+/* 現在地マーカー(青点+波紋) */
+.geo-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 rgba(37, 99, 235, 0.4);
+  animation: geo-pulse 2s infinite;
+}
+
+@keyframes geo-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}

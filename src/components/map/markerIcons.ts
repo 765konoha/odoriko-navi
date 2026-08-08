@@ -24,3 +24,11 @@ export const toiletIcon = pin(
   "#059669",
   '<text x="17" y="21" text-anchor="middle" font-size="12" font-weight="bold" fill="white" font-family="sans-serif">WC</text>',
 );
+
+/** 現在地の青い点(アニメーションは index.css の .geo-dot) */
+export const currentLocationIcon = L.divIcon({
+  className: "",
+  html: '<div class="geo-dot"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
