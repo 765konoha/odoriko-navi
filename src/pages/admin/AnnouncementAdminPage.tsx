@@ -92,6 +92,7 @@ function AnnouncementForm({
             const result = data as {
               total?: number;
               sent?: number;
+              removed?: number;
               errors?: string[];
             } | null;
             if (fnError) {
@@ -102,8 +103,10 @@ function AnnouncementForm({
                 "お知らせを配信しました(プッシュ通知をオンにしている端末はまだありません)。";
             } else if (result?.errors?.length) {
               pushInfo = `プッシュ通知: ${result.sent ?? 0}/${result.total}台に送信。失敗理由: ${result.errors[0]}`;
+            } else if ((result?.removed ?? 0) > 0 && (result?.sent ?? 0) === 0) {
+              pushInfo = `プッシュ通知: 送信先サービスが購読を無効と回答したため、${result?.removed}件の登録を削除しました(HTTP 404/410)。端末側で通知を一度オフ→オンし直してください。`;
             } else {
-              pushInfo = `プッシュ通知を送信しました(${result?.sent ?? 0}台)。`;
+              pushInfo = `プッシュ通知を送信しました(${result?.sent ?? 0}台、無効化された登録の削除 ${result?.removed ?? 0}件)。`;
             }
           } catch {
             pushInfo =
