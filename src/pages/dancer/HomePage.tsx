@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useNow } from "../../hooks/useNow";
 import {
@@ -95,6 +96,12 @@ export default function HomePage() {
           />
         </section>
       )}
+
+      <footer className="pt-6 pb-2 text-center">
+        <Link to="/admin" className="text-xs text-slate-400 underline">
+          運営の方はこちら
+        </Link>
+      </footer>
     </div>
   );
 }
