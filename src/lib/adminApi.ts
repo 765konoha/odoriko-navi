@@ -242,13 +242,17 @@ export async function listAllAnnouncements(
   return ((data ?? []) as AnnouncementRow[]).map(toAnnouncement);
 }
 
+/** 作成したお知らせの id を返す(プッシュ通知の遷移先URLに使う) */
 export async function createAnnouncement(
   input: AnnouncementInput,
-): Promise<void> {
-  const { error } = await client()
+): Promise<string> {
+  const { data, error } = await client()
     .from("announcements")
-    .insert(announcementToRow(input));
+    .insert(announcementToRow(input))
+    .select("id")
+    .single();
   if (error) throw error;
+  return (data as { id: string }).id;
 }
 
 export async function updateAnnouncement(

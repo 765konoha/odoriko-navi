@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     } = await authClient.auth.getUser();
     if (!user) return json({ error: "unauthorized" }, 401);
 
-    const { title, body } = await req.json();
+    const { title, body, url } = await req.json();
     if (!title) return json({ error: "title is required" }, 400);
 
     const vapidPublic = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title,
       body: (body ?? "").slice(0, 180),
+      // 通知タップ時の遷移先(お知らせ詳細ページ)
+      url: typeof url === "string" ? url : undefined,
     });
 
     const result = {

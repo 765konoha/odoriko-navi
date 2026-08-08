@@ -37,12 +37,14 @@ export interface AnnouncementTemplate {
 
 function AnnouncementForm({
   festivalId,
+  festivalSlug,
   announcement,
   initial,
   onSaved,
   onCancel,
 }: {
   festivalId: string;
+  festivalSlug: string;
   announcement: Announcement | null;
   initial: AnnouncementTemplate | null;
   onSaved: (pushInfo: string | null) => void;
@@ -79,7 +81,7 @@ function AnnouncementForm({
       if (announcement) {
         await updateAnnouncement(announcement.id, input);
       } else {
-        await createAnnouncement(input);
+        const newId = await createAnnouncement(input);
         // 即時公開の新規お知らせはプッシュ通知も送信
         const isPublishedNow =
           new Date(input.publishedAt).getTime() <= Date.now() + 60_000;
@@ -87,7 +89,14 @@ function AnnouncementForm({
           try {
             const { data, error: fnError } = await supabase.functions.invoke(
               "send-push",
-              { body: { title: input.title, body: input.body } },
+              {
+                body: {
+                  title: input.title,
+                  body: input.body,
+                  // 通知タップでこのお知らせの詳細を開く
+                  url: `${import.meta.env.BASE_URL}#/${festivalSlug}/announcements/${newId}`,
+                },
+              },
             );
             const result = data as {
               total?: number;
@@ -252,6 +261,7 @@ export default function AnnouncementAdminPage() {
     return (
       <AnnouncementForm
         festivalId={festival.id}
+        festivalSlug={festival.slug}
         announcement={editing.mode === "edit" ? editing.announcement : null}
         initial={editing.mode === "new" ? pendingTemplate : null}
         onSaved={(pushInfo) => {

@@ -24,7 +24,11 @@ self.addEventListener("notificationclick", (event) => {
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((list) => {
+        // 既存ウィンドウがあれば該当ページへ遷移してフォーカス
         for (const client of list) {
+          if ("navigate" in client) {
+            return client.navigate(url).then((c) => (c ? c.focus() : null));
+          }
           if ("focus" in client) return client.focus();
         }
         return clients.openWindow(url);

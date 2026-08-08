@@ -43,17 +43,26 @@ export default function PushToggle() {
     );
   }
 
+  if (state === "denied") {
+    return (
+      <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500">
+        🔔 通知がブロックされています。受け取るには端末の設定でこのサイトの通知を許可してください。
+      </p>
+    );
+  }
+
+  const isOn = state === "on";
+
   async function handleToggle() {
     setBusy(true);
     setMessage(null);
-    if (state === "on") {
+    if (isOn) {
       await unsubscribeFromPush();
       setState("off");
     } else {
       const result = await subscribeToPush();
       if (result === "subscribed") {
         setState("on");
-        setMessage("この端末で新しいお知らせの通知を受け取ります。");
       } else if (result === "denied") {
         setState("denied");
       } else {
@@ -63,34 +72,43 @@ export default function PushToggle() {
     setBusy(false);
   }
 
-  if (state === "denied") {
-    return (
-      <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500">
-        🔔 通知がブロックされています。受け取るには端末の設定でこのサイトの通知を許可してください。
-      </p>
-    );
-  }
-
   return (
     <div className="rounded-xl bg-white px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-slate-700">
-          🔔 新しいお知らせをプッシュ通知で受け取る
-        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-800">🔔 プッシュ通知</p>
+          <p
+            className={`mt-0.5 text-xs font-medium ${
+              isOn ? "text-emerald-700" : "text-slate-500"
+            }`}
+          >
+            {isOn
+              ? "現在オン:新しいお知らせを通知します"
+              : "現在オフ:通知は届きません"}
+          </p>
+        </div>
         <button
           type="button"
+          role="switch"
+          aria-checked={isOn}
+          aria-label={`プッシュ通知を${isOn ? "オフ" : "オン"}にする`}
           onClick={() => void handleToggle()}
           disabled={busy}
-          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-bold disabled:opacity-50 ${
-            state === "on"
-              ? "bg-emerald-600 text-white"
-              : "bg-slate-200 text-slate-600"
+          className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+            isOn ? "bg-emerald-500" : "bg-slate-300"
           }`}
         >
-          {busy ? "…" : state === "on" ? "オン" : "オフ"}
+          <span
+            className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+              isOn ? "translate-x-5" : ""
+            }`}
+          />
         </button>
       </div>
-      {message && <p className="mt-1 text-xs text-slate-500">{message}</p>}
+      <p className="mt-1 text-xs text-slate-400">
+        タップで{isOn ? "オフ" : "オン"}に切り替え
+      </p>
+      {message && <p className="mt-1 text-xs text-red-600">{message}</p>}
     </div>
   );
 }
