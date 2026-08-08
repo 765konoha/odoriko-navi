@@ -17,7 +17,7 @@ import { activeAnnouncements } from "../../lib/announcements";
 export default function HomePage() {
   const { data, loading } = useFestivalData();
   const now = useNow();
-  const { ackedIds, markAcked } = useReadStatus();
+  const { ackedIds, markAcked, readIds } = useReadStatus();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -38,9 +38,13 @@ export default function HomePage() {
     : null;
 
   // 未確認の緊急連絡は「確認しました」を押すまでホームに強制表示する
-  const pendingEmergencies = activeAnnouncements(data.announcements, now).filter(
+  const currentAnnouncements = activeAnnouncements(data.announcements, now);
+  const pendingEmergencies = currentAnnouncements.filter(
     (a) => a.priority === "emergency" && !ackedIds.has(a.id),
   );
+  const unreadCount = currentAnnouncements.filter(
+    (a) => !readIds.has(a.id),
+  ).length;
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -65,6 +69,24 @@ export default function HomePage() {
         </div>
         <RefreshIndicator />
       </header>
+
+      {unreadCount > 0 && (
+        <Link
+          to="announcements"
+          className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"
+        >
+          <span className="text-xl">🔔</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-blue-900">
+              新しい通知が{unreadCount}件あります。
+            </span>
+            <span className="block text-xs text-blue-700">
+              タップするとお知らせ画面を開きます
+            </span>
+          </span>
+          <span className="text-blue-400">›</span>
+        </Link>
+      )}
 
       {today == null ? (
         <p className="rounded-xl bg-white p-4 text-slate-600">
