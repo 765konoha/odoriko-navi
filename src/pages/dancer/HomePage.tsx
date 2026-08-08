@@ -8,10 +8,14 @@ import {
 import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
+import EmergencyBanner from "../../components/home/EmergencyBanner";
+import { useReadStatus } from "../../context/ReadStatusContext";
+import { activeAnnouncements } from "../../lib/announcements";
 
 export default function HomePage() {
   const { data, loading } = useFestivalData();
   const now = useNow();
+  const { ackedIds, markAcked } = useReadStatus();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -31,8 +35,21 @@ export default function HomePage() {
     ? (data.locations.find((l) => l.id === nextItem.meetingLocationId) ?? null)
     : null;
 
+  // 未確認の緊急連絡は「確認しました」を押すまでホームに強制表示する
+  const pendingEmergencies = activeAnnouncements(data.announcements, now).filter(
+    (a) => a.priority === "emergency" && !ackedIds.has(a.id),
+  );
+
   return (
     <div className="space-y-4 px-4 py-4">
+      {pendingEmergencies.map((a) => (
+        <EmergencyBanner
+          key={a.id}
+          announcement={a}
+          onAcknowledge={() => markAcked(a.id)}
+        />
+      ))}
+
       <header>
         <h1 className="text-lg font-bold text-slate-700">
           {data.festival.name}

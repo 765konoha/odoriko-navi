@@ -1,11 +1,21 @@
+import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useFestivalData } from "../../context/FestivalDataContext";
+import { useReadStatus } from "../../context/ReadStatusContext";
 import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
 
 export default function AnnouncementDetailPage() {
   const { festivalSlug, announcementId } = useParams();
   const { data, loading } = useFestivalData();
+  const { markRead } = useReadStatus();
+
+  // 詳細を開いたら既読にする
+  const exists =
+    data?.announcements.some((a) => a.id === announcementId) ?? false;
+  useEffect(() => {
+    if (exists && announcementId) markRead(announcementId);
+  }, [exists, announcementId, markRead]);
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;

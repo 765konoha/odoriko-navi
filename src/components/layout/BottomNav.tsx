@@ -1,4 +1,7 @@
 import { NavLink, useParams } from "react-router-dom";
+import { useFestivalData } from "../../context/FestivalDataContext";
+import { useReadStatus } from "../../context/ReadStatusContext";
+import { activeAnnouncements } from "../../lib/announcements";
 
 const iconClass = "h-6 w-6";
 
@@ -52,6 +55,15 @@ const items = [
 export default function BottomNav() {
   const { festivalSlug } = useParams();
   const base = `/${festivalSlug}`;
+  const { data } = useFestivalData();
+  const { readIds } = useReadStatus();
+
+  // 未読件数: 現在公開中のお知らせのうち未読のもの
+  const unreadCount = data
+    ? activeAnnouncements(data.announcements, new Date()).filter(
+        (a) => !readIds.has(a.id),
+      ).length
+    : 0;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
@@ -67,7 +79,14 @@ export default function BottomNav() {
               }`
             }
           >
-            {item.icon}
+            <span className="relative">
+              {item.icon}
+              {item.to === "announcements" && unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </span>
             {item.label}
           </NavLink>
         ))}
