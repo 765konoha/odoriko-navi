@@ -3,6 +3,7 @@ import {
   isPushSupported,
   isSubscribed,
   subscribeToPush,
+  syncSubscription,
   unsubscribeFromPush,
 } from "../../lib/push";
 
@@ -25,7 +26,11 @@ export default function PushToggle() {
       setState("denied");
       return;
     }
-    void isSubscribed().then((on) => setState(on ? "on" : "off"));
+    void isSubscribed().then((on) => {
+      setState(on ? "on" : "off");
+      // 購読済みならDB側の登録を自動修復(行が消えていても再登録される)
+      if (on) void syncSubscription();
+    });
   }, []);
 
   if (state === "hidden") return null;

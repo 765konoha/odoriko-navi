@@ -49,12 +49,20 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
   if (permission !== "granted") return "denied";
 
   try {
-    const sub =
-      (await reg.pushManager.getSubscription()) ??
-      (await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!),
-      }));
+    // 既存の購読は破棄して必ず新規作成する。
+    // 無効化された(Push サービスが 410 を返す)購読の再利用を防ぐ。
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await supabase
+        .from("push_subscriptions")
+        .delete()
+        .eq("endpoint", existing.endpoint);
+      await existing.unsubscribe();
+    }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!),
+    });
     const json = sub.toJSON();
     const { error } = await supabase.from("push_subscriptions").insert({
       endpoint: sub.endpoint,
@@ -70,6 +78,26 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
   } catch (e) {
     console.error("push subscribe failed:", e);
     return "error";
+  }
+}
+
+/**
+ * ブラウザ側は購読済みなのに DB に行がない状態を自動修復する。
+ * (過去の不整合や誤削除からの回復用。お知らせ画面表示時に呼ぶ)
+ */
+export async function syncSubscription(): Promise<void> {
+  if (!isPushSupported() || !supabase) return;
+  const reg = await getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  const json = sub.toJSON();
+  const { error } = await supabase.from("push_subscriptions").insert({
+    endpoint: sub.endpoint,
+    p256dh: json.keys?.p256dh ?? "",
+    auth: json.keys?.auth ?? "",
+  });
+  if (error && error.code !== "23505") {
+    console.error("push subscription sync failed:", error);
   }
 }
 
