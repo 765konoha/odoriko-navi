@@ -82,10 +82,14 @@ function AnnouncementForm({
         await updateAnnouncement(announcement.id, input);
       } else {
         const newId = await createAnnouncement(input);
-        // 即時公開の新規お知らせはプッシュ通知も送信
+        // 即時公開かつ重要度が「重要」「緊急」の新規お知らせのみプッシュ通知を送信
         const isPublishedNow =
           new Date(input.publishedAt).getTime() <= Date.now() + 60_000;
-        if (isPublishedNow && supabase) {
+        if (input.priority === "normal") {
+          pushInfo = isPublishedNow
+            ? "お知らせを配信しました(通常のためプッシュ通知は送信していません)。"
+            : null;
+        } else if (isPublishedNow && supabase) {
           try {
             const { data, error: fnError } = await supabase.functions.invoke(
               "send-push",
@@ -166,9 +170,9 @@ function AnnouncementForm({
           onChange={(e) => setPriority(e.target.value as AnnouncementPriority)}
           className={inputClass}
         >
-          <option value="normal">通常</option>
-          <option value="important">重要</option>
-          <option value="emergency">緊急(ホームに強制表示)</option>
+          <option value="normal">通常(プッシュ通知なし)</option>
+          <option value="important">重要(プッシュ通知あり)</option>
+          <option value="emergency">緊急(プッシュ通知+ホームに強制表示)</option>
         </select>
       </label>
 
