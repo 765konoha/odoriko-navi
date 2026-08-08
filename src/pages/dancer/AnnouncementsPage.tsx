@@ -4,6 +4,7 @@ import { useReadStatus } from "../../context/ReadStatusContext";
 import { activeAnnouncements } from "../../lib/announcements";
 import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
+import PushToggle from "../../components/announcements/PushToggle";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 function publishedLabel(iso: string): string {
@@ -32,6 +33,8 @@ export default function AnnouncementsPage() {
         <h1 className="text-xl font-bold">お知らせ</h1>
         <RefreshIndicator />
       </div>
+
+      <PushToggle />
 
       {announcements.length === 0 ? (
         <p className="rounded-xl bg-white p-4 text-slate-600">

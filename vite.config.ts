@@ -34,6 +34,8 @@ export default defineConfig({
       workbox: {
         // アプリ本体(JS/CSS/HTML/アイコン)をプリキャッシュ
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+        // Web Push 受信ハンドラを SW に組み込む
+        importScripts: ['push-sw.js'],
         // 地図タイル・Supabase APIはキャッシュしない
         // (スケジュール等のデータは localStorage スナップショットで保持)
         runtimeCaching: [],

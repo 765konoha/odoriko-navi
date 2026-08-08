@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useLocation } from "react-router-dom";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
+import { supabase } from "../../lib/supabase";
 import type { Announcement, AnnouncementPriority } from "../../types/domain";
 import {
   createAnnouncement,
@@ -27,21 +29,29 @@ function statusLabel(a: Announcement, now: Date): string {
   return "配信中";
 }
 
+export interface AnnouncementTemplate {
+  title: string;
+  body: string;
+  priority: AnnouncementPriority;
+}
+
 function AnnouncementForm({
   festivalId,
   announcement,
+  initial,
   onSaved,
   onCancel,
 }: {
   festivalId: string;
   announcement: Announcement | null;
-  onSaved: () => void;
+  initial: AnnouncementTemplate | null;
+  onSaved: (pushInfo: string | null) => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState(announcement?.title ?? "");
-  const [body, setBody] = useState(announcement?.body ?? "");
+  const [title, setTitle] = useState(announcement?.title ?? initial?.title ?? "");
+  const [body, setBody] = useState(announcement?.body ?? initial?.body ?? "");
   const [priority, setPriority] = useState<AnnouncementPriority>(
-    announcement?.priority ?? "normal",
+    announcement?.priority ?? initial?.priority ?? "normal",
   );
   const [publishedAt, setPublishedAt] = useState(() =>
     isoToDatetimeLocal(announcement?.publishedAt ?? new Date().toISOString()),
@@ -65,12 +75,30 @@ function AnnouncementForm({
       expiresAt: expiresAt ? datetimeLocalToIso(expiresAt) : null,
     };
     try {
+      let pushInfo: string | null = null;
       if (announcement) {
         await updateAnnouncement(announcement.id, input);
       } else {
         await createAnnouncement(input);
+        // 即時公開の新規お知らせはプッシュ通知も送信
+        const isPublishedNow =
+          new Date(input.publishedAt).getTime() <= Date.now() + 60_000;
+        if (isPublishedNow && supabase) {
+          try {
+            const { data, error: fnError } = await supabase.functions.invoke(
+              "send-push",
+              { body: { title: input.title, body: input.body } },
+            );
+            pushInfo = fnError
+              ? "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。"
+              : `プッシュ通知を送信しました(${(data as { sent?: number })?.sent ?? 0}台)。`;
+          } catch {
+            pushInfo =
+              "お知らせは配信しましたが、プッシュ通知の送信に失敗しました。";
+          }
+        }
       }
-      onSaved();
+      onSaved(pushInfo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存に失敗しました");
       setSaving(false);
@@ -166,11 +194,25 @@ function AnnouncementForm({
 
 export default function AnnouncementAdminPage() {
   const { festival } = useAdminFestival();
+  const location = useLocation();
+  // スケジュール管理から遷移してきた場合の定型文(予定変更のお知らせ)
+  const [pendingTemplate, setPendingTemplate] =
+    useState<AnnouncementTemplate | null>(
+      (location.state as { template?: AnnouncementTemplate } | null)
+        ?.template ?? null,
+    );
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [editing, setEditing] = useState<
     { mode: "new" } | { mode: "edit"; announcement: Announcement } | null
-  >(null);
+  >(pendingTemplate ? { mode: "new" } : null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 定型文はリロード時に再適用されないよう履歴stateから除去
+  useEffect(() => {
+    if (pendingTemplate) window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     if (!festival) return;
@@ -193,11 +235,17 @@ export default function AnnouncementAdminPage() {
       <AnnouncementForm
         festivalId={festival.id}
         announcement={editing.mode === "edit" ? editing.announcement : null}
-        onSaved={() => {
+        initial={editing.mode === "new" ? pendingTemplate : null}
+        onSaved={(pushInfo) => {
           setEditing(null);
+          setPendingTemplate(null);
+          setFlash(pushInfo);
           void load();
         }}
-        onCancel={() => setEditing(null)}
+        onCancel={() => {
+          setEditing(null);
+          setPendingTemplate(null);
+        }}
       />
     );
   }
@@ -213,6 +261,12 @@ export default function AnnouncementAdminPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-slate-800">お知らせ管理</h1>
+
+      {flash && (
+        <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
+          {flash}
+        </p>
+      )}
 
       <button
         type="button"
