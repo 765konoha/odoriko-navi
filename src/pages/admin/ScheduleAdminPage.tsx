@@ -50,6 +50,8 @@ interface FormState {
   tbdNote: string;
   isCancelled: boolean;
   sortOrder: number;
+  dancesRejoice: boolean;
+  dancesSakaseya: boolean;
 }
 
 function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormState {
@@ -66,6 +68,9 @@ function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormStat
     tbdNote: item?.tbdNote ?? "",
     isCancelled: item?.isCancelled ?? false,
     sortOrder: item?.sortOrder ?? nextSortOrder,
+    // 新規の演舞は Rejoice をデフォルトで踊る想定
+    dancesRejoice: item?.dancesRejoice ?? true,
+    dancesSakaseya: item?.dancesSakaseya ?? false,
   };
 }
 
@@ -114,9 +119,12 @@ function ItemForm({
       tbdNote: form.isConfirmed ? null : form.tbdNote.trim() || null,
       isCancelled: form.isCancelled,
       sortOrder: form.sortOrder,
+      dancesRejoice: form.category === "performance" && form.dancesRejoice,
+      dancesSakaseya: form.category === "performance" && form.dancesSakaseya,
       // 完了状態と回数はフォームでは編集せず、カードの完了ボタンで管理する
       isCompleted: item?.isCompleted ?? false,
-      danceCount: item?.danceCount ?? 0,
+      rejoiceCount: item?.rejoiceCount ?? 0,
+      sakaseyaCount: item?.sakaseyaCount ?? 0,
     };
     try {
       if (item) {
@@ -163,6 +171,32 @@ function ItemForm({
           ))}
         </select>
       </label>
+
+      {form.category === "performance" && (
+        <div>
+          <span className={labelClass}>踊る演目</span>
+          <div className="mt-1 flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.dancesRejoice}
+                onChange={(e) => set("dancesRejoice", e.target.checked)}
+                className="h-5 w-5"
+              />
+              <span className="text-base">Rejoice</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.dancesSakaseya}
+                onChange={(e) => set("dancesSakaseya", e.target.checked)}
+                className="h-5 w-5"
+              />
+              <span className="text-base">咲かせや</span>
+            </label>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2">
         <label className="block">
@@ -312,8 +346,10 @@ export default function ScheduleAdminPage() {
   const [newDayDate, setNewDayDate] = useState("");
   const [newDayLabel, setNewDayLabel] = useState("");
   const [loading, setLoading] = useState(true);
-  // 完了前に入力する「踊った回数」(0.5刻み)。未入力時は演舞=1回、その他=0回
-  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  // 完了前に入力する演目ごとの「踊った回数」(0.5刻み)
+  const [pendingCounts, setPendingCounts] = useState<
+    Record<string, { rejoice: number; sakaseya: number }>
+  >({});
 
   const load = useCallback(async () => {
     if (!festival) return;
@@ -355,24 +391,59 @@ export default function ScheduleAdminPage() {
     await load();
   }
 
-  function pendingCountOf(item: ScheduleItem): number {
-    return (
-      pendingCounts[item.id] ??
-      (item.danceCount && item.danceCount > 0
-        ? item.danceCount
-        : item.category === "performance"
-          ? 1
-          : 0)
-    );
+  /** この予定で回数入力を出す演目(旧データで両方未設定の演舞は両方出す) */
+  function enabledDances(item: ScheduleItem): {
+    rejoice: boolean;
+    sakaseya: boolean;
+  } {
+    if (item.category !== "performance") {
+      return { rejoice: false, sakaseya: false };
+    }
+    if (!item.dancesRejoice && !item.dancesSakaseya) {
+      return { rejoice: true, sakaseya: true };
+    }
+    return {
+      rejoice: !!item.dancesRejoice,
+      sakaseya: !!item.dancesSakaseya,
+    };
   }
 
-  function adjustPending(item: ScheduleItem, delta: number) {
-    const next = Math.max(0, Math.min(9.5, pendingCountOf(item) + delta));
-    setPendingCounts((prev) => ({ ...prev, [item.id]: next }));
+  function pendingOf(item: ScheduleItem): { rejoice: number; sakaseya: number } {
+    const existing = pendingCounts[item.id];
+    if (existing) return existing;
+    const enabled = enabledDances(item);
+    return {
+      rejoice:
+        item.rejoiceCount && item.rejoiceCount > 0
+          ? item.rejoiceCount
+          : enabled.rejoice
+            ? 1
+            : 0,
+      sakaseya:
+        item.sakaseyaCount && item.sakaseyaCount > 0
+          ? item.sakaseyaCount
+          : enabled.sakaseya
+            ? 1
+            : 0,
+    };
+  }
+
+  function adjustPending(
+    item: ScheduleItem,
+    key: "rejoice" | "sakaseya",
+    delta: number,
+  ) {
+    const current = pendingOf(item);
+    const next = Math.max(0, Math.min(9.5, current[key] + delta));
+    setPendingCounts((prev) => ({
+      ...prev,
+      [item.id]: { ...current, [key]: next },
+    }));
   }
 
   async function handleComplete(item: ScheduleItem) {
-    await completeScheduleItem(item.id, pendingCountOf(item));
+    const p = pendingOf(item);
+    await completeScheduleItem(item.id, p.rejoice, p.sakaseya);
     await load();
   }
 
@@ -565,8 +636,15 @@ export default function ScheduleAdminPage() {
                     <div className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2">
                       <span className="text-sm font-bold text-emerald-700">
                         ✅ 完了
-                        {item.category === "performance" &&
-                          `(踊った回数 ${fmtCount(item.danceCount ?? 0)}回)`}
+                        {(() => {
+                          const parts = [
+                            (item.rejoiceCount ?? 0) > 0 &&
+                              `Rejoice ${fmtCount(item.rejoiceCount!)}回`,
+                            (item.sakaseyaCount ?? 0) > 0 &&
+                              `咲かせや ${fmtCount(item.sakaseyaCount!)}回`,
+                          ].filter(Boolean);
+                          return parts.length > 0 ? `(${parts.join("・")})` : "";
+                        })()}
                       </span>
                       <button
                         type="button"
@@ -577,38 +655,46 @@ export default function ScheduleAdminPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
-                      {/* 回数入力は演舞のみ。その他の種別は完了ボタンだけ */}
-                      {item.category === "performance" && (
-                        <>
-                          <span className="text-sm text-slate-600">
-                            踊った回数
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => adjustPending(item, -0.5)}
-                            aria-label="回数を減らす"
-                            className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
-                          >
-                            −
-                          </button>
-                          <span className="w-12 text-center text-base font-bold tabular-nums">
-                            {fmtCount(pendingCountOf(item))}回
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => adjustPending(item, 0.5)}
-                            aria-label="回数を増やす"
-                            className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
-                          >
-                            +
-                          </button>
-                        </>
+                    <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+                      {/* 回数入力はその予定で踊る演目のみ表示 */}
+                      {(
+                        [
+                          ["rejoice", "Rejoice"],
+                          ["sakaseya", "咲かせや"],
+                        ] as const
+                      ).map(
+                        ([key, label]) =>
+                          enabledDances(item)[key] && (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="w-20 text-sm font-medium text-slate-600">
+                                {label}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => adjustPending(item, key, -0.5)}
+                                aria-label={`${label}の回数を減らす`}
+                                className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                              >
+                                −
+                              </button>
+                              <span className="w-12 text-center text-base font-bold tabular-nums">
+                                {fmtCount(pendingOf(item)[key])}回
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => adjustPending(item, key, 0.5)}
+                                aria-label={`${label}の回数を増やす`}
+                                className="h-8 w-8 rounded-full bg-white text-lg font-bold text-slate-600 shadow-sm"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ),
                       )}
                       <button
                         type="button"
                         onClick={() => void handleComplete(item)}
-                        className="ml-auto rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white"
+                        className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-bold text-white"
                       >
                         完了
                       </button>

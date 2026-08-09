@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import {
+  danceTotals,
   findNextItem,
   findToday,
   itemsOfDay,
-  totalDanceCount,
 } from "../../lib/schedule";
+import { DanceCountInline } from "../../components/home/danceIcons";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
@@ -33,7 +34,8 @@ export default function SchedulePage() {
   const items = itemsOfDay(data, currentDay.id);
   const nextItem =
     today && currentDay.id === today.id ? findNextItem(items) : null;
-  const dayDanceCount = totalDanceCount(items);
+  const dayTotals = danceTotals(items);
+  const hasDayCount = dayTotals.rejoice > 0 || dayTotals.sakaseya > 0;
   const activeItems = items.filter((i) => !i.isCancelled);
   const allDone =
     activeItems.length > 0 && activeItems.every((i) => i.isCompleted);
@@ -73,15 +75,15 @@ export default function SchedulePage() {
         </p>
       )}
 
-      {dayDanceCount > 0 && (
-        <p className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">
-          🥁 この日の踊った回数:{" "}
-          <span className="font-bold tabular-nums">
-            {Number.isInteger(dayDanceCount)
-              ? dayDanceCount
-              : dayDanceCount.toFixed(1)}
-            回
-          </span>
+      {hasDayCount && (
+        <p className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">
+          この日の踊った回数:
+          <DanceCountInline
+            rejoice={dayTotals.rejoice}
+            sakaseya={dayTotals.sakaseya}
+            iconSize={16}
+            className="text-slate-800"
+          />
         </p>
       )}
 

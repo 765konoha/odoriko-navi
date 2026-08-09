@@ -53,6 +53,10 @@ export interface ScheduleItemRow {
   sort_order: number;
   is_completed: boolean;
   dance_count: number;
+  dances_rejoice: boolean;
+  dances_sakaseya: boolean;
+  rejoice_count: number;
+  sakaseya_count: number;
 }
 
 export interface AnnouncementRow {
@@ -110,6 +114,10 @@ export function toScheduleItem(row: ScheduleItemRow): ScheduleItem {
     sortOrder: row.sort_order,
     isCompleted: row.is_completed ?? false,
     danceCount: Number(row.dance_count ?? 0),
+    dancesRejoice: row.dances_rejoice ?? false,
+    dancesSakaseya: row.dances_sakaseya ?? false,
+    rejoiceCount: Number(row.rejoice_count ?? 0),
+    sakaseyaCount: Number(row.sakaseya_count ?? 0),
   };
 }
 
@@ -126,7 +134,7 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
 }
 
 export const SCHEDULE_ITEM_COLUMNS =
-  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count";
+  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count";
 
 export const LOCATION_COLUMNS =
   "id, festival_id, kind, name, lat, lng, address, description";

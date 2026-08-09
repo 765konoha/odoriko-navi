@@ -92,7 +92,10 @@ export interface ScheduleItemInput {
   isCancelled: boolean;
   sortOrder: number;
   isCompleted: boolean;
-  danceCount: number;
+  dancesRejoice: boolean;
+  dancesSakaseya: boolean;
+  rejoiceCount: number;
+  sakaseyaCount: number;
 }
 
 function scheduleItemToRow(input: ScheduleItemInput) {
@@ -111,7 +114,12 @@ function scheduleItemToRow(input: ScheduleItemInput) {
     is_cancelled: input.isCancelled,
     sort_order: input.sortOrder,
     is_completed: input.isCompleted,
-    dance_count: input.danceCount,
+    dances_rejoice: input.dancesRejoice,
+    dances_sakaseya: input.dancesSakaseya,
+    rejoice_count: input.rejoiceCount,
+    sakaseya_count: input.sakaseyaCount,
+    // 旧列は合計値として維持(公開中の旧バージョンが参照するため)
+    dance_count: input.rejoiceCount + input.sakaseyaCount,
   };
 }
 
@@ -156,14 +164,20 @@ export async function deleteScheduleItem(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/** 予定を完了にして踊った回数を記録する(0.5回単位) */
+/** 予定を完了にして演目ごとの踊った回数を記録する(0.5回単位) */
 export async function completeScheduleItem(
   id: string,
-  danceCount: number,
+  rejoiceCount: number,
+  sakaseyaCount: number,
 ): Promise<void> {
   const { error } = await client()
     .from("schedule_items")
-    .update({ is_completed: true, dance_count: danceCount })
+    .update({
+      is_completed: true,
+      rejoice_count: rejoiceCount,
+      sakaseya_count: sakaseyaCount,
+      dance_count: rejoiceCount + sakaseyaCount,
+    })
     .eq("id", id);
   if (error) throw error;
 }

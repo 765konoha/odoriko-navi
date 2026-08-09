@@ -57,8 +57,16 @@ export interface ScheduleItem {
   sortOrder: number;
   /** 運営が完了ボタンで更新(時刻ではなくこれで進行を判定する) */
   isCompleted?: boolean;
-  /** 踊った回数(0.5回単位。完了時に運営が入力) */
+  /** 踊った回数の合計(旧仕様との互換用。= rejoiceCount + sakaseyaCount) */
   danceCount?: number;
+  /** この予定で「Rejoice」を踊るか */
+  dancesRejoice?: boolean;
+  /** この予定で「咲かせや」を踊るか */
+  dancesSakaseya?: boolean;
+  /** Rejoice を踊った回数(0.5回単位) */
+  rejoiceCount?: number;
+  /** 咲かせや を踊った回数(0.5回単位) */
+  sakaseyaCount?: number;
 }
 
 export type AnnouncementPriority = "normal" | "important" | "emergency";

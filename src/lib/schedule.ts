@@ -58,9 +58,20 @@ export function findNextItem(items: ScheduleItem[]): ScheduleItem | null {
   return null;
 }
 
-/** 完了済み予定の踊った回数の合計 */
-export function totalDanceCount(items: ScheduleItem[]): number {
+export interface DanceTotals {
+  rejoice: number;
+  sakaseya: number;
+}
+
+/** 完了済み予定の演目ごとの踊った回数の合計 */
+export function danceTotals(items: ScheduleItem[]): DanceTotals {
   return items
     .filter((i) => i.isCompleted)
-    .reduce((sum, i) => sum + (i.danceCount ?? 0), 0);
+    .reduce(
+      (acc, i) => ({
+        rejoice: acc.rejoice + (i.rejoiceCount ?? 0),
+        sakaseya: acc.sakaseya + (i.sakaseyaCount ?? 0),
+      }),
+      { rejoice: 0, sakaseya: 0 },
+    );
 }

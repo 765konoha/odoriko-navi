@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import type { Location, ScheduleItem } from "../../types/domain";
 import { formatTime } from "../../lib/time";
 import { displayTime } from "../../lib/schedule";
+import { DanceCountInline } from "./danceIcons";
 
 interface Props {
   items: ScheduleItem[];
@@ -83,10 +84,13 @@ export default function TodayTimeline({ items, locations, nextItemId }: Props) {
                 NEXT
               </span>
             ) : isDone ? (
-              <span className="shrink-0 text-sm font-bold text-emerald-600">
+              <span className="flex shrink-0 items-center gap-1 text-sm font-bold text-emerald-600">
                 ✓
-                {(item.danceCount ?? 0) > 0 &&
-                  ` ${Number.isInteger(item.danceCount) ? item.danceCount : item.danceCount?.toFixed(1)}回`}
+                <DanceCountInline
+                  rejoice={item.rejoiceCount ?? 0}
+                  sakaseya={item.sakaseyaCount ?? 0}
+                  className="text-slate-700"
+                />
               </span>
             ) : null}
           </div>

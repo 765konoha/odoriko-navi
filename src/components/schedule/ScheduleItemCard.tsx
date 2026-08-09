@@ -18,7 +18,17 @@ export default function ScheduleItemCard({
   const meta = CATEGORY_META[item.category];
   const isPerformance = item.category === "performance";
   const isDone = !!item.isCompleted && !item.isCancelled;
-  const count = item.danceCount ?? 0;
+  const rejoice = item.rejoiceCount ?? 0;
+  const sakaseya = item.sakaseyaCount ?? 0;
+  // スタンプ内の回数表記(例: "R1・咲0.5")
+  const stampCounts = [
+    rejoice > 0 &&
+      `R${Number.isInteger(rejoice) ? rejoice : rejoice.toFixed(1)}`,
+    sakaseya > 0 &&
+      `咲${Number.isInteger(sakaseya) ? sakaseya : sakaseya.toFixed(1)}`,
+  ]
+    .filter(Boolean)
+    .join("・");
 
   const body = (
     <div
@@ -33,9 +43,9 @@ export default function ScheduleItemCard({
         <div className="pointer-events-none absolute top-2 right-2 z-10 flex h-20 w-20 -rotate-12 items-center justify-center rounded-full border-[3px] border-red-600/90 bg-red-50/30">
           <div className="flex h-[4.1rem] w-[4.1rem] flex-col items-center justify-center rounded-full border-2 border-red-600/50 text-red-600">
             <span className="text-3xl leading-none font-bold">完</span>
-            {isPerformance && count > 0 && (
-              <span className="mt-0.5 text-[10px] leading-none font-bold">
-                {Number.isInteger(count) ? count : count.toFixed(1)}回
+            {isPerformance && stampCounts && (
+              <span className="mt-0.5 text-[9px] leading-none font-bold">
+                {stampCounts}
               </span>
             )}
           </div>

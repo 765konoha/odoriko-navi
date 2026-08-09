@@ -131,6 +131,8 @@ export const kochi2026: FestivalData = {
       sortOrder: 2,
       isCompleted: true,
       danceCount: 1,
+      dancesRejoice: true,
+      rejoiceCount: 1,
     },
     {
       id: "s-03",
@@ -160,6 +162,10 @@ export const kochi2026: FestivalData = {
       sortOrder: 4,
       isCompleted: true,
       danceCount: 1.5,
+      dancesRejoice: true,
+      dancesSakaseya: true,
+      rejoiceCount: 1,
+      sakaseyaCount: 0.5,
     },
     {
       id: "s-05",
@@ -188,6 +194,7 @@ export const kochi2026: FestivalData = {
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 6,
+      dancesRejoice: true,
     },
     {
       id: "s-07",
@@ -251,6 +258,8 @@ export const kochi2026: FestivalData = {
       tbdNote: "審査結果により変動・当日連絡",
       isCancelled: false,
       sortOrder: 2,
+      dancesRejoice: true,
+      dancesSakaseya: true,
     },
   ],
   announcements: [
