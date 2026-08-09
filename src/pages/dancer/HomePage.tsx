@@ -10,6 +10,7 @@ import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
 import DanceCountCard from "../../components/home/DanceCountCard";
+import WeatherStrip from "../../components/home/WeatherStrip";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
@@ -104,6 +105,8 @@ export default function HomePage() {
           本日の予定はすべて終了しました。おつかれさまでした!
         </p>
       )}
+
+      <WeatherStrip />
 
       {today && (
         <section>

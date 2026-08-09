@@ -7,12 +7,15 @@ import {
   itemsOfDay,
 } from "../../lib/schedule";
 import { DanceCountInline } from "../../components/home/danceIcons";
+import { useWeather } from "../../hooks/useWeather";
+import { weatherMeta } from "../../lib/weather";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 export default function SchedulePage() {
   const { data, loading } = useFestivalData();
+  const weather = useWeather();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   if (loading) {
@@ -34,6 +37,8 @@ export default function SchedulePage() {
   const items = itemsOfDay(data, currentDay.id);
   const nextItem =
     today && currentDay.id === today.id ? findNextItem(items) : null;
+  const dayWeather =
+    weather?.daily.find((d) => d.date === currentDay.date) ?? null;
   const dayTotals = danceTotals(items);
   const hasDayCount = dayTotals.rejoice > 0 || dayTotals.sakaseya > 0;
   const activeItems = items.filter((i) => !i.isCancelled);
@@ -67,6 +72,25 @@ export default function SchedulePage() {
             ))}
           </div>
         </div>
+      )}
+
+      {dayWeather && (
+        <p className="flex items-center gap-2 rounded-xl bg-sky-50 px-4 py-2 text-sm font-medium text-slate-700">
+          <span className="text-xl leading-none">
+            {weatherMeta(dayWeather.weatherCode).emoji}
+          </span>
+          {weatherMeta(dayWeather.weatherCode).label}
+          <span className="ml-auto tabular-nums">
+            最高{" "}
+            <span className="font-bold text-red-600">
+              {Math.round(dayWeather.tempMax)}°
+            </span>{" "}
+            / 最低{" "}
+            <span className="font-bold text-blue-600">
+              {Math.round(dayWeather.tempMin)}°
+            </span>
+          </span>
+        </p>
       )}
 
       {allDone && (
