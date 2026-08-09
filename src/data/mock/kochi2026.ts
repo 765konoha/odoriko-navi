@@ -101,6 +101,32 @@ export const kochi2026: FestivalData = {
       address: "帯屋町2丁目 アーケード中央",
     },
   ],
+  venueRoutes: [
+    {
+      id: "vr-otesuji",
+      festivalId,
+      name: "追手筋本部競演場",
+      path: [
+        [33.561, 133.534],
+        [33.5606, 133.536],
+        [33.5603, 133.5382],
+        [33.5601, 133.54],
+      ],
+      description: "流し350m。本部席前を通過。",
+    },
+    {
+      id: "vr-obiyamachi",
+      festivalId,
+      name: "帯屋町演舞場",
+      path: [
+        [33.5601, 133.5325],
+        [33.56, 133.5352],
+        [33.5599, 133.538],
+        [33.5598, 133.5405],
+      ],
+      description: "アーケード内の流し550m。",
+    },
+  ],
   scheduleItems: [
     {
       id: "s-01",
@@ -157,6 +183,7 @@ export const kochi2026: FestivalData = {
       endTime: iso(0, 11, 45),
       venueName: "帯屋町演舞場",
       meetingLocationId: "loc-chuo-park-north",
+      venueRouteId: "vr-obiyamachi",
       isConfirmed: true,
       isCancelled: false,
       sortOrder: 4,
@@ -190,6 +217,7 @@ export const kochi2026: FestivalData = {
       endTime: iso(0, 16, 40),
       venueName: "追手筋本部競演場",
       meetingLocationId: "loc-otesuji-north",
+      venueRouteId: "vr-otesuji",
       notes: "集合後に隊列確認あり。水分補給を済ませてから集合。",
       isConfirmed: true,
       isCancelled: false,
@@ -254,6 +282,7 @@ export const kochi2026: FestivalData = {
       startTime: iso(1, 10, 24),
       venueName: "追手筋本部競演場",
       meetingLocationId: "loc-otesuji-north",
+      venueRouteId: "vr-otesuji",
       isConfirmed: false,
       tbdNote: "審査結果により変動・当日連絡",
       isCancelled: false,

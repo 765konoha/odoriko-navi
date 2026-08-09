@@ -1,22 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Circle,
   MapContainer,
   Marker,
+  Polyline,
   TileLayer,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useFestivalData } from "../../context/FestivalDataContext";
-import type { Location, LocationKind } from "../../types/domain";
+import type {
+  Location,
+  LocationKind,
+  ScheduleItem,
+} from "../../types/domain";
 import {
   currentLocationIcon,
   meetingPointIcon,
   toiletIcon,
 } from "../../components/map/markerIcons";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
+import VenueRouteCard from "../../components/map/VenueRouteCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 /** 予定カードからの遷移・現在地表示で使う拡大率 */
@@ -81,9 +87,11 @@ export default function MapPage() {
     meeting_point: true,
     toilet: true,
   });
+  const [showRoutes, setShowRoutes] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(
     searchParams.get("loc"),
   );
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
   // 現在地
   const [geo, setGeo] = useState<GeoFix | null>(null);
@@ -183,6 +191,23 @@ export default function MapPage() {
 
   const visible = locations.filter((l) => showKind[l.kind]);
   const selected = locations.find((l) => l.id === selectedId) ?? null;
+  const venueRoutes = data?.venueRoutes ?? [];
+  const selectedRoute =
+    venueRoutes.find((r) => r.id === selectedRouteId) ?? null;
+
+  /** コースに紐づく演舞(中止除く)。全完了なら「踊り済み」色にする */
+  function routeStatus(routeId: string): {
+    items: ScheduleItem[];
+    danced: boolean;
+  } {
+    const items = (data?.scheduleItems ?? []).filter(
+      (s) => s.venueRouteId === routeId && !s.isCancelled,
+    );
+    return {
+      items,
+      danced: items.length > 0 && items.every((i) => i.isCompleted),
+    };
+  }
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -201,7 +226,7 @@ export default function MapPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex gap-2 px-4 py-3">
+      <div className="flex gap-2 overflow-x-auto px-4 py-3">
         {(
           [
             ["meeting_point", "集合場所"],
@@ -210,7 +235,7 @@ export default function MapPage() {
         ).map(([kind, label]) => (
           <label
             key={kind}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold ${
               showKind[kind]
                 ? "bg-slate-900 text-white"
                 : "bg-white text-slate-500"
@@ -227,7 +252,20 @@ export default function MapPage() {
             {label}
           </label>
         ))}
-        <div className="ml-auto self-center">
+        <label
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold ${
+            showRoutes ? "bg-slate-900 text-white" : "bg-white text-slate-500"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={showRoutes}
+            onChange={(e) => setShowRoutes(e.target.checked)}
+            className="h-4 w-4"
+          />
+          演舞会場
+        </label>
+        <div className="ml-auto shrink-0 self-center">
           <RefreshIndicator />
         </div>
       </div>
@@ -246,12 +284,50 @@ export default function MapPage() {
           <FocusView focus={focus} />
           <FitAllView locations={locations} trigger={fitTrigger} />
           <RecenterOnGeo target={centerTarget} />
+          {/* 演舞会場コース(帯状ライン)。全演舞完了でグレーに変わる */}
+          {showRoutes &&
+            venueRoutes.map((route) => {
+              const { danced } = routeStatus(route.id);
+              const select = () => {
+                setSelectedRouteId(route.id);
+                setSelectedId(null);
+              };
+              return (
+                <Fragment key={route.id}>
+                  <Polyline
+                    positions={route.path}
+                    pathOptions={{
+                      color: danced ? "#64748b" : "#5b21b6",
+                      weight: 16,
+                      opacity: 0.85,
+                      lineCap: "round",
+                    }}
+                    eventHandlers={{ click: select }}
+                  />
+                  <Polyline
+                    positions={route.path}
+                    pathOptions={{
+                      color: danced ? "#cbd5e1" : "#8b5cf6",
+                      weight: 9,
+                      opacity: 0.95,
+                      lineCap: "round",
+                    }}
+                    eventHandlers={{ click: select }}
+                  />
+                </Fragment>
+              );
+            })}
           {visible.map((loc) => (
             <Marker
               key={loc.id}
               position={[loc.lat, loc.lng]}
               icon={loc.kind === "meeting_point" ? meetingPointIcon : toiletIcon}
-              eventHandlers={{ click: () => setSelectedId(loc.id) }}
+              eventHandlers={{
+                click: () => {
+                  setSelectedId(loc.id);
+                  setSelectedRouteId(null);
+                },
+              }}
             />
           ))}
           {geo && (
@@ -311,6 +387,15 @@ export default function MapPage() {
             location={selected}
             relatedItems={relatedItems}
             onClose={() => setSelectedId(null)}
+          />
+        )}
+
+        {!selected && selectedRoute && (
+          <VenueRouteCard
+            route={selectedRoute}
+            relatedItems={routeStatus(selectedRoute.id).items}
+            danced={routeStatus(selectedRoute.id).danced}
+            onClose={() => setSelectedRouteId(null)}
           />
         )}
       </div>

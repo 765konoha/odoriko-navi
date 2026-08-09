@@ -6,6 +6,7 @@ import type {
   Location,
   ScheduleCategory,
   ScheduleItem,
+  VenueRoute,
 } from "../../types/domain";
 import {
   completeScheduleItem,
@@ -16,6 +17,7 @@ import {
   listDays,
   listLocations,
   listScheduleItems,
+  listVenueRoutes,
   uncompleteScheduleItem,
   updateScheduleItem,
   type ScheduleItemInput,
@@ -52,6 +54,7 @@ interface FormState {
   sortOrder: number;
   dancesRejoice: boolean;
   dancesSakaseya: boolean;
+  venueRouteId: string;
 }
 
 function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormState {
@@ -71,6 +74,7 @@ function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormStat
     // 新規の演舞は Rejoice をデフォルトで踊る想定
     dancesRejoice: item?.dancesRejoice ?? true,
     dancesSakaseya: item?.dancesSakaseya ?? false,
+    venueRouteId: item?.venueRouteId ?? "",
   };
 }
 
@@ -78,6 +82,7 @@ function ItemForm({
   day,
   item,
   locations,
+  venueRoutes,
   nextSortOrder,
   onSaved,
   onCancel,
@@ -85,6 +90,7 @@ function ItemForm({
   day: FestivalDay;
   item: ScheduleItem | null;
   locations: Location[];
+  venueRoutes: VenueRoute[];
   nextSortOrder: number;
   onSaved: (savedTitle: string) => void;
   onCancel: () => void;
@@ -121,6 +127,8 @@ function ItemForm({
       sortOrder: form.sortOrder,
       dancesRejoice: form.category === "performance" && form.dancesRejoice,
       dancesSakaseya: form.category === "performance" && form.dancesSakaseya,
+      venueRouteId:
+        form.category === "performance" ? form.venueRouteId || null : null,
       // 完了状態と回数はフォームでは編集せず、カードの完了ボタンで管理する
       isCompleted: item?.isCompleted ?? false,
       rejoiceCount: item?.rejoiceCount ?? 0,
@@ -253,6 +261,26 @@ function ItemForm({
         </select>
       </label>
 
+      {form.category === "performance" && (
+        <label className="block">
+          <span className={labelClass}>
+            演舞会場コース(踊り子のマップに帯で表示)
+          </span>
+          <select
+            value={form.venueRouteId}
+            onChange={(e) => set("venueRouteId", e.target.value)}
+            className={inputClass}
+          >
+            <option value="">(なし)</option>
+            {venueRoutes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <label className="block">
         <span className={labelClass}>注意事項</span>
         <textarea
@@ -337,6 +365,7 @@ export default function ScheduleAdminPage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<FestivalDay[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [venueRoutes, setVenueRoutes] = useState<VenueRoute[]>([]);
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [currentDayId, setCurrentDayId] = useState<string | null>(null);
   const [editing, setEditing] = useState<
@@ -354,13 +383,15 @@ export default function ScheduleAdminPage() {
   const load = useCallback(async () => {
     if (!festival) return;
     setLoading(true);
-    const [dayList, locationList] = await Promise.all([
+    const [dayList, locationList, routeList] = await Promise.all([
       listDays(festival.id),
       listLocations(festival.id),
+      listVenueRoutes(festival.id),
     ]);
     const itemList = await listScheduleItems(dayList.map((d) => d.id));
     setDays(dayList);
     setLocations(locationList);
+    setVenueRoutes(routeList);
     setItems(itemList);
     setLoading(false);
   }, [festival]);
@@ -484,6 +515,7 @@ export default function ScheduleAdminPage() {
         day={currentDay}
         item={editing.mode === "edit" ? editing.item : null}
         locations={locations}
+        venueRoutes={venueRoutes}
         nextSortOrder={nextSortOrder}
         onSaved={(savedTitle) => {
           setEditing(null);

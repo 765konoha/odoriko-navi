@@ -8,21 +8,25 @@ import type {
   LocationKind,
   ScheduleCategory,
   ScheduleItem,
+  VenueRoute,
 } from "../types/domain";
 import {
   ANNOUNCEMENT_COLUMNS,
   LOCATION_COLUMNS,
   SCHEDULE_ITEM_COLUMNS,
+  VENUE_ROUTE_COLUMNS,
   toAnnouncement,
   toFestival,
   toFestivalDay,
   toLocation,
   toScheduleItem,
+  toVenueRoute,
   type AnnouncementRow,
   type FestivalDayRow,
   type FestivalRow,
   type LocationRow,
   type ScheduleItemRow,
+  type VenueRouteRow,
 } from "../repositories/mappers";
 
 // 運営管理画面用のデータ操作(要ログイン。RLSにより authenticated のみ書込可)。
@@ -86,6 +90,7 @@ export interface ScheduleItemInput {
   endTime: string | null;
   venueName: string | null;
   meetingLocationId: string | null;
+  venueRouteId: string | null;
   notes: string | null;
   isConfirmed: boolean;
   tbdNote: string | null;
@@ -108,6 +113,7 @@ function scheduleItemToRow(input: ScheduleItemInput) {
     end_time: input.endTime,
     venue_name: input.venueName,
     meeting_location_id: input.meetingLocationId,
+    venue_route_id: input.venueRouteId,
     notes: input.notes,
     is_confirmed: input.isConfirmed,
     tbd_note: input.tbdNote,
@@ -243,6 +249,59 @@ export async function updateLocation(
 
 export async function deleteLocation(id: string): Promise<void> {
   const { error } = await client().from("locations").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- 演舞会場コース ----------
+
+export interface VenueRouteInput {
+  festivalId: string;
+  name: string;
+  path: [number, number][];
+  description: string | null;
+}
+
+function venueRouteToRow(input: VenueRouteInput) {
+  return {
+    festival_id: input.festivalId,
+    name: input.name,
+    path: input.path,
+    description: input.description,
+  };
+}
+
+export async function listVenueRoutes(
+  festivalId: string,
+): Promise<VenueRoute[]> {
+  const { data, error } = await client()
+    .from("venue_routes")
+    .select(VENUE_ROUTE_COLUMNS)
+    .eq("festival_id", festivalId)
+    .order("created_at");
+  if (error) throw error;
+  return ((data ?? []) as VenueRouteRow[]).map(toVenueRoute);
+}
+
+export async function createVenueRoute(input: VenueRouteInput): Promise<void> {
+  const { error } = await client()
+    .from("venue_routes")
+    .insert(venueRouteToRow(input));
+  if (error) throw error;
+}
+
+export async function updateVenueRoute(
+  id: string,
+  input: VenueRouteInput,
+): Promise<void> {
+  const { error } = await client()
+    .from("venue_routes")
+    .update(venueRouteToRow(input))
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteVenueRoute(id: string): Promise<void> {
+  const { error } = await client().from("venue_routes").delete().eq("id", id);
   if (error) throw error;
 }
 

@@ -28,6 +28,16 @@ export interface Location {
   description?: string;
 }
 
+/** 演舞会場コース(地図上の帯状ライン) */
+export interface VenueRoute {
+  id: string;
+  festivalId: string;
+  name: string;
+  /** [lat, lng] の座標列(折れ線) */
+  path: [number, number][];
+  description?: string;
+}
+
 export type ScheduleCategory =
   | "performance"
   | "gather"
@@ -49,6 +59,8 @@ export interface ScheduleItem {
   endTime?: string;
   venueName?: string;
   meetingLocationId?: string;
+  /** 演舞会場コース(venue_routes)との紐付け */
+  venueRouteId?: string;
   notes?: string;
   isConfirmed: boolean;
   /** 未確定時の表示文(例: 17:30頃予定・当日連絡) */
@@ -87,5 +99,6 @@ export interface FestivalData {
   days: FestivalDay[];
   scheduleItems: ScheduleItem[];
   locations: Location[];
+  venueRoutes: VenueRoute[];
   announcements: Announcement[];
 }

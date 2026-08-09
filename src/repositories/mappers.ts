@@ -7,6 +7,7 @@ import type {
   LocationKind,
   ScheduleCategory,
   ScheduleItem,
+  VenueRoute,
 } from "../types/domain";
 
 // Supabase の snake_case 行 ⇔ ドメイン型(camelCase)の変換。
@@ -46,6 +47,7 @@ export interface ScheduleItemRow {
   end_time: string | null;
   venue_name: string | null;
   meeting_location_id: string | null;
+  venue_route_id: string | null;
   notes: string | null;
   is_confirmed: boolean;
   tbd_note: string | null;
@@ -57,6 +59,24 @@ export interface ScheduleItemRow {
   dances_sakaseya: boolean;
   rejoice_count: number;
   sakaseya_count: number;
+}
+
+export interface VenueRouteRow {
+  id: string;
+  festival_id: string;
+  name: string;
+  path: [number, number][];
+  description: string | null;
+}
+
+export function toVenueRoute(row: VenueRouteRow): VenueRoute {
+  return {
+    id: row.id,
+    festivalId: row.festival_id,
+    name: row.name,
+    path: Array.isArray(row.path) ? row.path : [],
+    description: row.description ?? undefined,
+  };
 }
 
 export interface AnnouncementRow {
@@ -107,6 +127,7 @@ export function toScheduleItem(row: ScheduleItemRow): ScheduleItem {
     endTime: row.end_time ?? undefined,
     venueName: row.venue_name ?? undefined,
     meetingLocationId: row.meeting_location_id ?? undefined,
+    venueRouteId: row.venue_route_id ?? undefined,
     notes: row.notes ?? undefined,
     isConfirmed: row.is_confirmed,
     tbdNote: row.tbd_note ?? undefined,
@@ -134,7 +155,9 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
 }
 
 export const SCHEDULE_ITEM_COLUMNS =
-  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count";
+  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count";
+
+export const VENUE_ROUTE_COLUMNS = "id, festival_id, name, path, description";
 
 export const LOCATION_COLUMNS =
   "id, festival_id, kind, name, lat, lng, address, description";
