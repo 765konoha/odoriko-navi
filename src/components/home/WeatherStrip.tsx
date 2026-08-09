@@ -9,7 +9,12 @@ export default function WeatherStrip() {
 
   return (
     <section className="rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="text-base font-bold text-slate-700">天気予報</h2>
+      <h2 className="text-base font-bold text-slate-700">
+        天気予報
+        <span className="ml-1 text-xs font-normal text-slate-400">
+          (12h予報)
+        </span>
+      </h2>
       <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-1">
         {weather.hourly.map((h) => {
           const meta = weatherMeta(h.weatherCode);
