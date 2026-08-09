@@ -330,7 +330,7 @@ export default function MapPage() {
                       color: danced ? "#64748b" : "#005D4D",
                       weight: 14,
                       opacity: 0.9,
-                      lineCap: "butt",
+                      lineCap: "square",
                       lineJoin: "miter",
                     }}
                     eventHandlers={{ click: select }}
@@ -341,7 +341,7 @@ export default function MapPage() {
                       color: danced ? "#cbd5e1" : "#D3E173",
                       weight: 10,
                       opacity: 1,
-                      lineCap: "butt",
+                      lineCap: "square",
                       lineJoin: "miter",
                     }}
                     eventHandlers={{ click: select }}
