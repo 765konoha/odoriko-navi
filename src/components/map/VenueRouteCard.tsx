@@ -47,7 +47,7 @@ export default function VenueRouteCard({
             ✓ ここでは踊り終わりました
           </span>
         ) : (
-          <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700">
+          <span className="rounded bg-[#D3E173] px-2 py-0.5 text-xs font-bold text-[#005D4D]">
             これから演舞があります
           </span>
         )}

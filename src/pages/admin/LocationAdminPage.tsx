@@ -146,7 +146,13 @@ function RouteForm({
             {path.length > 1 && (
               <Polyline
                 positions={path}
-                pathOptions={{ color: "#7c3aed", weight: 8, opacity: 0.85 }}
+                pathOptions={{
+                  color: "#005D4D",
+                  weight: 8,
+                  opacity: 0.85,
+                  lineCap: "butt",
+                  lineJoin: "miter",
+                }}
               />
             )}
             {path.map((pt, i) => (

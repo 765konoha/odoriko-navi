@@ -15,6 +15,7 @@ import type {
   Location,
   LocationKind,
   ScheduleItem,
+  VenueRoute,
 } from "../../types/domain";
 import {
   currentLocationIcon,
@@ -39,6 +40,22 @@ function FocusView({ focus }: { focus: Location | null }) {
   const map = useMap();
   useEffect(() => {
     if (focus) map.setView([focus.lat, focus.lng], FOCUS_ZOOM);
+    // 初期表示のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+/** 予定カードの「演舞会場」から遷移してきた場合: コース全体が収まる表示 */
+function FocusRouteView({ route }: { route: VenueRoute | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (route && route.path.length > 0) {
+      map.fitBounds(L.latLngBounds(route.path), {
+        padding: [50, 50],
+        maxZoom: 17,
+      });
+    }
     // 初期表示のみ
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +108,9 @@ export default function MapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     searchParams.get("loc"),
   );
-  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(
+    searchParams.get("route"),
+  );
 
   // 現在地
   const [geo, setGeo] = useState<GeoFix | null>(null);
@@ -111,6 +130,14 @@ export default function MapPage() {
     () => locations.find((l) => l.id === searchParams.get("loc")) ?? null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [locations],
+  );
+  const focusRoute = useMemo(
+    () =>
+      (data?.venueRoutes ?? []).find(
+        (r) => r.id === searchParams.get("route"),
+      ) ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data],
   );
 
   function centerOn(fix: GeoFix) {
@@ -167,7 +194,9 @@ export default function MapPage() {
   useEffect(() => {
     if (loading || autoStartedRef.current) return;
     autoStartedRef.current = true;
-    if (!searchParams.get("loc")) startTracking(true);
+    if (!searchParams.get("loc") && !searchParams.get("route")) {
+      startTracking(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
@@ -282,6 +311,7 @@ export default function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           <FocusView focus={focus} />
+          <FocusRouteView route={focusRoute} />
           <FitAllView locations={locations} trigger={fitTrigger} />
           <RecenterOnGeo target={centerTarget} />
           {/* 演舞会場コース(帯状ライン)。全演舞完了でグレーに変わる */}
@@ -297,20 +327,22 @@ export default function MapPage() {
                   <Polyline
                     positions={route.path}
                     pathOptions={{
-                      color: danced ? "#64748b" : "#5b21b6",
-                      weight: 16,
-                      opacity: 0.85,
-                      lineCap: "round",
+                      color: danced ? "#64748b" : "#005D4D",
+                      weight: 14,
+                      opacity: 0.9,
+                      lineCap: "butt",
+                      lineJoin: "miter",
                     }}
                     eventHandlers={{ click: select }}
                   />
                   <Polyline
                     positions={route.path}
                     pathOptions={{
-                      color: danced ? "#cbd5e1" : "#8b5cf6",
-                      weight: 9,
-                      opacity: 0.95,
-                      lineCap: "round",
+                      color: danced ? "#cbd5e1" : "#D3E173",
+                      weight: 10,
+                      opacity: 1,
+                      lineCap: "butt",
+                      lineJoin: "miter",
                     }}
                     eventHandlers={{ click: select }}
                   />

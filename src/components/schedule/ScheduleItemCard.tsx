@@ -132,25 +132,29 @@ export default function ScheduleItemCard({
         <p className="mt-2 text-sm text-slate-600">⚠ {item.notes}</p>
       )}
 
-      {meetingLocation && (
-        <p className="mt-2 text-right text-sm font-bold text-blue-700">
-          集合場所を地図で見る ›
-        </p>
+      {(meetingLocation || item.venueRouteId) && (
+        <div className="mt-3 flex gap-2">
+          {meetingLocation && (
+            <Link
+              to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+              className="flex-1 rounded-lg bg-blue-50 py-2 text-center text-sm font-bold text-blue-700"
+            >
+              📍 集合場所
+            </Link>
+          )}
+          {item.venueRouteId && (
+            <Link
+              to={`/${festivalSlug}/map?route=${item.venueRouteId}`}
+              className="flex-1 rounded-lg bg-[#eef3d4] py-2 text-center text-sm font-bold text-[#005D4D]"
+            >
+              🚩 演舞会場
+            </Link>
+          )}
+        </div>
       )}
       </div>
     </div>
   );
 
-  // 集合場所があるカードはタップでマップへ(該当ピンを中心表示)
-  if (meetingLocation) {
-    return (
-      <Link
-        to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
-        className="block"
-      >
-        {body}
-      </Link>
-    );
-  }
   return body;
 }
