@@ -1,5 +1,6 @@
 import type { Announcement } from "../../types/domain";
 import { formatTime } from "../../lib/time";
+import AnnouncementBody from "../announcements/AnnouncementBody";
 
 interface Props {
   announcement: Announcement;
@@ -21,9 +22,10 @@ export default function EmergencyBanner({ announcement, onAcknowledge }: Props) 
       <p className="mt-2 text-base font-bold text-slate-900">
         {announcement.title}
       </p>
-      <p className="mt-1 whitespace-pre-wrap text-base leading-relaxed text-slate-800">
-        {announcement.body}
-      </p>
+      <AnnouncementBody
+        body={announcement.body}
+        className="mt-1 text-base leading-relaxed text-slate-800"
+      />
 
       <button
         type="button"

@@ -4,6 +4,7 @@ import { useFestivalData } from "../../context/FestivalDataContext";
 import { useReadStatus } from "../../context/ReadStatusContext";
 import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
+import AnnouncementBody from "../../components/announcements/AnnouncementBody";
 
 export default function AnnouncementDetailPage() {
   const { festivalSlug, announcementId } = useParams();
@@ -66,9 +67,10 @@ export default function AnnouncementDetailPage() {
         <h1 className="mt-2 text-xl font-bold text-slate-900">
           {announcement.title}
         </h1>
-        <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-slate-700">
-          {announcement.body}
-        </p>
+        <AnnouncementBody
+          body={announcement.body}
+          className="mt-4 text-base leading-relaxed text-slate-700"
+        />
       </article>
     </div>
   );
