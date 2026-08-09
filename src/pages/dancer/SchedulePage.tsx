@@ -48,22 +48,24 @@ export default function SchedulePage() {
       </div>
 
       {days.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
-          {days.map((day) => (
-            <button
-              key={day.id}
-              type="button"
-              onClick={() => setSelectedDayId(day.id)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
-                day.id === currentDay.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-600"
-              }`}
-            >
-              {formatDateLabel(day.date)}
-              {day.label ? ` ${day.label}` : ""}
-            </button>
-          ))}
+        <div className="sticky top-0 z-30 -mx-4 bg-slate-100/95 px-4 py-2 backdrop-blur">
+          <div className="flex gap-2 overflow-x-auto">
+            {days.map((day) => (
+              <button
+                key={day.id}
+                type="button"
+                onClick={() => setSelectedDayId(day.id)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
+                  day.id === currentDay.id
+                    ? "bg-slate-900 text-white"
+                    : "bg-white text-slate-600 shadow-sm"
+                }`}
+              >
+                {formatDateLabel(day.date)}
+                {day.label ? ` ${day.label}` : ""}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

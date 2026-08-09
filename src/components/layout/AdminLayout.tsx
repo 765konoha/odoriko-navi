@@ -10,7 +10,7 @@ function FestivalSelector() {
   const { festivals, festival, selectFestival } = useAdminFestival();
   if (festivals.length <= 1) {
     return (
-      <span className="truncate text-sm text-slate-300">
+      <span className="max-w-24 truncate text-sm text-slate-300">
         {festival?.name ?? ""}
       </span>
     );
@@ -39,18 +39,25 @@ const tabs = [
 
 function AdminShell() {
   const { signOut } = useAuth();
+  const { festival } = useAdminFestival();
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-slate-100">
       <header className="sticky top-0 z-40 bg-slate-800 text-white">
         <div className="flex items-center gap-2 px-4 py-3">
-          <span className="text-base font-bold">運営管理</span>
-          <div className="ml-auto flex items-center gap-2">
+          <span className="shrink-0 text-base font-bold">運営管理</span>
+          <div className="ml-auto flex min-w-0 items-center gap-2">
             <FestivalSelector />
+            <NavLink
+              to={festival ? `/${festival.slug}` : "/"}
+              className="shrink-0 rounded-lg border border-slate-600 px-2.5 py-1 text-sm text-slate-200"
+            >
+              踊り子画面
+            </NavLink>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="rounded-lg bg-slate-700 px-3 py-1 text-sm"
+              className="shrink-0 rounded-lg bg-slate-700 px-3 py-1 text-sm"
             >
               ログアウト
             </button>

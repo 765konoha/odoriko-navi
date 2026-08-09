@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AdminLoginPage() {
@@ -70,6 +70,16 @@ export default function AdminLoginPage() {
           {submitting ? "ログイン中…" : "ログイン"}
         </button>
       </form>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
+        この画面は運営専用です。
+      </p>
+      <Link
+        to="/"
+        className="mt-2 block text-center text-base font-bold text-blue-700"
+      >
+        ← 踊り子の画面へ戻る
+      </Link>
     </div>
   );
 }
