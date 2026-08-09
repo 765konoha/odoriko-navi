@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useParams } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useReadStatus } from "../../context/ReadStatusContext";
 import { activeAnnouncements } from "../../lib/announcements";
@@ -55,7 +55,6 @@ const items = [
 export default function BottomNav() {
   const { festivalSlug } = useParams();
   const base = `/${festivalSlug}`;
-  const navigate = useNavigate();
   const { data } = useFestivalData();
   const { readIds } = useReadStatus();
 
@@ -68,26 +67,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto grid h-16 max-w-md grid-cols-5">
-        {/* iPhoneのPWAはブラウザの戻るUIが無いため、戻るボタンを常設する */}
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-slate-400"
-        >
-          <svg
-            className={iconClass}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-          戻る
-        </button>
+      <div className="mx-auto grid h-16 max-w-md grid-cols-4">
         {items.map((item) => (
           <NavLink
             key={item.label}
