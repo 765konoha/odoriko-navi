@@ -115,7 +115,7 @@ export default function ScheduleItemCard({
             </dd>
           </div>
         )}
-        {item.venueName && item.venueName !== item.title && (
+        {item.venueName && (
           <div className="flex gap-2">
             <dt className="w-16 shrink-0 text-slate-500">会場</dt>
             <dd>{item.venueName}</dd>
