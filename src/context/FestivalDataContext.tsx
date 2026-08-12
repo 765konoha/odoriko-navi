@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useLocation } from "react-router-dom";
 import type { FestivalData } from "../types/domain";
 import { repository } from "../repositories";
 import { loadDataCache, saveDataCache } from "../lib/storage";
@@ -80,6 +81,15 @@ export function FestivalDataProvider({
     setLoading(cached == null);
     void doFetch();
   }, [doFetch, slug]);
+
+  // タブ切替(画面遷移)時にも再取得する。アプリを開きっぱなしでも
+  // 予定タブ等を開いたタイミングで最新化される(10秒間引き付き)。
+  const location = useLocation();
+  useEffect(() => {
+    if (Date.now() - lastFetchRef.current < MIN_REFRESH_INTERVAL_MS) return;
+    void doFetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // 画面表示・アプリ復帰・オンライン復帰時の自動再取得(連続発火は間引く)
   useEffect(() => {
