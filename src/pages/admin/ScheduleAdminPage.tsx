@@ -118,7 +118,10 @@ function ItemForm({
       gatherTime: jstToIso(day.date, form.gatherTime),
       startTime: jstToIso(day.date, form.startTime),
       endTime: jstToIso(day.date, form.endTime),
-      venueName: form.venueName.trim() || null,
+      // 演舞で会場名が未入力の場合はタイトルを会場名として保存する
+      venueName:
+        form.venueName.trim() ||
+        (form.category === "performance" ? form.title.trim() : null),
       meetingLocationId: form.meetingLocationId || null,
       notes: form.notes.trim() || null,
       isConfirmed: form.isConfirmed,
@@ -242,6 +245,7 @@ function ItemForm({
           value={form.venueName}
           onChange={(e) => set("venueName", e.target.value)}
           className={inputClass}
+          placeholder="空欄の場合、演舞はタイトルを会場名として保存"
         />
       </label>
 
