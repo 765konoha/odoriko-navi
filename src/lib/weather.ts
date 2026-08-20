@@ -43,6 +43,43 @@ export function weatherMeta(code: number): { emoji: string; label: string } {
 
 const FRESH_MS = 60 * 60 * 1000; // 1時間
 
+// ---------- 地名検索(管理画面の天気予報地点の指定に使う) ----------
+
+export interface GeocodingResult {
+  /** 地名(例: 渋谷区) */
+  name: string;
+  /** 都道府県など上位の行政区分 */
+  admin1?: string;
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Open-Meteo のジオコーディングAPIで地名から緯度・経度を検索する。
+ * 予報API(latitude/longitude 指定)と同じ Open-Meteo の仕様に合わせた指定方法。
+ */
+export async function searchPlaces(query: string): Promise<GeocodingResult[]> {
+  const url =
+    `https://geocoding-api.open-meteo.com/v1/search` +
+    `?name=${encodeURIComponent(query)}&count=8&language=ja&format=json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`geocoding ${res.status}`);
+  const json = (await res.json()) as {
+    results?: {
+      name: string;
+      admin1?: string;
+      latitude: number;
+      longitude: number;
+    }[];
+  };
+  return (json.results ?? []).map((r) => ({
+    name: r.name,
+    admin1: r.admin1,
+    latitude: r.latitude,
+    longitude: r.longitude,
+  }));
+}
+
 interface FetchedWeather {
   hourly: WeatherHour[];
   daily: WeatherDay[];

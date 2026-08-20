@@ -1,5 +1,6 @@
 import { createHashRouter, Navigate } from "react-router-dom";
 import { DEFAULT_FESTIVAL_SLUG } from "./config";
+import { loadLastFestivalSlug } from "./lib/storage";
 import DancerLayout from "./components/layout/DancerLayout";
 import HomePage from "./pages/dancer/HomePage";
 import SchedulePage from "./pages/dancer/SchedulePage";
@@ -12,11 +13,18 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import ScheduleAdminPage from "./pages/admin/ScheduleAdminPage";
 import LocationAdminPage from "./pages/admin/LocationAdminPage";
 import AnnouncementAdminPage from "./pages/admin/AnnouncementAdminPage";
+import FestivalAdminPage from "./pages/admin/FestivalAdminPage";
+
+// 最後に表示した祭りがあればそこへ(初回はデフォルトの祭りへ)
+function RootRedirect() {
+  const slug = loadLastFestivalSlug() ?? DEFAULT_FESTIVAL_SLUG;
+  return <Navigate to={`/${slug}`} replace />;
+}
 
 export const router = createHashRouter([
   {
     path: "/",
-    element: <Navigate to={`/${DEFAULT_FESTIVAL_SLUG}`} replace />,
+    element: <RootRedirect />,
   },
   { path: "/admin/login", element: <AdminLoginPage /> },
   {
@@ -27,6 +35,7 @@ export const router = createHashRouter([
       { path: "schedule", element: <ScheduleAdminPage /> },
       { path: "locations", element: <LocationAdminPage /> },
       { path: "announcements", element: <AnnouncementAdminPage /> },
+      { path: "festivals", element: <FestivalAdminPage /> },
     ],
   },
   {
@@ -45,6 +54,6 @@ export const router = createHashRouter([
   },
   {
     path: "*",
-    element: <Navigate to={`/${DEFAULT_FESTIVAL_SLUG}`} replace />,
+    element: <RootRedirect />,
   },
 ]);
