@@ -15,13 +15,11 @@ import {
   type FestivalInput,
 } from "../../lib/adminApi";
 import { searchPlaces, type GeocodingResult } from "../../lib/weather";
+import { JAPAN_VIEW } from "../../lib/maps";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
 const labelClass = "text-sm font-medium text-slate-600";
-
-// 地点未指定時は日本全体を表示(祭りはどの地域でもあり得るため)
-const JAPAN_CENTER: [number, number] = [36.5, 137.8];
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -219,8 +217,8 @@ function FestivalForm({
 
         <div className="mt-2 h-56 overflow-hidden rounded-xl">
           <MapContainer
-            center={point ?? JAPAN_CENTER}
-            zoom={point ? 13 : 5}
+            center={point ?? JAPAN_VIEW.center}
+            zoom={point ? 13 : JAPAN_VIEW.zoom}
             className="h-full w-full"
           >
             <TileLayer
