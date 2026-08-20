@@ -1,8 +1,9 @@
 import type { FestivalRepository } from "./types";
-import type { FestivalData } from "../types/domain";
+import type { Festival, FestivalData } from "../types/domain";
 import { supabase } from "../lib/supabase";
 import {
   ANNOUNCEMENT_COLUMNS,
+  FESTIVAL_COLUMNS,
   LOCATION_COLUMNS,
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
@@ -26,7 +27,7 @@ export const supabaseRepository: FestivalRepository = {
 
     const { data: festivalRow, error: festivalError } = await supabase
       .from("festivals")
-      .select("id, slug, name")
+      .select(FESTIVAL_COLUMNS)
       .eq("slug", slug)
       .eq("is_active", true)
       .maybeSingle<FestivalRow>();
@@ -90,5 +91,16 @@ export const supabaseRepository: FestivalRepository = {
         toAnnouncement,
       ),
     };
+  },
+
+  async listActiveFestivals(): Promise<Festival[]> {
+    if (!supabase) throw new Error("Supabase client is not configured");
+    const { data, error } = await supabase
+      .from("festivals")
+      .select(FESTIVAL_COLUMNS)
+      .eq("is_active", true)
+      .order("created_at");
+    if (error) throw error;
+    return ((data ?? []) as FestivalRow[]).map(toFestival);
   },
 };

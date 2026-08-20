@@ -12,6 +12,7 @@ import type {
 } from "../types/domain";
 import {
   ANNOUNCEMENT_COLUMNS,
+  FESTIVAL_COLUMNS,
   LOCATION_COLUMNS,
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
@@ -41,10 +42,57 @@ function client() {
 export async function listFestivals(): Promise<Festival[]> {
   const { data, error } = await client()
     .from("festivals")
-    .select("id, slug, name")
+    .select(FESTIVAL_COLUMNS)
     .order("created_at");
   if (error) throw error;
   return ((data ?? []) as FestivalRow[]).map(toFestival);
+}
+
+export interface FestivalInput {
+  /** URL(/#/{slug}/...)になる識別子。例: harajuku-2026 */
+  slug: string;
+  name: string;
+  /** 天気予報の取得地点(Open-Meteo に渡す緯度・経度) */
+  weatherLat: number | null;
+  weatherLng: number | null;
+}
+
+function festivalToRow(input: FestivalInput) {
+  return {
+    slug: input.slug,
+    name: input.name,
+    weather_lat: input.weatherLat,
+    weather_lng: input.weatherLng,
+  };
+}
+
+/** 予報地点の変更を次回取得で確実に反映させるため天気キャッシュを消す */
+async function clearWeatherCache(festivalId: string): Promise<void> {
+  await client().from("weather_hourly").delete().eq("festival_id", festivalId);
+  await client().from("weather_daily").delete().eq("festival_id", festivalId);
+}
+
+/** 作成した祭りの id を返す */
+export async function createFestival(input: FestivalInput): Promise<string> {
+  const { data, error } = await client()
+    .from("festivals")
+    .insert(festivalToRow(input))
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
+export async function updateFestival(
+  id: string,
+  input: FestivalInput,
+): Promise<void> {
+  const { error } = await client()
+    .from("festivals")
+    .update(festivalToRow(input))
+    .eq("id", id);
+  if (error) throw error;
+  await clearWeatherCache(id);
 }
 
 export async function listDays(festivalId: string): Promise<FestivalDay[]> {

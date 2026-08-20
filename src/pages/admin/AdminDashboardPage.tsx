@@ -54,9 +54,17 @@ export default function AdminDashboardPage() {
   }
   if (!festival) {
     return (
-      <p className="rounded-xl bg-white p-4 text-slate-600">
-        祭りが登録されていません。SQL Editor で festivals に登録してください。
-      </p>
+      <div className="space-y-3">
+        <p className="rounded-xl bg-white p-4 text-slate-600">
+          祭りが登録されていません。まずは祭りを登録してください。
+        </p>
+        <Link
+          to="/admin/festivals"
+          className="block rounded-xl bg-slate-900 p-4 text-center font-bold text-white"
+        >
+          + 祭りを追加
+        </Link>
+      </div>
     );
   }
 
@@ -119,6 +127,12 @@ export default function AdminDashboardPage() {
           className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
         >
           お知らせ管理 →
+        </Link>
+        <Link
+          to="/admin/festivals"
+          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
+        >
+          祭り管理(追加・天気予報地点)→
         </Link>
         <Link
           to={`/${festival.slug}`}

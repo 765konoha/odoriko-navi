@@ -4,6 +4,10 @@ export interface Festival {
   id: string;
   slug: string;
   name: string;
+  /** 天気予報の取得地点(緯度)。未設定なら登録場所の重心で代替 */
+  weatherLat?: number;
+  /** 天気予報の取得地点(経度) */
+  weatherLng?: number;
 }
 
 export interface FestivalDay {

@@ -16,6 +16,8 @@ export interface FestivalRow {
   id: string;
   slug: string;
   name: string;
+  weather_lat: number | null;
+  weather_lng: number | null;
 }
 
 export interface FestivalDayRow {
@@ -90,7 +92,13 @@ export interface AnnouncementRow {
 }
 
 export function toFestival(row: FestivalRow): Festival {
-  return { id: row.id, slug: row.slug, name: row.name };
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    weatherLat: row.weather_lat ?? undefined,
+    weatherLng: row.weather_lng ?? undefined,
+  };
 }
 
 export function toFestivalDay(row: FestivalDayRow): FestivalDay {
@@ -153,6 +161,8 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
     expiresAt: row.expires_at ?? undefined,
   };
 }
+
+export const FESTIVAL_COLUMNS = "id, slug, name, weather_lat, weather_lng";
 
 export const SCHEDULE_ITEM_COLUMNS =
   "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count";

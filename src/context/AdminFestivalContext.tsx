@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -16,6 +17,8 @@ interface AdminFestivalState {
   festival: Festival | null;
   loading: boolean;
   selectFestival: (id: string) => void;
+  /** 祭りの追加・編集後に一覧を再読込する */
+  reload: () => Promise<void>;
 }
 
 const AdminFestivalContext = createContext<AdminFestivalState | null>(null);
@@ -27,11 +30,13 @@ export function AdminFestivalProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    void listFestivals()
-      .then(setFestivals)
-      .finally(() => setLoading(false));
+  const reload = useCallback(async () => {
+    setFestivals(await listFestivals());
   }, []);
+
+  useEffect(() => {
+    void reload().finally(() => setLoading(false));
+  }, [reload]);
 
   const festival =
     festivals.find((f) => f.id === selectedId) ?? festivals[0] ?? null;
@@ -45,8 +50,9 @@ export function AdminFestivalProvider({ children }: { children: ReactNode }) {
         setSelectedId(id);
         localStorage.setItem(STORAGE_KEY, id);
       },
+      reload,
     }),
-    [festivals, festival, loading],
+    [festivals, festival, loading, reload],
   );
 
   return (
