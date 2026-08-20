@@ -23,13 +23,11 @@ import {
   type VenueRouteInput,
 } from "../../lib/adminApi";
 import { meetingPointIcon, toiletIcon } from "../../components/map/markerIcons";
+import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
 const labelClass = "text-sm font-medium text-slate-600";
-
-// 高知市中心部(場所が未登録のときの地図初期位置)
-const DEFAULT_CENTER: [number, number] = [33.5597, 133.5388];
 
 function ClickPicker({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -44,11 +42,14 @@ function ClickPicker({ onPick }: { onPick: (lat: number, lng: number) => void })
 function RouteForm({
   festivalId,
   route,
+  defaultCenter,
   onSaved,
   onCancel,
 }: {
   festivalId: string;
   route: VenueRoute | null;
+  /** 未入力時の地図初期位置(祭りの基準地点)。null なら日本全体表示 */
+  defaultCenter: [number, number] | null;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -131,8 +132,8 @@ function RouteForm({
         </div>
         <div className="mt-1 h-64 overflow-hidden rounded-xl">
           <MapContainer
-            center={path[0] ?? DEFAULT_CENTER}
-            zoom={16}
+            center={path[0] ?? defaultCenter ?? JAPAN_VIEW.center}
+            zoom={path[0] || defaultCenter ? 16 : JAPAN_VIEW.zoom}
             className="h-full w-full"
           >
             <TileLayer
@@ -211,11 +212,14 @@ function RouteForm({
 function LocationForm({
   festivalId,
   location,
+  defaultCenter,
   onSaved,
   onCancel,
 }: {
   festivalId: string;
   location: Location | null;
+  /** 未入力時の地図初期位置(祭りの基準地点)。null なら日本全体表示 */
+  defaultCenter: [number, number] | null;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -300,8 +304,16 @@ function LocationForm({
         </span>
         <div className="mt-1 h-56 overflow-hidden rounded-xl">
           <MapContainer
-            center={lat != null && lng != null ? [lat, lng] : DEFAULT_CENTER}
-            zoom={15}
+            center={
+              lat != null && lng != null
+                ? [lat, lng]
+                : (defaultCenter ?? JAPAN_VIEW.center)
+            }
+            zoom={
+              (lat != null && lng != null) || defaultCenter
+                ? 15
+                : JAPAN_VIEW.zoom
+            }
             className="h-full w-full"
           >
             <TileLayer
@@ -402,11 +414,15 @@ export default function LocationAdminPage() {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
   }
 
+  // 新規追加時の地図初期位置は祭りの基準地点(天気予報地点→登録済み場所の重心)
+  const defaultCenter = festivalCenter(festival, locations);
+
   if (editing) {
     return (
       <LocationForm
         festivalId={festival.id}
         location={editing.mode === "edit" ? editing.location : null}
+        defaultCenter={defaultCenter}
         onSaved={() => {
           setEditing(null);
           void load();
@@ -421,6 +437,7 @@ export default function LocationAdminPage() {
       <RouteForm
         festivalId={festival.id}
         route={editingRoute.mode === "edit" ? editingRoute.route : null}
+        defaultCenter={defaultCenter}
         onSaved={() => {
           setEditingRoute(null);
           void load();

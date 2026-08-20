@@ -22,6 +22,7 @@ import {
   meetingPointIcon,
   toiletIcon,
 } from "../../components/map/markerIcons";
+import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
 import VenueRouteCard from "../../components/map/VenueRouteCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
@@ -253,6 +254,10 @@ export default function MapPage() {
     ? data.scheduleItems.filter((s) => s.meetingLocationId === selected.id)
     : [];
 
+  // 初期表示は祭りの基準地点(天気予報地点→登録場所の重心)。
+  // 予定カード経由・現在地取得成功時は FocusView / RecenterOnGeo が上書きする。
+  const initialCenter = festivalCenter(data.festival, locations);
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
@@ -301,8 +306,8 @@ export default function MapPage() {
 
       <div className="relative flex-1">
         <MapContainer
-          center={[33.5597, 133.5388]}
-          zoom={FOCUS_ZOOM}
+          center={initialCenter ?? JAPAN_VIEW.center}
+          zoom={initialCenter ? 15 : JAPAN_VIEW.zoom}
           className="absolute inset-0 z-0"
         >
           <TileLayer

@@ -26,6 +26,9 @@ export const kochi2026: FestivalData = {
     id: festivalId,
     slug: "kochi-2026",
     name: "2026年 高知よさこい",
+    // 高知市中心部(本番DBのバックフィルと同じ地点)
+    weatherLat: 33.5597,
+    weatherLng: 133.5388,
   },
   days: [
     { id: day1, festivalId, date: dateStr(0), label: "本祭1日目", sortOrder: 1 },
