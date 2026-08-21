@@ -53,6 +53,16 @@ export const harajuku2026: FestivalData = {
       address: "渋谷区神南2丁目",
       description: "けやき並木の北端に集合。",
     },
+    {
+      id: "hj-loc-kaikan",
+      festivalId,
+      kind: "changing_room",
+      name: "明治神宮会館",
+      lat: 35.6734,
+      lng: 139.7003,
+      address: "明治神宮内",
+      description: "更衣室。9:10頃には出発。",
+    },
   ],
   venueRoutes: [],
   scheduleItems: [

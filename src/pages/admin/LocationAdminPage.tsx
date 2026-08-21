@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -20,6 +20,7 @@ import {
 } from "../../lib/adminApi";
 import LocationForm from "../../components/admin/LocationForm";
 import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
+import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
@@ -217,15 +218,37 @@ export default function LocationAdminPage() {
   >(null);
   const [loading, setLoading] = useState(true);
 
+  // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+  const hydratedForRef = useRef<string | null>(null);
+
   const load = useCallback(async () => {
     if (!festival) return;
-    setLoading(true);
+    interface Cache {
+      locations: Location[];
+      routes: VenueRoute[];
+    }
+    // 初回は前回取得分を即表示し、裏で最新を取得する
+    if (hydratedForRef.current !== festival.id) {
+      hydratedForRef.current = festival.id;
+      const cached = loadAdminCache<Cache>(festival.id, "locations");
+      if (cached) {
+        setLocations(cached.locations);
+        setRoutes(cached.routes);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
     const [locationList, routeList] = await Promise.all([
       listLocations(festival.id),
       listVenueRoutes(festival.id),
     ]);
     setLocations(locationList);
     setRoutes(routeList);
+    saveAdminCache<Cache>(festival.id, "locations", {
+      locations: locationList,
+      routes: routeList,
+    });
     setLoading(false);
   }, [festival]);
 
@@ -295,6 +318,7 @@ export default function LocationAdminPage() {
 
   const meetingPoints = locations.filter((l) => l.kind === "meeting_point");
   const toilets = locations.filter((l) => l.kind === "toilet");
+  const changingRooms = locations.filter((l) => l.kind === "changing_room");
 
   return (
     <div className="space-y-4">
@@ -312,6 +336,7 @@ export default function LocationAdminPage() {
         [
           ["集合場所", meetingPoints],
           ["トイレ", toilets],
+          ["更衣室", changingRooms],
         ] as const
       ).map(([title, list]) => (
         <section key={title}>

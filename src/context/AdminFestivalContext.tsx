@@ -9,6 +9,10 @@ import {
 } from "react";
 import type { Festival } from "../types/domain";
 import { listFestivals } from "../lib/adminApi";
+import {
+  loadAdminFestivalsCache,
+  saveAdminFestivalsCache,
+} from "../lib/adminCache";
 
 const STORAGE_KEY = "odoriko:admin:festivalId";
 
@@ -24,14 +28,21 @@ interface AdminFestivalState {
 const AdminFestivalContext = createContext<AdminFestivalState | null>(null);
 
 export function AdminFestivalProvider({ children }: { children: ReactNode }) {
-  const [festivals, setFestivals] = useState<Festival[]>([]);
+  // 前回取得分を即表示し、裏で最新を取得する(初回のみ読み込み待ち)
+  const [festivals, setFestivals] = useState<Festival[]>(() =>
+    loadAdminFestivalsCache(),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY),
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(
+    () => loadAdminFestivalsCache().length === 0,
+  );
 
   const reload = useCallback(async () => {
-    setFestivals(await listFestivals());
+    const list = await listFestivals();
+    setFestivals(list);
+    saveAdminFestivalsCache(list);
   }, []);
 
   useEffect(() => {

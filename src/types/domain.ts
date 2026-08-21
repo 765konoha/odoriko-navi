@@ -42,7 +42,7 @@ export interface FestivalDay {
   sortOrder: number;
 }
 
-export type LocationKind = "meeting_point" | "toilet";
+export type LocationKind = "meeting_point" | "toilet" | "changing_room";
 
 export interface Location {
   id: string;

@@ -25,6 +25,18 @@ export const toiletIcon = pin(
   '<text x="17" y="21" text-anchor="middle" font-size="12" font-weight="bold" fill="white" font-family="sans-serif">WC</text>',
 );
 
+export const changingRoomIcon = pin(
+  "#7c3aed",
+  '<text x="17" y="21" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="sans-serif">更</text>',
+);
+
+/** 種別からマーカーアイコンを選ぶ */
+export function locationIcon(kind: string): L.DivIcon {
+  if (kind === "toilet") return toiletIcon;
+  if (kind === "changing_room") return changingRoomIcon;
+  return meetingPointIcon;
+}
+
 /** 現在地の青い点(アニメーションは index.css の .geo-dot) */
 export const currentLocationIcon = L.divIcon({
   className: "",
