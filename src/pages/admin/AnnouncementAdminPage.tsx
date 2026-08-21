@@ -5,7 +5,6 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { useLocation } from "react-router-dom";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import { supabase } from "../../lib/supabase";
 import type {
@@ -44,17 +43,10 @@ function statusLabel(a: Announcement, now: Date): string {
   return "配信中";
 }
 
-export interface AnnouncementTemplate {
-  title: string;
-  body: string;
-  priority: AnnouncementPriority;
-}
-
 function AnnouncementForm({
   festivalId,
   festivalSlug,
   announcement,
-  initial,
   roles,
   participants,
   onSaved,
@@ -63,16 +55,15 @@ function AnnouncementForm({
   festivalId: string;
   festivalSlug: string;
   announcement: Announcement | null;
-  initial: AnnouncementTemplate | null;
   roles: FestivalRole[];
   participants: FestivalParticipant[];
   onSaved: (pushInfo: string | null) => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState(announcement?.title ?? initial?.title ?? "");
-  const [body, setBody] = useState(announcement?.body ?? initial?.body ?? "");
+  const [title, setTitle] = useState(announcement?.title ?? "");
+  const [body, setBody] = useState(announcement?.body ?? "");
   const [priority, setPriority] = useState<AnnouncementPriority>(
-    announcement?.priority ?? initial?.priority ?? "normal",
+    announcement?.priority ?? "normal",
   );
   const [publishedAt, setPublishedAt] = useState(() =>
     isoToDatetimeLocal(announcement?.publishedAt ?? new Date().toISOString()),
@@ -397,27 +388,14 @@ function AnnouncementForm({
 
 export default function AnnouncementAdminPage() {
   const { festival } = useAdminFestival();
-  const location = useLocation();
-  // スケジュール管理から遷移してきた場合の定型文(予定変更のお知らせ)
-  const [pendingTemplate, setPendingTemplate] =
-    useState<AnnouncementTemplate | null>(
-      (location.state as { template?: AnnouncementTemplate } | null)
-        ?.template ?? null,
-    );
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [roles, setRoles] = useState<FestivalRole[]>([]);
   const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
   const [editing, setEditing] = useState<
     { mode: "new" } | { mode: "edit"; announcement: Announcement } | null
-  >(pendingTemplate ? { mode: "new" } : null);
+  >(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // 定型文はリロード時に再適用されないよう履歴stateから除去
-  useEffect(() => {
-    if (pendingTemplate) window.history.replaceState({}, "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const load = useCallback(async () => {
     if (!festival) return;
@@ -448,19 +426,14 @@ export default function AnnouncementAdminPage() {
         festivalId={festival.id}
         festivalSlug={festival.slug}
         announcement={editing.mode === "edit" ? editing.announcement : null}
-        initial={editing.mode === "new" ? pendingTemplate : null}
         roles={roles}
         participants={participants}
         onSaved={(pushInfo) => {
           setEditing(null);
-          setPendingTemplate(null);
           setFlash(pushInfo);
           void load();
         }}
-        onCancel={() => {
-          setEditing(null);
-          setPendingTemplate(null);
-        }}
+        onCancel={() => setEditing(null)}
       />
     );
   }

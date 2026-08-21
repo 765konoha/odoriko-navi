@@ -604,26 +604,41 @@ export interface ParticipantImportRow {
   nickname: string;
 }
 
+/** この祭りの既定役職(踊り子一般)の id */
+async function defaultRoleId(festivalId: string): Promise<string | null> {
+  const { data, error } = await client()
+    .from("festival_roles")
+    .select("id")
+    .eq("festival_id", festivalId)
+    .eq("is_default", true)
+    .limit(1);
+  if (error) throw error;
+  return (data?.[0] as { id: string } | undefined)?.id ?? null;
+}
+
+/** マスターに無いシリアルをマスターへ追加する(名前は持たせない) */
+async function ensureMasterSerials(serials: string[]): Promise<void> {
+  const { error } = await client()
+    .from("participants")
+    .upsert(
+      serials.map((serial) => ({ serial })),
+      { onConflict: "serial", ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
 /**
  * 参加者の一括登録(初期登録専用)。
- * マスターに無いシリアルはマスターへ追加し(名前は持たせない)、
- * 祭り参加者として登録する。
+ * 全員に既定役職(踊り子一般)を付与する。
  */
 export async function bulkRegisterParticipants(
   festivalId: string,
   rows: ParticipantImportRow[],
 ): Promise<void> {
   if (rows.length === 0) return;
-  // マスターへの追加(既存シリアルはそのまま利用)
-  const { error: masterError } = await client()
-    .from("participants")
-    .upsert(
-      rows.map((r) => ({ serial: r.serial })),
-      { onConflict: "serial", ignoreDuplicates: true },
-    );
-  if (masterError) throw masterError;
+  await ensureMasterSerials(rows.map((r) => r.serial));
 
-  const { error } = await client()
+  const { data, error } = await client()
     .from("festival_participants")
     .insert(
       rows.map((r) => ({
@@ -632,8 +647,47 @@ export async function bulkRegisterParticipants(
         name: r.name,
         nickname: r.nickname,
       })),
-    );
+    )
+    .select("id");
   if (error) throw error;
+
+  const roleId = await defaultRoleId(festivalId);
+  if (!roleId) return;
+  const { error: roleError } = await client()
+    .from("festival_participant_roles")
+    .insert(
+      ((data ?? []) as { id: string }[]).map((p) => ({
+        festival_participant_id: p.id,
+        role_id: roleId,
+      })),
+    );
+  if (roleError) throw roleError;
+}
+
+/** 参加者を1人追加する(役職未指定なら踊り子一般を付与) */
+export async function createParticipant(
+  festivalId: string,
+  row: ParticipantImportRow,
+  roleIds: string[],
+): Promise<void> {
+  await ensureMasterSerials([row.serial]);
+  const { data, error } = await client()
+    .from("festival_participants")
+    .insert({
+      festival_id: festivalId,
+      serial: row.serial,
+      name: row.name,
+      nickname: row.nickname,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  let ids = roleIds;
+  if (ids.length === 0) {
+    const roleId = await defaultRoleId(festivalId);
+    ids = roleId ? [roleId] : [];
+  }
+  await setParticipantRoles((data as { id: string }).id, ids);
 }
 
 /**
