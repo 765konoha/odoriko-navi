@@ -25,6 +25,8 @@ import {
 } from "../../lib/adminApi";
 import { formatDateLabel, formatTime, jstToIso, todayString } from "../../lib/time";
 import { CATEGORY_META } from "../../lib/schedule";
+import LocationForm from "../../components/admin/LocationForm";
+import { festivalCenter } from "../../lib/maps";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
@@ -86,27 +88,37 @@ function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormStat
 function ItemForm({
   day,
   item,
+  festivalId,
   locations,
   venueRoutes,
   roles,
   danceCountEnabled,
+  defaultCenter,
   nextSortOrder,
   onSaved,
   onCancel,
+  onLocationCreated,
 }: {
   day: FestivalDay;
   item: ScheduleItem | null;
+  festivalId: string;
   locations: Location[];
   venueRoutes: VenueRoute[];
   roles: FestivalRole[];
   danceCountEnabled: boolean;
+  /** 場所追加フォームの地図初期位置(祭りの基準地点) */
+  defaultCenter: [number, number] | null;
   nextSortOrder: number;
   onSaved: () => void;
   onCancel: () => void;
+  /** 予定フォームから場所を追加したとき、親の場所一覧へ反映する */
+  onLocationCreated: (location: Location) => void;
 }) {
   const [form, setForm] = useState<FormState>(() =>
     toFormState(item, nextSortOrder),
   );
+  // 集合場所の新規追加フォームを開いているか(入力中の予定は保持される)
+  const [addingLocation, setAddingLocation] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,6 +190,29 @@ function ItemForm({
       setError(err instanceof Error ? err.message : "保存に失敗しました");
       setSaving(false);
     }
+  }
+
+  // 予定の入力内容を保持したまま場所追加フォームを表示し、保存後にここへ戻る
+  if (addingLocation) {
+    return (
+      <div className="space-y-2">
+        <p className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-medium text-blue-900">
+          入力中の予定は保持されています。場所を保存すると予定の入力に戻ります。
+        </p>
+        <LocationForm
+          festivalId={festivalId}
+          location={null}
+          defaultCenter={defaultCenter}
+          fixedKind="meeting_point"
+          onSaved={(saved) => {
+            onLocationCreated(saved);
+            set("meetingLocationId", saved.id);
+            setAddingLocation(false);
+          }}
+          onCancel={() => setAddingLocation(false)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -314,8 +349,17 @@ function ItemForm({
         />
       </label>
 
-      <label className="block">
-        <span className={labelClass}>集合場所</span>
+      <div>
+        <div className="flex items-center">
+          <span className={labelClass}>集合場所</span>
+          <button
+            type="button"
+            onClick={() => setAddingLocation(true)}
+            className="ml-auto rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-blue-700"
+          >
+            + 新しい場所を追加
+          </button>
+        </div>
         <select
           value={form.meetingLocationId}
           onChange={(e) => set("meetingLocationId", e.target.value)}
@@ -328,7 +372,7 @@ function ItemForm({
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       {form.category === "performance" && (
         <label className="block">
@@ -589,11 +633,17 @@ export default function ScheduleAdminPage() {
       <ItemForm
         day={currentDay}
         item={editing.mode === "edit" ? editing.item : null}
+        festivalId={festival.id}
         locations={locations}
         venueRoutes={venueRoutes}
         roles={roles}
         danceCountEnabled={festival.danceCountEnabled}
+        defaultCenter={festivalCenter(festival, locations)}
         nextSortOrder={nextSortOrder}
+        onLocationCreated={(location) =>
+          // フォームを開いたまま(ページ再読込なしで)選択肢へ反映する
+          setLocations((prev) => [...prev, location])
+        }
         onSaved={() => {
           setEditing(null);
           void load();

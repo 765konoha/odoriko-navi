@@ -6,6 +6,7 @@ import {
   createParticipant,
   createRole,
   deleteAllParticipants,
+  deleteParticipant,
   listParticipants,
   listRoles,
   setParticipantRoles,
@@ -53,16 +54,18 @@ function RoleChecks({
   );
 }
 
-/** 参加者の個別編集(名前・ニックネーム・役職) */
+/** 参加者の個別編集(名前・ニックネーム・役職・削除) */
 function ParticipantForm({
   participant,
   roles,
   onSaved,
+  onDeleted,
   onCancel,
 }: {
   participant: FestivalParticipant;
   roles: FestivalRole[];
   onSaved: () => void;
+  onDeleted: () => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(participant.name);
@@ -70,6 +73,22 @@ function ParticipantForm({
   const [roleIds, setRoleIds] = useState<string[]>(participant.roleIds);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    const ok = window.confirm(
+      `${participant.serial} / ${participant.nickname}(${participant.name})をこの祭りの参加者から削除しますか?\n\nこの参加者宛ての個人お知らせの紐付けも削除されます。\n(参加者マスターのシリアルは残ります)`,
+    );
+    if (!ok) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await deleteParticipant(participant.id);
+      onDeleted();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "削除に失敗しました");
+      setSaving(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -146,6 +165,15 @@ function ParticipantForm({
           キャンセル
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => void handleDelete()}
+        disabled={saving}
+        className="w-full rounded-xl border-2 border-red-300 py-2.5 text-sm font-bold text-red-600 disabled:opacity-50"
+      >
+        この参加者を削除
+      </button>
     </form>
   );
 }
@@ -462,6 +490,11 @@ export default function ParticipantAdminPage() {
         roles={roles}
         onSaved={() => {
           setEditing(null);
+          void load();
+        }}
+        onDeleted={() => {
+          setEditing(null);
+          setFlash("参加者を削除しました。");
           void load();
         }}
         onCancel={() => setEditing(null)}
