@@ -6,6 +6,7 @@ import {
   syncSubscription,
   unsubscribeFromPush,
 } from "../../lib/push";
+import { useUser } from "../../context/UserContext";
 
 type State = "hidden" | "off" | "on" | "denied";
 
@@ -14,8 +15,10 @@ const isStandalone =
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as { standalone?: boolean }).standalone === true;
 
-/** お知らせのプッシュ通知 オン/オフ */
+/** お知らせのプッシュ通知 オン/オフ(シリアル選択が必須) */
 export default function PushToggle() {
+  const { selection, requestChange } = useUser();
+  const serial = selection?.serial ?? null;
   const [state, setState] = useState<State>("hidden");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -28,12 +31,31 @@ export default function PushToggle() {
     }
     void isSubscribed().then((on) => {
       setState(on ? "on" : "off");
-      // 購読済みならDB側の登録を自動修復(行が消えていても再登録される)
-      if (on) void syncSubscription();
+      // 購読済みならDB側の登録を自動修復し、現在のシリアルを記録する
+      if (on && serial) void syncSubscription(serial);
     });
-  }, []);
+  }, [serial]);
 
   if (state === "hidden") return null;
+
+  // 通知対象の判定にシリアルが必要なため、番号指定なしでは購読できない
+  if (serial == null) {
+    return (
+      <div className="rounded-xl bg-white px-4 py-3">
+        <p className="text-sm font-bold text-slate-800">🔔 プッシュ通知</p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          通知を受け取るにはシリアルの選択が必要です(番号指定なしでは利用できません)。
+        </p>
+        <button
+          type="button"
+          onClick={requestChange}
+          className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600"
+        >
+          シリアルを選択する
+        </button>
+      </div>
+    );
+  }
   // iPhone/iPad はホーム画面に追加した PWA でのみ通知可能
   if (isIos && !isStandalone) {
     return (
@@ -60,7 +82,7 @@ export default function PushToggle() {
       await unsubscribeFromPush();
       setState("off");
     } else {
-      const result = await subscribeToPush();
+      const result = await subscribeToPush(serial!);
       if (result === "subscribed") {
         setState("on");
       } else if (result === "denied") {

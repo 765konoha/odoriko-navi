@@ -1,8 +1,11 @@
 import type {
   Announcement,
+  AnnouncementAudience,
   AnnouncementPriority,
   Festival,
   FestivalDay,
+  FestivalParticipant,
+  FestivalRole,
   Location,
   LocationKind,
   ScheduleCategory,
@@ -18,6 +21,48 @@ export interface FestivalRow {
   name: string;
   weather_lat: number | null;
   weather_lng: number | null;
+  dance_count_enabled: boolean;
+}
+
+export interface FestivalRoleRow {
+  id: string;
+  festival_id: string;
+  name: string;
+  is_default: boolean;
+  sort_order: number;
+}
+
+export interface FestivalParticipantRow {
+  id: string;
+  festival_id: string;
+  serial: string;
+  name: string;
+  nickname: string;
+  /** ネストselect: festival_participant_roles(role_id) */
+  festival_participant_roles?: { role_id: string }[];
+}
+
+export function toFestivalRole(row: FestivalRoleRow): FestivalRole {
+  return {
+    id: row.id,
+    festivalId: row.festival_id,
+    name: row.name,
+    isDefault: row.is_default,
+    sortOrder: row.sort_order,
+  };
+}
+
+export function toFestivalParticipant(
+  row: FestivalParticipantRow,
+): FestivalParticipant {
+  return {
+    id: row.id,
+    festivalId: row.festival_id,
+    serial: row.serial,
+    name: row.name,
+    nickname: row.nickname,
+    roleIds: (row.festival_participant_roles ?? []).map((r) => r.role_id),
+  };
 }
 
 export interface FestivalDayRow {
@@ -61,6 +106,9 @@ export interface ScheduleItemRow {
   dances_sakaseya: boolean;
   rejoice_count: number;
   sakaseya_count: number;
+  audience_all: boolean;
+  /** ネストselect: schedule_item_roles(role_id) */
+  schedule_item_roles?: { role_id: string }[];
 }
 
 export interface VenueRouteRow {
@@ -89,6 +137,11 @@ export interface AnnouncementRow {
   priority: string;
   published_at: string;
   expires_at: string | null;
+  audience_type: string;
+  /** ネストselect: announcement_roles(role_id) */
+  announcement_roles?: { role_id: string }[];
+  /** ネストselect: announcement_participants(festival_participant_id) */
+  announcement_participants?: { festival_participant_id: string }[];
 }
 
 export function toFestival(row: FestivalRow): Festival {
@@ -98,6 +151,7 @@ export function toFestival(row: FestivalRow): Festival {
     name: row.name,
     weatherLat: row.weather_lat ?? undefined,
     weatherLng: row.weather_lng ?? undefined,
+    danceCountEnabled: row.dance_count_enabled ?? false,
   };
 }
 
@@ -147,6 +201,8 @@ export function toScheduleItem(row: ScheduleItemRow): ScheduleItem {
     dancesSakaseya: row.dances_sakaseya ?? false,
     rejoiceCount: Number(row.rejoice_count ?? 0),
     sakaseyaCount: Number(row.sakaseya_count ?? 0),
+    audienceAll: row.audience_all ?? true,
+    audienceRoleIds: (row.schedule_item_roles ?? []).map((r) => r.role_id),
   };
 }
 
@@ -159,13 +215,20 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
     priority: row.priority as AnnouncementPriority,
     publishedAt: row.published_at,
     expiresAt: row.expires_at ?? undefined,
+    audienceType: (row.audience_type ?? "all") as AnnouncementAudience,
+    audienceRoleIds: (row.announcement_roles ?? []).map((r) => r.role_id),
+    audienceParticipantIds: (row.announcement_participants ?? []).map(
+      (r) => r.festival_participant_id,
+    ),
   };
 }
 
-export const FESTIVAL_COLUMNS = "id, slug, name, weather_lat, weather_lng";
+export const FESTIVAL_COLUMNS =
+  "id, slug, name, weather_lat, weather_lng, dance_count_enabled";
 
+// schedule_item_roles / announcement_* はネストselectで同時取得する
 export const SCHEDULE_ITEM_COLUMNS =
-  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count";
+  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count, audience_all, schedule_item_roles(role_id)";
 
 export const VENUE_ROUTE_COLUMNS = "id, festival_id, name, path, description";
 
@@ -173,4 +236,10 @@ export const LOCATION_COLUMNS =
   "id, festival_id, kind, name, lat, lng, address, description";
 
 export const ANNOUNCEMENT_COLUMNS =
-  "id, festival_id, title, body, priority, published_at, expires_at";
+  "id, festival_id, title, body, priority, published_at, expires_at, audience_type, announcement_roles(role_id), announcement_participants(festival_participant_id)";
+
+export const FESTIVAL_ROLE_COLUMNS =
+  "id, festival_id, name, is_default, sort_order";
+
+export const FESTIVAL_PARTICIPANT_COLUMNS =
+  "id, festival_id, serial, name, nickname, festival_participant_roles(role_id)";

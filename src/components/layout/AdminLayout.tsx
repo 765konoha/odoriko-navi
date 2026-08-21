@@ -35,6 +35,7 @@ const tabs = [
   { to: "/admin/schedule", end: false, label: "予定" },
   { to: "/admin/locations", end: false, label: "場所" },
   { to: "/admin/announcements", end: false, label: "お知らせ" },
+  { to: "/admin/participants", end: false, label: "参加者" },
 ];
 
 function AdminShell() {
@@ -63,7 +64,7 @@ function AdminShell() {
             </button>
           </div>
         </div>
-        <nav className="grid grid-cols-4 border-t border-slate-700">
+        <nav className="grid grid-cols-5 border-t border-slate-700">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}

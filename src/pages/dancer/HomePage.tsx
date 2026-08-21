@@ -14,12 +14,21 @@ import WeatherStrip from "../../components/home/WeatherStrip";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
+import { useUser } from "../../context/UserContext";
+import { useViewer } from "../../hooks/useViewer";
 import { activeAnnouncements } from "../../lib/announcements";
+import {
+  viewerLabel,
+  visibleAnnouncements,
+  visibleScheduleItems,
+} from "../../lib/audience";
 
 export default function HomePage() {
   const { data, loading } = useFestivalData();
   const now = useNow();
   const { ackedIds, markAcked, readIds } = useReadStatus();
+  const { requestChange } = useUser();
+  const viewer = useViewer();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -33,14 +42,20 @@ export default function HomePage() {
   }
 
   const today = findToday(data.days);
-  const todayItems = today ? itemsOfDay(data, today.id) : [];
+  const todayItems = today
+    ? visibleScheduleItems(itemsOfDay(data, today.id), viewer)
+    : [];
   const nextItem = findNextItem(todayItems);
   const meetingLocation = nextItem?.meetingLocationId
     ? (data.locations.find((l) => l.id === nextItem.meetingLocationId) ?? null)
     : null;
 
   // 未確認の緊急連絡は「確認しました」を押すまでホームに強制表示する
-  const currentAnnouncements = activeAnnouncements(data.announcements, now);
+  // (配信対象のお知らせのみ。個人向けは本人だけに出る)
+  const currentAnnouncements = activeAnnouncements(
+    visibleAnnouncements(data.announcements, viewer),
+    now,
+  );
   const pendingEmergencies = currentAnnouncements.filter(
     (a) => a.priority === "emergency" && !ackedIds.has(a.id),
   );
@@ -71,6 +86,20 @@ export default function HomePage() {
         </div>
         <RefreshIndicator />
       </header>
+
+      <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5">
+        <span className="text-sm text-slate-500">利用者</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
+          {viewerLabel(viewer)}
+        </span>
+        <button
+          type="button"
+          onClick={requestChange}
+          className="shrink-0 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-bold text-slate-600"
+        >
+          変更
+        </button>
+      </div>
 
       {unreadCount > 0 && (
         <Link
@@ -123,7 +152,12 @@ export default function HomePage() {
         </section>
       )}
 
-      <DanceCountCard days={data.days} items={data.scheduleItems} />
+      {data.festival.danceCountEnabled && (
+        <DanceCountCard
+          days={data.days}
+          items={visibleScheduleItems(data.scheduleItems, viewer)}
+        />
+      )}
 
       <footer className="pt-6 pb-2 text-center">
         <Link to="/admin" className="text-xs text-slate-400 underline">

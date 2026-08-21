@@ -1,9 +1,12 @@
 import { supabase } from "./supabase";
 import type {
   Announcement,
+  AnnouncementAudience,
   AnnouncementPriority,
   Festival,
   FestivalDay,
+  FestivalParticipant,
+  FestivalRole,
   Location,
   LocationKind,
   ScheduleCategory,
@@ -13,17 +16,23 @@ import type {
 import {
   ANNOUNCEMENT_COLUMNS,
   FESTIVAL_COLUMNS,
+  FESTIVAL_PARTICIPANT_COLUMNS,
+  FESTIVAL_ROLE_COLUMNS,
   LOCATION_COLUMNS,
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
   toAnnouncement,
   toFestival,
   toFestivalDay,
+  toFestivalParticipant,
+  toFestivalRole,
   toLocation,
   toScheduleItem,
   toVenueRoute,
   type AnnouncementRow,
   type FestivalDayRow,
+  type FestivalParticipantRow,
+  type FestivalRoleRow,
   type FestivalRow,
   type LocationRow,
   type ScheduleItemRow,
@@ -55,6 +64,8 @@ export interface FestivalInput {
   /** 天気予報の取得地点(Open-Meteo に渡す緯度・経度) */
   weatherLat: number | null;
   weatherLng: number | null;
+  /** 演舞回数の集計機能を使うか */
+  danceCountEnabled: boolean;
 }
 
 function festivalToRow(input: FestivalInput) {
@@ -63,8 +74,17 @@ function festivalToRow(input: FestivalInput) {
     name: input.name,
     weather_lat: input.weatherLat,
     weather_lng: input.weatherLng,
+    dance_count_enabled: input.danceCountEnabled,
   };
 }
+
+/** 新規の祭りに自動投入する初期役職(is_default は番号指定なし利用者の役職) */
+const DEFAULT_ROLES = [
+  { name: "リーダー", is_default: false, sort_order: 1 },
+  { name: "踊り子一般", is_default: true, sort_order: 2 },
+  { name: "マネージャー", is_default: false, sort_order: 3 },
+  { name: "歌い手・煽り", is_default: false, sort_order: 4 },
+];
 
 /** 予報地点の変更を次回取得で確実に反映させるため天気キャッシュを消す */
 async function clearWeatherCache(festivalId: string): Promise<void> {
@@ -72,7 +92,7 @@ async function clearWeatherCache(festivalId: string): Promise<void> {
   await client().from("weather_daily").delete().eq("festival_id", festivalId);
 }
 
-/** 作成した祭りの id を返す */
+/** 作成した祭りの id を返す(初期役職も自動で投入する) */
 export async function createFestival(input: FestivalInput): Promise<string> {
   const { data, error } = await client()
     .from("festivals")
@@ -80,7 +100,12 @@ export async function createFestival(input: FestivalInput): Promise<string> {
     .select("id")
     .single();
   if (error) throw error;
-  return (data as { id: string }).id;
+  const festivalId = (data as { id: string }).id;
+  const { error: roleError } = await client()
+    .from("festival_roles")
+    .insert(DEFAULT_ROLES.map((r) => ({ ...r, festival_id: festivalId })));
+  if (roleError) throw roleError;
+  return festivalId;
 }
 
 export async function updateFestival(
@@ -149,6 +174,9 @@ export interface ScheduleItemInput {
   dancesSakaseya: boolean;
   rejoiceCount: number;
   sakaseyaCount: number;
+  /** 全員に表示するか。false の場合は audienceRoleIds の役職のみ */
+  audienceAll: boolean;
+  audienceRoleIds: string[];
 }
 
 function scheduleItemToRow(input: ScheduleItemInput) {
@@ -174,7 +202,30 @@ function scheduleItemToRow(input: ScheduleItemInput) {
     sakaseya_count: input.sakaseyaCount,
     // 旧列は合計値として維持(公開中の旧バージョンが参照するため)
     dance_count: input.rejoiceCount + input.sakaseyaCount,
+    audience_all: input.audienceAll,
   };
+}
+
+/** 予定の表示対象役職を置き換える(全員向けは紐付けを空にする) */
+async function replaceScheduleItemRoles(
+  scheduleItemId: string,
+  input: ScheduleItemInput,
+): Promise<void> {
+  const { error: deleteError } = await client()
+    .from("schedule_item_roles")
+    .delete()
+    .eq("schedule_item_id", scheduleItemId);
+  if (deleteError) throw deleteError;
+  if (input.audienceAll || input.audienceRoleIds.length === 0) return;
+  const { error } = await client()
+    .from("schedule_item_roles")
+    .insert(
+      input.audienceRoleIds.map((roleId) => ({
+        schedule_item_id: scheduleItemId,
+        role_id: roleId,
+      })),
+    );
+  if (error) throw error;
 }
 
 export async function listScheduleItems(
@@ -193,10 +244,13 @@ export async function listScheduleItems(
 export async function createScheduleItem(
   input: ScheduleItemInput,
 ): Promise<void> {
-  const { error } = await client()
+  const { data, error } = await client()
     .from("schedule_items")
-    .insert(scheduleItemToRow(input));
+    .insert(scheduleItemToRow(input))
+    .select("id")
+    .single();
   if (error) throw error;
+  await replaceScheduleItemRoles((data as { id: string }).id, input);
 }
 
 export async function updateScheduleItem(
@@ -208,6 +262,7 @@ export async function updateScheduleItem(
     .update(scheduleItemToRow(input))
     .eq("id", id);
   if (error) throw error;
+  await replaceScheduleItemRoles(id, input);
 }
 
 export async function deleteScheduleItem(id: string): Promise<void> {
@@ -362,6 +417,10 @@ export interface AnnouncementInput {
   priority: AnnouncementPriority;
   publishedAt: string;
   expiresAt: string | null;
+  /** 配信対象(all=全員 / roles=役職 / participants=個人) */
+  audienceType: AnnouncementAudience;
+  audienceRoleIds: string[];
+  audienceParticipantIds: string[];
 }
 
 function announcementToRow(input: AnnouncementInput) {
@@ -372,7 +431,53 @@ function announcementToRow(input: AnnouncementInput) {
     priority: input.priority,
     published_at: input.publishedAt,
     expires_at: input.expiresAt,
+    audience_type: input.audienceType,
   };
+}
+
+/** お知らせの配信対象(役職・個人)の紐付けを置き換える */
+async function replaceAnnouncementAudience(
+  announcementId: string,
+  input: AnnouncementInput,
+): Promise<void> {
+  const [rolesDel, participantsDel] = await Promise.all([
+    client()
+      .from("announcement_roles")
+      .delete()
+      .eq("announcement_id", announcementId),
+    client()
+      .from("announcement_participants")
+      .delete()
+      .eq("announcement_id", announcementId),
+  ]);
+  if (rolesDel.error) throw rolesDel.error;
+  if (participantsDel.error) throw participantsDel.error;
+
+  if (input.audienceType === "roles" && input.audienceRoleIds.length > 0) {
+    const { error } = await client()
+      .from("announcement_roles")
+      .insert(
+        input.audienceRoleIds.map((roleId) => ({
+          announcement_id: announcementId,
+          role_id: roleId,
+        })),
+      );
+    if (error) throw error;
+  }
+  if (
+    input.audienceType === "participants" &&
+    input.audienceParticipantIds.length > 0
+  ) {
+    const { error } = await client()
+      .from("announcement_participants")
+      .insert(
+        input.audienceParticipantIds.map((participantId) => ({
+          announcement_id: announcementId,
+          festival_participant_id: participantId,
+        })),
+      );
+    if (error) throw error;
+  }
 }
 
 /** 管理画面用: 配信前・配信終了も含む全件 */
@@ -398,7 +503,9 @@ export async function createAnnouncement(
     .select("id")
     .single();
   if (error) throw error;
-  return (data as { id: string }).id;
+  const id = (data as { id: string }).id;
+  await replaceAnnouncementAudience(id, input);
+  return id;
 }
 
 export async function updateAnnouncement(
@@ -410,9 +517,134 @@ export async function updateAnnouncement(
     .update({ ...announcementToRow(input), updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
+  await replaceAnnouncementAudience(id, input);
 }
 
 export async function deleteAnnouncement(id: string): Promise<void> {
   const { error } = await client().from("announcements").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- 役職 ----------
+
+export async function listRoles(festivalId: string): Promise<FestivalRole[]> {
+  const { data, error } = await client()
+    .from("festival_roles")
+    .select(FESTIVAL_ROLE_COLUMNS)
+    .eq("festival_id", festivalId)
+    .order("sort_order");
+  if (error) throw error;
+  return ((data ?? []) as FestivalRoleRow[]).map(toFestivalRole);
+}
+
+export async function createRole(
+  festivalId: string,
+  name: string,
+  sortOrder: number,
+): Promise<void> {
+  const { error } = await client().from("festival_roles").insert({
+    festival_id: festivalId,
+    name,
+    sort_order: sortOrder,
+  });
+  if (error) throw error;
+}
+
+// ---------- 参加者 ----------
+
+export async function listParticipants(
+  festivalId: string,
+): Promise<FestivalParticipant[]> {
+  const { data, error } = await client()
+    .from("festival_participants")
+    .select(FESTIVAL_PARTICIPANT_COLUMNS)
+    .eq("festival_id", festivalId)
+    .order("serial");
+  if (error) throw error;
+  return ((data ?? []) as FestivalParticipantRow[]).map(toFestivalParticipant);
+}
+
+export async function updateParticipant(
+  id: string,
+  name: string,
+  nickname: string,
+): Promise<void> {
+  const { error } = await client()
+    .from("festival_participants")
+    .update({ name, nickname })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** 参加者の役職を置き換える(複数役職可) */
+export async function setParticipantRoles(
+  festivalParticipantId: string,
+  roleIds: string[],
+): Promise<void> {
+  const { error: deleteError } = await client()
+    .from("festival_participant_roles")
+    .delete()
+    .eq("festival_participant_id", festivalParticipantId);
+  if (deleteError) throw deleteError;
+  if (roleIds.length === 0) return;
+  const { error } = await client()
+    .from("festival_participant_roles")
+    .insert(
+      roleIds.map((roleId) => ({
+        festival_participant_id: festivalParticipantId,
+        role_id: roleId,
+      })),
+    );
+  if (error) throw error;
+}
+
+export interface ParticipantImportRow {
+  serial: string;
+  name: string;
+  nickname: string;
+}
+
+/**
+ * 参加者の一括登録(初期登録専用)。
+ * マスターに無いシリアルはマスターへ追加し(名前は持たせない)、
+ * 祭り参加者として登録する。
+ */
+export async function bulkRegisterParticipants(
+  festivalId: string,
+  rows: ParticipantImportRow[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  // マスターへの追加(既存シリアルはそのまま利用)
+  const { error: masterError } = await client()
+    .from("participants")
+    .upsert(
+      rows.map((r) => ({ serial: r.serial })),
+      { onConflict: "serial", ignoreDuplicates: true },
+    );
+  if (masterError) throw masterError;
+
+  const { error } = await client()
+    .from("festival_participants")
+    .insert(
+      rows.map((r) => ({
+        festival_id: festivalId,
+        serial: r.serial,
+        name: r.name,
+        nickname: r.nickname,
+      })),
+    );
+  if (error) throw error;
+}
+
+/**
+ * この祭りの参加者を一括削除する。
+ * 役職の紐付け・個人宛お知らせの紐付けは cascade で削除される。
+ * 参加者マスター(シリアル)・お知らせ本体・予定・場所は残る。
+ */
+export async function deleteAllParticipants(festivalId: string): Promise<void> {
+  const { error } = await client()
+    .from("festival_participants")
+    .delete()
+    .eq("festival_id", festivalId);
   if (error) throw error;
 }

@@ -1,7 +1,9 @@
 import { NavLink, useParams } from "react-router-dom";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useReadStatus } from "../../context/ReadStatusContext";
+import { useViewer } from "../../hooks/useViewer";
 import { activeAnnouncements } from "../../lib/announcements";
+import { visibleAnnouncements } from "../../lib/audience";
 
 const iconClass = "h-6 w-6";
 
@@ -57,12 +59,14 @@ export default function BottomNav() {
   const base = `/${festivalSlug}`;
   const { data } = useFestivalData();
   const { readIds } = useReadStatus();
+  const viewer = useViewer();
 
-  // 未読件数: 現在公開中のお知らせのうち未読のもの
+  // 未読件数: 現在の利用者に配信中のお知らせのうち未読のもの
   const unreadCount = data
-    ? activeAnnouncements(data.announcements, new Date()).filter(
-        (a) => !readIds.has(a.id),
-      ).length
+    ? activeAnnouncements(
+        visibleAnnouncements(data.announcements, viewer),
+        new Date(),
+      ).filter((a) => !readIds.has(a.id)).length
     : 0;
 
   return (

@@ -6,6 +6,8 @@ import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
 import PushToggle from "../../components/announcements/PushToggle";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { useViewer } from "../../hooks/useViewer";
+import { visibleAnnouncements } from "../../lib/audience";
 
 function publishedLabel(iso: string): string {
   const time = formatTime(iso);
@@ -17,13 +19,15 @@ function publishedLabel(iso: string): string {
 export default function AnnouncementsPage() {
   const { data, loading } = useFestivalData();
   const { readIds } = useReadStatus();
+  const viewer = useViewer();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
   }
 
+  // 現在の利用者に配信されているお知らせのみ表示する
   const announcements = activeAnnouncements(
-    data?.announcements ?? [],
+    visibleAnnouncements(data?.announcements ?? [], viewer),
     new Date(),
   );
 

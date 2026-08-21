@@ -129,6 +129,12 @@ export default function AdminDashboardPage() {
           お知らせ管理 →
         </Link>
         <Link
+          to="/admin/participants"
+          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
+        >
+          参加者管理(一括登録・役職)→
+        </Link>
+        <Link
           to="/admin/festivals"
           className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
         >

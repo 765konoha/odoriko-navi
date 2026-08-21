@@ -27,7 +27,18 @@ export const harajuku2026: FestivalData = {
     // 渋谷区(原宿周辺)の天気予報地点
     weatherLat: 35.6702,
     weatherLng: 139.7026,
+    danceCountEnabled: false,
   },
+  roles: [
+    { id: "hj-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },
+    { id: "hj-role-dancer", festivalId, name: "踊り子一般", isDefault: true, sortOrder: 2 },
+    { id: "hj-role-manager", festivalId, name: "マネージャー", isDefault: false, sortOrder: 3 },
+    { id: "hj-role-singer", festivalId, name: "歌い手・煽り", isDefault: false, sortOrder: 4 },
+  ],
+  participants: [
+    { id: "hj-p-615", festivalId, serial: "615", name: "宮本祥平", nickname: "みや", roleIds: ["hj-role-leader"] },
+    { id: "hj-p-216", festivalId, serial: "216", name: "大渕由貴", nickname: "ふっちー", roleIds: ["hj-role-dancer"] },
+  ],
   days: [
     { id: day1, festivalId, date: dateStr(0), label: "本祭", sortOrder: 1 },
   ],
@@ -46,6 +57,19 @@ export const harajuku2026: FestivalData = {
   venueRoutes: [],
   scheduleItems: [
     {
+      // 役職限定の予定(リーダーのみ表示)の動作確認用
+      id: "hj-item-leader",
+      festivalDayId: day1,
+      title: "リーダー打ち合わせ",
+      category: "gather",
+      gatherTime: iso(0, 12, 30),
+      isConfirmed: true,
+      isCancelled: false,
+      sortOrder: 1,
+      audienceAll: false,
+      audienceRoleIds: ["hj-role-leader"],
+    },
+    {
       id: "hj-item-1",
       festivalDayId: day1,
       title: "表参道アベニュー",
@@ -57,7 +81,7 @@ export const harajuku2026: FestivalData = {
       meetingLocationId: "hj-loc-yoyogi",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 1,
+      sortOrder: 2,
     },
   ],
   announcements: [
@@ -67,7 +91,30 @@ export const harajuku2026: FestivalData = {
       title: "原宿よさこいへようこそ",
       body: "こちらは原宿よさこいのお知らせです。",
       priority: "normal",
-      publishedAt: iso(0, 9, 0),
+      // 実行環境のタイムゾーンに関わらず「公開済み」になるよう前日にする
+      publishedAt: iso(-1, 9, 0),
+    },
+    {
+      // 役職向けお知らせの動作確認用
+      id: "hj-ann-leader",
+      festivalId,
+      title: "【リーダー向け】受付時間のご案内",
+      body: "リーダーは受付を済ませてください。",
+      priority: "important",
+      publishedAt: iso(-1, 9, 30),
+      audienceType: "roles",
+      audienceRoleIds: ["hj-role-leader"],
+    },
+    {
+      // 個人向けお知らせの動作確認用(216/ふっちー のみ)
+      id: "hj-ann-personal",
+      festivalId,
+      title: "【個人宛】忘れ物のお知らせ",
+      body: "お預かりしています。本部までお越しください。",
+      priority: "normal",
+      publishedAt: iso(-1, 10, 0),
+      audienceType: "participants",
+      audienceParticipantIds: ["hj-p-216"],
     },
   ],
 };

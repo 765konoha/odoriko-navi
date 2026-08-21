@@ -29,7 +29,20 @@ export const kochi2026: FestivalData = {
     // 高知市中心部(本番DBのバックフィルと同じ地点)
     weatherLat: 33.5597,
     weatherLng: 133.5388,
+    danceCountEnabled: true,
   },
+  roles: [
+    { id: "k-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },
+    { id: "k-role-dancer", festivalId, name: "踊り子一般", isDefault: true, sortOrder: 2 },
+    { id: "k-role-manager", festivalId, name: "マネージャー", isDefault: false, sortOrder: 3 },
+    { id: "k-role-singer", festivalId, name: "歌い手・煽り", isDefault: false, sortOrder: 4 },
+  ],
+  participants: [
+    { id: "k-p-615", festivalId, serial: "615", name: "宮本祥平", nickname: "みや", roleIds: ["k-role-leader"] },
+    { id: "k-p-115", festivalId, serial: "115", name: "大塚さやか", nickname: "さやか", roleIds: ["k-role-dancer"] },
+    { id: "k-p-001", festivalId, serial: "001", name: "全 太郎", nickname: "ZEN", roleIds: ["k-role-singer", "k-role-dancer"] },
+    { id: "k-p-k010", festivalId, serial: "K-010", name: "亀井亮介", nickname: "りょうすけ", roleIds: ["k-role-manager"] },
+  ],
   days: [
     { id: day1, festivalId, date: dateStr(0), label: "本祭1日目", sortOrder: 1 },
     { id: day2, festivalId, date: dateStr(1), label: "本祭2日目", sortOrder: 2 },
