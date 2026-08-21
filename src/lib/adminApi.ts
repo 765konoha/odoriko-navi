@@ -334,9 +334,24 @@ export async function listLocations(festivalId: string): Promise<Location[]> {
   return ((data ?? []) as LocationRow[]).map(toLocation);
 }
 
-export async function createLocation(input: LocationInput): Promise<void> {
-  const { error } = await client().from("locations").insert(locationToRow(input));
+/** 作成した場所を返す(予定フォームからの追加時に選択状態にするため) */
+export async function createLocation(input: LocationInput): Promise<Location> {
+  const { data, error } = await client()
+    .from("locations")
+    .insert(locationToRow(input))
+    .select("id")
+    .single();
   if (error) throw error;
+  return {
+    id: (data as { id: string }).id,
+    festivalId: input.festivalId,
+    kind: input.kind,
+    name: input.name,
+    lat: input.lat,
+    lng: input.lng,
+    address: input.address ?? undefined,
+    description: input.description ?? undefined,
+  };
 }
 
 export async function updateLocation(
@@ -688,6 +703,19 @@ export async function createParticipant(
     ids = roleId ? [roleId] : [];
   }
   await setParticipantRoles((data as { id: string }).id, ids);
+}
+
+/**
+ * 参加者を1人削除する。
+ * 役職の紐付け・個人宛お知らせの紐付けは cascade で削除される。
+ * 参加者マスター(シリアル)は残る。
+ */
+export async function deleteParticipant(id: string): Promise<void> {
+  const { error } = await client()
+    .from("festival_participants")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 /**
