@@ -1,15 +1,30 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import { useLocation } from "react-router-dom";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import { supabase } from "../../lib/supabase";
-import type { Announcement, AnnouncementPriority } from "../../types/domain";
+import type {
+  Announcement,
+  AnnouncementAudience,
+  AnnouncementPriority,
+  FestivalParticipant,
+  FestivalRole,
+} from "../../types/domain";
 import {
   createAnnouncement,
   deleteAnnouncement,
   listAllAnnouncements,
+  listParticipants,
+  listRoles,
   updateAnnouncement,
   type AnnouncementInput,
 } from "../../lib/adminApi";
+import { compareSerial } from "../../lib/audience";
 import {
   datetimeLocalToIso,
   formatTime,
@@ -40,6 +55,8 @@ function AnnouncementForm({
   festivalSlug,
   announcement,
   initial,
+  roles,
+  participants,
   onSaved,
   onCancel,
 }: {
@@ -47,6 +64,8 @@ function AnnouncementForm({
   festivalSlug: string;
   announcement: Announcement | null;
   initial: AnnouncementTemplate | null;
+  roles: FestivalRole[];
+  participants: FestivalParticipant[];
   onSaved: (pushInfo: string | null) => void;
   onCancel: () => void;
 }) {
@@ -61,11 +80,72 @@ function AnnouncementForm({
   const [expiresAt, setExpiresAt] = useState(
     announcement?.expiresAt ? isoToDatetimeLocal(announcement.expiresAt) : "",
   );
+  const [audienceType, setAudienceType] = useState<AnnouncementAudience>(
+    announcement?.audienceType ?? "all",
+  );
+  const [audienceRoleIds, setAudienceRoleIds] = useState<string[]>(
+    announcement?.audienceRoleIds ?? [],
+  );
+  const [audienceParticipantIds, setAudienceParticipantIds] = useState<
+    string[]
+  >(announcement?.audienceParticipantIds ?? []);
+  const [participantQuery, setParticipantQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const sortedParticipants = useMemo(
+    () => [...participants].sort((a, b) => compareSerial(a.serial, b.serial)),
+    [participants],
+  );
+  const filteredParticipants = useMemo(() => {
+    const q = participantQuery.trim().toLowerCase();
+    if (!q) return sortedParticipants;
+    return sortedParticipants.filter(
+      (p) =>
+        p.serial.toLowerCase().includes(q) ||
+        p.name.toLowerCase().includes(q) ||
+        p.nickname.toLowerCase().includes(q),
+    );
+  }, [sortedParticipants, participantQuery]);
+
+  function toggleRole(roleId: string, checked: boolean) {
+    setAudienceRoleIds((prev) =>
+      checked ? [...prev, roleId] : prev.filter((id) => id !== roleId),
+    );
+  }
+
+  function toggleParticipant(id: string, checked: boolean) {
+    setAudienceParticipantIds((prev) =>
+      checked ? [...prev, id] : prev.filter((v) => v !== id),
+    );
+  }
+
+  /** プッシュ通知の送信対象シリアル(全員向けは null=全端末) */
+  function pushTargetSerials(): string[] | null {
+    if (audienceType === "all") return null;
+    if (audienceType === "roles") {
+      return participants
+        .filter((p) => p.roleIds.some((id) => audienceRoleIds.includes(id)))
+        .map((p) => p.serial);
+    }
+    return participants
+      .filter((p) => audienceParticipantIds.includes(p.id))
+      .map((p) => p.serial);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (audienceType === "roles" && audienceRoleIds.length === 0) {
+      setError("配信対象の役職を1つ以上選択してください");
+      return;
+    }
+    if (
+      audienceType === "participants" &&
+      audienceParticipantIds.length === 0
+    ) {
+      setError("配信対象の参加者を1名以上選択してください");
+      return;
+    }
     setSaving(true);
     setError(null);
     const input: AnnouncementInput = {
@@ -75,6 +155,10 @@ function AnnouncementForm({
       priority,
       publishedAt: datetimeLocalToIso(publishedAt),
       expiresAt: expiresAt ? datetimeLocalToIso(expiresAt) : null,
+      audienceType,
+      audienceRoleIds: audienceType === "roles" ? audienceRoleIds : [],
+      audienceParticipantIds:
+        audienceType === "participants" ? audienceParticipantIds : [],
     };
     try {
       let pushInfo: string | null = null;
@@ -91,6 +175,7 @@ function AnnouncementForm({
             : null;
         } else if (isPublishedNow && supabase) {
           try {
+            const serials = pushTargetSerials();
             const { data, error: fnError } = await supabase.functions.invoke(
               "send-push",
               {
@@ -99,6 +184,8 @@ function AnnouncementForm({
                   body: input.body,
                   // 通知タップでこのお知らせの詳細を開く
                   url: `${import.meta.env.BASE_URL}#/${festivalSlug}/announcements/${newId}`,
+                  // 配信対象のシリアルにのみ通知(null=全端末)
+                  serials,
                 },
               },
             );
@@ -176,6 +263,91 @@ function AnnouncementForm({
         </select>
       </label>
 
+      <div>
+        <span className={labelClass}>配信対象</span>
+        <div className="mt-1 flex gap-3">
+          {(
+            [
+              ["all", "全員"],
+              ["roles", "役職"],
+              ["participants", "個人"],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name="audienceType"
+                checked={audienceType === value}
+                onChange={() => setAudienceType(value)}
+                className="h-5 w-5"
+              />
+              <span className="text-base">{label}</span>
+            </label>
+          ))}
+        </div>
+
+        {audienceType === "roles" && (
+          <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+            {roles.map((role) => (
+              <label key={role.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={audienceRoleIds.includes(role.id)}
+                  onChange={(e) => toggleRole(role.id, e.target.checked)}
+                  className="h-5 w-5"
+                />
+                <span className="text-base">{role.name}</span>
+              </label>
+            ))}
+            <p className="text-xs text-slate-500">
+              選択した役職の利用者にのみ表示・通知されます。
+            </p>
+          </div>
+        )}
+
+        {audienceType === "participants" && (
+          <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+            <input
+              value={participantQuery}
+              onChange={(e) => setParticipantQuery(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+              placeholder="🔍 シリアル・名前・ニックネームで検索"
+            />
+            <p className="text-xs font-bold text-slate-600">
+              選択中: {audienceParticipantIds.length}名
+            </p>
+            <div className="max-h-56 space-y-1.5 overflow-y-auto">
+              {filteredParticipants.map((p) => (
+                <label key={p.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={audienceParticipantIds.includes(p.id)}
+                    onChange={(e) => toggleParticipant(p.id, e.target.checked)}
+                    className="h-5 w-5 shrink-0"
+                  />
+                  <span className="min-w-0 truncate text-base">
+                    {p.serial} / {p.nickname}
+                    <span className="ml-1.5 text-sm text-slate-500">
+                      {p.name}
+                    </span>
+                  </span>
+                </label>
+              ))}
+              {filteredParticipants.length === 0 && (
+                <p className="text-sm text-slate-500">
+                  {participants.length === 0
+                    ? "参加者が未登録です。参加者タブから登録してください。"
+                    : "該当する参加者がいません。"}
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">
+              選択した本人にのみ表示・通知されます(番号指定なしの利用者には表示されません)。
+            </p>
+          </div>
+        )}
+      </div>
+
       <label className="block">
         <span className={labelClass}>公開日時</span>
         <input
@@ -233,6 +405,8 @@ export default function AnnouncementAdminPage() {
         ?.template ?? null,
     );
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [roles, setRoles] = useState<FestivalRole[]>([]);
+  const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
   const [editing, setEditing] = useState<
     { mode: "new" } | { mode: "edit"; announcement: Announcement } | null
   >(pendingTemplate ? { mode: "new" } : null);
@@ -248,7 +422,14 @@ export default function AnnouncementAdminPage() {
   const load = useCallback(async () => {
     if (!festival) return;
     setLoading(true);
-    setAnnouncements(await listAllAnnouncements(festival.id));
+    const [announcementList, roleList, participantList] = await Promise.all([
+      listAllAnnouncements(festival.id),
+      listRoles(festival.id),
+      listParticipants(festival.id),
+    ]);
+    setAnnouncements(announcementList);
+    setRoles(roleList);
+    setParticipants(participantList);
     setLoading(false);
   }, [festival]);
 
@@ -268,6 +449,8 @@ export default function AnnouncementAdminPage() {
         festivalSlug={festival.slug}
         announcement={editing.mode === "edit" ? editing.announcement : null}
         initial={editing.mode === "new" ? pendingTemplate : null}
+        roles={roles}
+        participants={participants}
         onSaved={(pushInfo) => {
           setEditing(null);
           setPendingTemplate(null);
@@ -289,6 +472,18 @@ export default function AnnouncementAdminPage() {
   }
 
   const now = new Date();
+
+  function audienceLabel(a: Announcement): string {
+    const type = a.audienceType ?? "all";
+    if (type === "all") return "全員";
+    if (type === "roles") {
+      const names = (a.audienceRoleIds ?? []).map(
+        (id) => roles.find((r) => r.id === id)?.name ?? "?",
+      );
+      return `役職: ${names.join("・")}`;
+    }
+    return `個人: ${(a.audienceParticipantIds ?? []).length}名`;
+  }
 
   return (
     <div className="space-y-4">
@@ -338,6 +533,11 @@ export default function AnnouncementAdminPage() {
               <p className="mt-1 text-base font-bold text-slate-900">
                 {a.title}
               </p>
+              {(a.audienceType ?? "all") !== "all" && (
+                <p className="mt-0.5 text-xs font-bold text-violet-700">
+                  {audienceLabel(a)}
+                </p>
+              )}
               <div className="mt-2 flex gap-3">
                 <button
                   type="button"

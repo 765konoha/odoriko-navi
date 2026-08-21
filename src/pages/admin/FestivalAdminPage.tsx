@@ -54,6 +54,9 @@ function FestivalForm({
   const [slug, setSlug] = useState(festival?.slug ?? "");
   const [lat, setLat] = useState<number | null>(festival?.weatherLat ?? null);
   const [lng, setLng] = useState<number | null>(festival?.weatherLng ?? null);
+  const [danceCountEnabled, setDanceCountEnabled] = useState(
+    festival?.danceCountEnabled ?? false,
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodingResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -93,6 +96,7 @@ function FestivalForm({
       name: name.trim(),
       weatherLat: lat,
       weatherLng: lng,
+      danceCountEnabled,
     };
     try {
       if (festival) {
@@ -249,6 +253,21 @@ function FestivalForm({
         </div>
       </div>
 
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          checked={danceCountEnabled}
+          onChange={(e) => setDanceCountEnabled(e.target.checked)}
+          className="mt-0.5 h-5 w-5"
+        />
+        <span>
+          <span className="text-base font-medium">演舞回数の集計を使う</span>
+          <span className="block text-xs text-slate-500">
+            オンにすると、予定の完了時に踊った回数を記録し、踊り子のホームに合計を表示します(高知向け機能)。
+          </span>
+        </span>
+      </label>
+
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -326,6 +345,10 @@ export default function FestivalAdminPage() {
               ) : (
                 <span className="font-bold text-amber-700">未設定</span>
               )}
+              ・演舞回数集計:{" "}
+              <span className="font-bold">
+                {festival.danceCountEnabled ? "使う" : "使わない"}
+              </span>
             </p>
             <div className="mt-2 flex gap-3">
               <button

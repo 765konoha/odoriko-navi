@@ -6,11 +6,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useEffect } from "react";
 import {
   loadAckedIds,
   loadReadIds,
   saveAckedIds,
   saveReadIds,
+  type UserKey,
 } from "../lib/storage";
 
 interface ReadStatusState {
@@ -27,28 +29,37 @@ const ReadStatusContext = createContext<ReadStatusState | null>(null);
 
 export function ReadStatusProvider({
   slug,
+  userKey,
   children,
 }: {
   slug: string;
+  /** 既読状態は利用者(シリアル)単位で分離する */
+  userKey: UserKey;
   children: ReactNode;
 }) {
   const [readIds, setReadIds] = useState<Set<string>>(
-    () => new Set(loadReadIds(slug)),
+    () => new Set(loadReadIds(slug, userKey)),
   );
   const [ackedIds, setAckedIds] = useState<Set<string>>(
-    () => new Set(loadAckedIds(slug)),
+    () => new Set(loadAckedIds(slug, userKey)),
   );
+
+  // 利用者変更時は、その利用者の既読状態を読み直す
+  useEffect(() => {
+    setReadIds(new Set(loadReadIds(slug, userKey)));
+    setAckedIds(new Set(loadAckedIds(slug, userKey)));
+  }, [slug, userKey]);
 
   const markRead = useCallback(
     (id: string) => {
       setReadIds((prev) => {
         if (prev.has(id)) return prev;
         const next = new Set(prev).add(id);
-        saveReadIds(slug, [...next]);
+        saveReadIds(slug, userKey, [...next]);
         return next;
       });
     },
-    [slug],
+    [slug, userKey],
   );
 
   const markAcked = useCallback(
@@ -56,12 +67,12 @@ export function ReadStatusProvider({
       setAckedIds((prev) => {
         if (prev.has(id)) return prev;
         const next = new Set(prev).add(id);
-        saveAckedIds(slug, [...next]);
+        saveAckedIds(slug, userKey, [...next]);
         return next;
       });
       markRead(id);
     },
-    [slug, markRead],
+    [slug, userKey, markRead],
   );
 
   const value = useMemo(

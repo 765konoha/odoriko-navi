@@ -23,6 +23,8 @@ import {
   toiletIcon,
 } from "../../components/map/markerIcons";
 import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
+import { useViewer } from "../../hooks/useViewer";
+import { visibleScheduleItems } from "../../lib/audience";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
 import VenueRouteCard from "../../components/map/VenueRouteCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
@@ -100,6 +102,7 @@ function RecenterOnGeo({
 
 export default function MapPage() {
   const { data, loading } = useFestivalData();
+  const viewer = useViewer();
   const [searchParams] = useSearchParams();
   const [showKind, setShowKind] = useState<Record<LocationKind, boolean>>({
     meeting_point: true,
@@ -225,12 +228,12 @@ export default function MapPage() {
   const selectedRoute =
     venueRoutes.find((r) => r.id === selectedRouteId) ?? null;
 
-  /** コースに紐づく演舞(中止除く)。全完了なら「踊り済み」色にする */
+  /** コースに紐づく演舞(中止除く・現在の利用者に表示されるもの)。全完了なら「踊り済み」色にする */
   function routeStatus(routeId: string): {
     items: ScheduleItem[];
     danced: boolean;
   } {
-    const items = (data?.scheduleItems ?? []).filter(
+    const items = visibleScheduleItems(data?.scheduleItems ?? [], viewer).filter(
       (s) => s.venueRouteId === routeId && !s.isCancelled,
     );
     return {
@@ -251,7 +254,9 @@ export default function MapPage() {
   }
 
   const relatedItems = selected
-    ? data.scheduleItems.filter((s) => s.meetingLocationId === selected.id)
+    ? visibleScheduleItems(data.scheduleItems, viewer).filter(
+        (s) => s.meetingLocationId === selected.id,
+      )
     : [];
 
   // 初期表示は祭りの基準地点(天気予報地点→登録場所の重心)。

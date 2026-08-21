@@ -12,10 +12,13 @@ import { weatherMeta } from "../../lib/weather";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { useViewer } from "../../hooks/useViewer";
+import { visibleScheduleItems } from "../../lib/audience";
 
 export default function SchedulePage() {
   const { data, loading } = useFestivalData();
   const weather = useWeather();
+  const viewer = useViewer();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   if (loading) {
@@ -34,13 +37,15 @@ export default function SchedulePage() {
   const today = findToday(days);
   const currentDay =
     days.find((d) => d.id === selectedDayId) ?? today ?? days[0];
-  const items = itemsOfDay(data, currentDay.id);
+  const items = visibleScheduleItems(itemsOfDay(data, currentDay.id), viewer);
   const nextItem =
     today && currentDay.id === today.id ? findNextItem(items) : null;
   const dayWeather =
     weather?.daily.find((d) => d.date === currentDay.date) ?? null;
   const dayTotals = danceTotals(items);
-  const hasDayCount = dayTotals.rejoice > 0 || dayTotals.sakaseya > 0;
+  const hasDayCount =
+    data.festival.danceCountEnabled &&
+    (dayTotals.rejoice > 0 || dayTotals.sakaseya > 0);
   const activeItems = items.filter((i) => !i.isCancelled);
   const allDone =
     activeItems.length > 0 && activeItems.every((i) => i.isCompleted);

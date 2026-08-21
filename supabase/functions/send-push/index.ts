@@ -75,8 +75,13 @@ Deno.serve(async (req) => {
     } = await authClient.auth.getUser();
     if (!user) return json({ error: "unauthorized" }, 401);
 
-    const { title, body, url } = await req.json();
+    // serials: 配信対象のシリアル一覧(役職・個人向けお知らせ用)。
+    // 未指定(null/undefined)なら全端末へ送信する。
+    const { title, body, url, serials } = await req.json();
     if (!title) return json({ error: "title is required" }, 400);
+    if (serials != null && !Array.isArray(serials)) {
+      return json({ error: "serials must be an array" }, 400);
+    }
 
     const vapidPublic = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
     const vapidPrivate = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "").trim();
@@ -97,9 +102,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { data: subs, error } = await admin
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth");
+    let query = admin.from("push_subscriptions").select("endpoint, p256dh, auth");
+    if (serials != null) {
+      // 対象シリアルの購読のみ(シリアル未記録の旧購読は対象外)
+      query = query.in("serial", serials as string[]);
+    }
+    const { data: subs, error } = await query;
     if (error) throw error;
 
     const payload = JSON.stringify({

@@ -14,6 +14,7 @@ import ScheduleAdminPage from "./pages/admin/ScheduleAdminPage";
 import LocationAdminPage from "./pages/admin/LocationAdminPage";
 import AnnouncementAdminPage from "./pages/admin/AnnouncementAdminPage";
 import FestivalAdminPage from "./pages/admin/FestivalAdminPage";
+import ParticipantAdminPage from "./pages/admin/ParticipantAdminPage";
 
 // 最後に表示した祭りがあればそこへ(初回はデフォルトの祭りへ)
 function RootRedirect() {
@@ -35,6 +36,7 @@ export const router = createHashRouter([
       { path: "schedule", element: <ScheduleAdminPage /> },
       { path: "locations", element: <LocationAdminPage /> },
       { path: "announcements", element: <AnnouncementAdminPage /> },
+      { path: "participants", element: <ParticipantAdminPage /> },
       { path: "festivals", element: <FestivalAdminPage /> },
     ],
   },

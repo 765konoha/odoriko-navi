@@ -4,17 +4,23 @@ import { supabase } from "../lib/supabase";
 import {
   ANNOUNCEMENT_COLUMNS,
   FESTIVAL_COLUMNS,
+  FESTIVAL_PARTICIPANT_COLUMNS,
+  FESTIVAL_ROLE_COLUMNS,
   LOCATION_COLUMNS,
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
   toAnnouncement,
   toFestival,
   toFestivalDay,
+  toFestivalParticipant,
+  toFestivalRole,
   toLocation,
   toScheduleItem,
   toVenueRoute,
   type AnnouncementRow,
   type FestivalDayRow,
+  type FestivalParticipantRow,
+  type FestivalRoleRow,
   type FestivalRow,
   type LocationRow,
   type ScheduleItemRow,
@@ -37,33 +43,50 @@ export const supabaseRepository: FestivalRepository = {
 
     const festivalId = festivalRow.id;
 
-    const [daysRes, locationsRes, venueRoutesRes, announcementsRes] =
-      await Promise.all([
-        supabase
-          .from("festival_days")
-          .select("id, festival_id, date, label, sort_order")
-          .eq("festival_id", festivalId)
-          .order("date"),
-        supabase
-          .from("locations")
-          .select(LOCATION_COLUMNS)
-          .eq("festival_id", festivalId),
-        supabase
-          .from("venue_routes")
-          .select(VENUE_ROUTE_COLUMNS)
-          .eq("festival_id", festivalId)
-          .order("created_at"),
-        supabase
-          .from("announcements")
-          .select(ANNOUNCEMENT_COLUMNS)
-          .eq("festival_id", festivalId)
-          .order("published_at", { ascending: false }),
-      ]);
+    const [
+      daysRes,
+      locationsRes,
+      venueRoutesRes,
+      announcementsRes,
+      rolesRes,
+      participantsRes,
+    ] = await Promise.all([
+      supabase
+        .from("festival_days")
+        .select("id, festival_id, date, label, sort_order")
+        .eq("festival_id", festivalId)
+        .order("date"),
+      supabase
+        .from("locations")
+        .select(LOCATION_COLUMNS)
+        .eq("festival_id", festivalId),
+      supabase
+        .from("venue_routes")
+        .select(VENUE_ROUTE_COLUMNS)
+        .eq("festival_id", festivalId)
+        .order("created_at"),
+      supabase
+        .from("announcements")
+        .select(ANNOUNCEMENT_COLUMNS)
+        .eq("festival_id", festivalId)
+        .order("published_at", { ascending: false }),
+      supabase
+        .from("festival_roles")
+        .select(FESTIVAL_ROLE_COLUMNS)
+        .eq("festival_id", festivalId)
+        .order("sort_order"),
+      supabase
+        .from("festival_participants")
+        .select(FESTIVAL_PARTICIPANT_COLUMNS)
+        .eq("festival_id", festivalId),
+    ]);
 
     if (daysRes.error) throw daysRes.error;
     if (locationsRes.error) throw locationsRes.error;
     if (venueRoutesRes.error) throw venueRoutesRes.error;
     if (announcementsRes.error) throw announcementsRes.error;
+    if (rolesRes.error) throw rolesRes.error;
+    if (participantsRes.error) throw participantsRes.error;
 
     const dayRows = (daysRes.data ?? []) as FestivalDayRow[];
     const dayIds = dayRows.map((d) => d.id);
@@ -90,6 +113,10 @@ export const supabaseRepository: FestivalRepository = {
       announcements: ((announcementsRes.data ?? []) as AnnouncementRow[]).map(
         toAnnouncement,
       ),
+      roles: ((rolesRes.data ?? []) as FestivalRoleRow[]).map(toFestivalRole),
+      participants: (
+        (participantsRes.data ?? []) as FestivalParticipantRow[]
+      ).map(toFestivalParticipant),
     };
   },
 
@@ -102,5 +129,15 @@ export const supabaseRepository: FestivalRepository = {
       .order("created_at");
     if (error) throw error;
     return ((data ?? []) as FestivalRow[]).map(toFestival);
+  },
+
+  async listParticipantSerials(): Promise<string[]> {
+    if (!supabase) throw new Error("Supabase client is not configured");
+    const { data, error } = await supabase
+      .from("participants")
+      .select("serial")
+      .order("serial");
+    if (error) throw error;
+    return ((data ?? []) as { serial: string }[]).map((r) => r.serial);
   },
 };

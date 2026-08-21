@@ -39,8 +39,11 @@ export async function isSubscribed(): Promise<boolean> {
 
 export type SubscribeResult = "subscribed" | "denied" | "unsupported" | "error";
 
-/** 通知許可を求めて購読し、Supabase に登録する */
-export async function subscribeToPush(): Promise<SubscribeResult> {
+/**
+ * 通知許可を求めて購読し、Supabase に登録する。
+ * シリアルは必須(役職・個人向けお知らせの通知対象の判定に使う)。
+ */
+export async function subscribeToPush(serial: string): Promise<SubscribeResult> {
   if (!isPushSupported() || !supabase) return "unsupported";
   const reg = await getRegistration();
   if (!reg) return "unsupported";
@@ -68,6 +71,7 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
       endpoint: sub.endpoint,
       p256dh: json.keys?.p256dh ?? "",
       auth: json.keys?.auth ?? "",
+      serial,
     });
     // 登録済み(unique制約違反 23505)は成功扱い
     if (error && error.code !== "23505") {
@@ -82,21 +86,25 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
 }
 
 /**
- * ブラウザ側は購読済みなのに DB に行がない状態を自動修復する。
- * (過去の不整合や誤削除からの回復用。お知らせ画面表示時に呼ぶ)
+ * ブラウザ側は購読済みなのに DB に行がない・シリアルが変わった状態を自動修復する。
+ * (お知らせ画面表示時と利用者変更時に呼ぶ)
  */
-export async function syncSubscription(): Promise<void> {
+export async function syncSubscription(serial: string): Promise<void> {
   if (!isPushSupported() || !supabase) return;
   const reg = await getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
   const json = sub.toJSON();
-  const { error } = await supabase.from("push_subscriptions").insert({
-    endpoint: sub.endpoint,
-    p256dh: json.keys?.p256dh ?? "",
-    auth: json.keys?.auth ?? "",
-  });
-  if (error && error.code !== "23505") {
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      endpoint: sub.endpoint,
+      p256dh: json.keys?.p256dh ?? "",
+      auth: json.keys?.auth ?? "",
+      serial,
+    },
+    { onConflict: "endpoint" },
+  );
+  if (error) {
     console.error("push subscription sync failed:", error);
   }
 }

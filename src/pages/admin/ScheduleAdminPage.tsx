@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import type {
   FestivalDay,
+  FestivalRole,
   Location,
   ScheduleCategory,
   ScheduleItem,
@@ -16,6 +17,7 @@ import {
   deleteScheduleItem,
   listDays,
   listLocations,
+  listRoles,
   listScheduleItems,
   listVenueRoutes,
   uncompleteScheduleItem,
@@ -55,6 +57,8 @@ interface FormState {
   dancesRejoice: boolean;
   dancesSakaseya: boolean;
   venueRouteId: string;
+  audienceAll: boolean;
+  audienceRoleIds: string[];
 }
 
 function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormState {
@@ -75,6 +79,8 @@ function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormStat
     dancesRejoice: item?.dancesRejoice ?? true,
     dancesSakaseya: item?.dancesSakaseya ?? false,
     venueRouteId: item?.venueRouteId ?? "",
+    audienceAll: item?.audienceAll ?? true,
+    audienceRoleIds: item?.audienceRoleIds ?? [],
   };
 }
 
@@ -83,6 +89,8 @@ function ItemForm({
   item,
   locations,
   venueRoutes,
+  roles,
+  danceCountEnabled,
   nextSortOrder,
   onSaved,
   onCancel,
@@ -91,6 +99,8 @@ function ItemForm({
   item: ScheduleItem | null;
   locations: Location[];
   venueRoutes: VenueRoute[];
+  roles: FestivalRole[];
+  danceCountEnabled: boolean;
   nextSortOrder: number;
   onSaved: (savedTitle: string) => void;
   onCancel: () => void;
@@ -107,8 +117,21 @@ function ItemForm({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function toggleAudienceRole(roleId: string, checked: boolean) {
+    setForm((prev) => ({
+      ...prev,
+      audienceRoleIds: checked
+        ? [...prev.audienceRoleIds, roleId]
+        : prev.audienceRoleIds.filter((id) => id !== roleId),
+    }));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!form.audienceAll && form.audienceRoleIds.length === 0) {
+      setError("表示対象の役職を1つ以上選択してください(または「全員」を選択)");
+      return;
+    }
     setSaving(true);
     setError(null);
     const input: ScheduleItemInput = {
@@ -128,14 +151,22 @@ function ItemForm({
       tbdNote: form.isConfirmed ? null : form.tbdNote.trim() || null,
       isCancelled: form.isCancelled,
       sortOrder: form.sortOrder,
-      dancesRejoice: form.category === "performance" && form.dancesRejoice,
-      dancesSakaseya: form.category === "performance" && form.dancesSakaseya,
+      dancesRejoice:
+        danceCountEnabled &&
+        form.category === "performance" &&
+        form.dancesRejoice,
+      dancesSakaseya:
+        danceCountEnabled &&
+        form.category === "performance" &&
+        form.dancesSakaseya,
       venueRouteId:
         form.category === "performance" ? form.venueRouteId || null : null,
       // 完了状態と回数はフォームでは編集せず、カードの完了ボタンで管理する
       isCompleted: item?.isCompleted ?? false,
       rejoiceCount: item?.rejoiceCount ?? 0,
       sakaseyaCount: item?.sakaseyaCount ?? 0,
+      audienceAll: form.audienceAll,
+      audienceRoleIds: form.audienceAll ? [] : form.audienceRoleIds,
     };
     try {
       if (item) {
@@ -183,7 +214,7 @@ function ItemForm({
         </select>
       </label>
 
-      {form.category === "performance" && (
+      {danceCountEnabled && form.category === "performance" && (
         <div>
           <span className={labelClass}>踊る演目</span>
           <div className="mt-1 flex gap-4">
@@ -208,6 +239,41 @@ function ItemForm({
           </div>
         </div>
       )}
+
+      <div>
+        <span className={labelClass}>表示対象</span>
+        <div className="mt-1 space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.audienceAll}
+              onChange={(e) => set("audienceAll", e.target.checked)}
+              className="h-5 w-5"
+            />
+            <span className="text-base font-bold">全員</span>
+          </label>
+          {!form.audienceAll && (
+            <div className="space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+              {roles.map((role) => (
+                <label key={role.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.audienceRoleIds.includes(role.id)}
+                    onChange={(e) =>
+                      toggleAudienceRole(role.id, e.target.checked)
+                    }
+                    className="h-5 w-5"
+                  />
+                  <span className="text-base">{role.name}</span>
+                </label>
+              ))}
+              <p className="text-xs text-slate-500">
+                選択した役職の利用者にのみ表示されます(複数役職はいずれか一致で表示)。
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <label className="block">
@@ -370,6 +436,7 @@ export default function ScheduleAdminPage() {
   const [days, setDays] = useState<FestivalDay[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [venueRoutes, setVenueRoutes] = useState<VenueRoute[]>([]);
+  const [roles, setRoles] = useState<FestivalRole[]>([]);
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [currentDayId, setCurrentDayId] = useState<string | null>(null);
   const [editing, setEditing] = useState<
@@ -387,15 +454,17 @@ export default function ScheduleAdminPage() {
   const load = useCallback(async () => {
     if (!festival) return;
     setLoading(true);
-    const [dayList, locationList, routeList] = await Promise.all([
+    const [dayList, locationList, routeList, roleList] = await Promise.all([
       listDays(festival.id),
       listLocations(festival.id),
       listVenueRoutes(festival.id),
+      listRoles(festival.id),
     ]);
     const itemList = await listScheduleItems(dayList.map((d) => d.id));
     setDays(dayList);
     setLocations(locationList);
     setVenueRoutes(routeList);
+    setRoles(roleList);
     setItems(itemList);
     setLoading(false);
   }, [festival]);
@@ -431,7 +500,8 @@ export default function ScheduleAdminPage() {
     rejoice: boolean;
     sakaseya: boolean;
   } {
-    if (item.category !== "performance") {
+    // 演舞回数の集計を使わない祭りでは回数入力を出さない
+    if (!festival?.danceCountEnabled || item.category !== "performance") {
       return { rejoice: false, sakaseya: false };
     }
     if (!item.dancesRejoice && !item.dancesSakaseya) {
@@ -477,7 +547,10 @@ export default function ScheduleAdminPage() {
   }
 
   async function handleComplete(item: ScheduleItem) {
-    const p = pendingOf(item);
+    // 演舞回数の集計を使わない祭りでは回数は記録しない
+    const p = festival?.danceCountEnabled
+      ? pendingOf(item)
+      : { rejoice: 0, sakaseya: 0 };
     await completeScheduleItem(item.id, p.rejoice, p.sakaseya);
     await load();
   }
@@ -520,6 +593,8 @@ export default function ScheduleAdminPage() {
         item={editing.mode === "edit" ? editing.item : null}
         locations={locations}
         venueRoutes={venueRoutes}
+        roles={roles}
+        danceCountEnabled={festival.danceCountEnabled}
         nextSortOrder={nextSortOrder}
         onSaved={(savedTitle) => {
           setEditing(null);
@@ -662,6 +737,14 @@ export default function ScheduleAdminPage() {
                     順:{item.sortOrder}
                   </span>
                 </div>
+                {!(item.audienceAll ?? true) && (
+                  <p className="mt-1 text-xs font-bold text-violet-700">
+                    対象:{" "}
+                    {(item.audienceRoleIds ?? [])
+                      .map((id) => roles.find((r) => r.id === id)?.name ?? "?")
+                      .join("・")}
+                  </p>
+                )}
                 <p className="mt-1 text-base font-bold text-slate-900">
                   {item.title}
                 </p>

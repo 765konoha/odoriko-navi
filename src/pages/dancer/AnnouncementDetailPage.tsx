@@ -5,15 +5,22 @@ import { useReadStatus } from "../../context/ReadStatusContext";
 import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
 import AnnouncementBody from "../../components/announcements/AnnouncementBody";
+import { useViewer } from "../../hooks/useViewer";
+import { isAnnouncementVisible } from "../../lib/audience";
 
 export default function AnnouncementDetailPage() {
   const { festivalSlug, announcementId } = useParams();
   const { data, loading } = useFestivalData();
   const { markRead } = useReadStatus();
+  const viewer = useViewer();
+
+  // 直リンクでも配信対象外のお知らせは表示しない
+  const found = data?.announcements.find((a) => a.id === announcementId);
+  const announcement =
+    found && isAnnouncementVisible(found, viewer) ? found : undefined;
 
   // 詳細を開いたら既読にする
-  const exists =
-    data?.announcements.some((a) => a.id === announcementId) ?? false;
+  const exists = announcement != null;
   useEffect(() => {
     if (exists && announcementId) markRead(announcementId);
   }, [exists, announcementId, markRead]);
@@ -21,10 +28,6 @@ export default function AnnouncementDetailPage() {
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
   }
-
-  const announcement = data?.announcements.find(
-    (a) => a.id === announcementId,
-  );
 
   if (!announcement) {
     return (

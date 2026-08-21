@@ -12,4 +12,14 @@ export const mockRepository: FestivalRepository = {
   async listActiveFestivals(): Promise<Festival[]> {
     return festivals.map((f) => f.festival);
   },
+  async listParticipantSerials(): Promise<string[]> {
+    // マスターには祭りに不参加のシリアルも存在する("406" "s1321" は不参加テスト用)
+    const master = new Set<string>(["406", "s1321"]);
+    for (const f of festivals) {
+      for (const p of f.participants) master.add(p.serial);
+    }
+    return [...master].sort((a, b) =>
+      a.localeCompare(b, "ja", { numeric: true }),
+    );
+  },
 };

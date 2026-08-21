@@ -8,6 +8,29 @@ export interface Festival {
   weatherLat?: number;
   /** 天気予報の取得地点(経度) */
   weatherLng?: number;
+  /** 演舞回数の集計機能を使うか(高知のみ想定) */
+  danceCountEnabled: boolean;
+}
+
+/** 役職(祭りごと。管理画面から追加可能) */
+export interface FestivalRole {
+  id: string;
+  festivalId: string;
+  name: string;
+  /** 「番号指定なし」利用者の役職として扱う(=踊り子一般) */
+  isDefault: boolean;
+  sortOrder: number;
+}
+
+/** 祭りごとの参加者(シリアルは参加者マスターと紐付く文字列) */
+export interface FestivalParticipant {
+  id: string;
+  festivalId: string;
+  serial: string;
+  name: string;
+  nickname: string;
+  /** 付与された役職ID(複数可) */
+  roleIds: string[];
 }
 
 export interface FestivalDay {
@@ -83,9 +106,16 @@ export interface ScheduleItem {
   rejoiceCount?: number;
   /** 咲かせや を踊った回数(0.5回単位) */
   sakaseyaCount?: number;
+  /** 全員に表示するか(未定義は true 扱い=旧データ互換) */
+  audienceAll?: boolean;
+  /** audienceAll=false のときの表示対象役職ID */
+  audienceRoleIds?: string[];
 }
 
 export type AnnouncementPriority = "normal" | "important" | "emergency";
+
+/** お知らせの配信対象種別(未定義は all 扱い=旧データ互換) */
+export type AnnouncementAudience = "all" | "roles" | "participants";
 
 export interface Announcement {
   id: string;
@@ -95,6 +125,11 @@ export interface Announcement {
   priority: AnnouncementPriority;
   publishedAt: string;
   expiresAt?: string;
+  audienceType?: AnnouncementAudience;
+  /** audienceType='roles' のときの配信対象役職ID */
+  audienceRoleIds?: string[];
+  /** audienceType='participants' のときの配信対象参加者ID */
+  audienceParticipantIds?: string[];
 }
 
 /** 1つの祭りの全データ(1回の取得=1スナップショット。オフラインキャッシュの単位) */
@@ -105,4 +140,6 @@ export interface FestivalData {
   locations: Location[];
   venueRoutes: VenueRoute[];
   announcements: Announcement[];
+  roles: FestivalRole[];
+  participants: FestivalParticipant[];
 }
