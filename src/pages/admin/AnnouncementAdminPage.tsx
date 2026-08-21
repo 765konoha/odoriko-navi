@@ -2,10 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
+import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
 import { supabase } from "../../lib/supabase";
 import type {
   Announcement,
@@ -397,9 +399,29 @@ export default function AnnouncementAdminPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+  const hydratedForRef = useRef<string | null>(null);
+
   const load = useCallback(async () => {
     if (!festival) return;
-    setLoading(true);
+    interface Cache {
+      announcements: Announcement[];
+      roles: FestivalRole[];
+      participants: FestivalParticipant[];
+    }
+    // 初回は前回取得分を即表示し、裏で最新を取得する
+    if (hydratedForRef.current !== festival.id) {
+      hydratedForRef.current = festival.id;
+      const cached = loadAdminCache<Cache>(festival.id, "announcements");
+      if (cached) {
+        setAnnouncements(cached.announcements);
+        setRoles(cached.roles);
+        setParticipants(cached.participants);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
     const [announcementList, roleList, participantList] = await Promise.all([
       listAllAnnouncements(festival.id),
       listRoles(festival.id),
@@ -408,6 +430,11 @@ export default function AnnouncementAdminPage() {
     setAnnouncements(announcementList);
     setRoles(roleList);
     setParticipants(participantList);
+    saveAdminCache<Cache>(festival.id, "announcements", {
+      announcements: announcementList,
+      roles: roleList,
+      participants: participantList,
+    });
     setLoading(false);
   }, [festival]);
 

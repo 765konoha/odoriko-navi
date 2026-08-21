@@ -19,8 +19,7 @@ import type {
 } from "../../types/domain";
 import {
   currentLocationIcon,
-  meetingPointIcon,
-  toiletIcon,
+  locationIcon,
 } from "../../components/map/markerIcons";
 import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
 import { useViewer } from "../../hooks/useViewer";
@@ -107,6 +106,7 @@ export default function MapPage() {
   const [showKind, setShowKind] = useState<Record<LocationKind, boolean>>({
     meeting_point: true,
     toilet: true,
+    changing_room: true,
   });
   const [showRoutes, setShowRoutes] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -270,6 +270,7 @@ export default function MapPage() {
           [
             ["meeting_point", "集合場所"],
             ["toilet", "トイレ"],
+            ["changing_room", "更衣室"],
           ] as const
         ).map(([kind, label]) => (
           <label
@@ -363,7 +364,7 @@ export default function MapPage() {
             <Marker
               key={loc.id}
               position={[loc.lat, loc.lng]}
-              icon={loc.kind === "meeting_point" ? meetingPointIcon : toiletIcon}
+              icon={locationIcon(loc.kind)}
               eventHandlers={{
                 click: () => {
                   setSelectedId(loc.id);

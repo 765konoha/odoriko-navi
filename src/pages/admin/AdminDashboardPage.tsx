@@ -9,6 +9,7 @@ import {
 } from "../../lib/adminApi";
 import { todayString } from "../../lib/time";
 import { isActiveAnnouncement } from "../../lib/announcements";
+import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
 
 interface Summary {
   todayItemCount: number | null;
@@ -19,10 +20,14 @@ interface Summary {
 
 export default function AdminDashboardPage() {
   const { festival, loading: festivalLoading } = useAdminFestival();
-  const [summary, setSummary] = useState<Summary | null>(null);
+  // 前回の集計を即表示し、裏で最新を取得する
+  const [summary, setSummary] = useState<Summary | null>(() =>
+    festival ? loadAdminCache<Summary>(festival.id, "dashboard") : null,
+  );
 
   useEffect(() => {
     if (!festival) return;
+    setSummary(loadAdminCache<Summary>(festival.id, "dashboard"));
     let cancelled = false;
     void (async () => {
       const [days, locations, announcements] = await Promise.all([
@@ -34,15 +39,14 @@ export default function AdminDashboardPage() {
       const todayItems = today ? await listScheduleItems([today.id]) : null;
       const now = new Date();
       const active = announcements.filter((a) => isActiveAnnouncement(a, now));
-      if (!cancelled) {
-        setSummary({
-          todayItemCount: todayItems ? todayItems.length : null,
-          activeAnnouncementCount: active.length,
-          emergencyCount: active.filter((a) => a.priority === "emergency")
-            .length,
-          locationCount: locations.length,
-        });
-      }
+      const fresh: Summary = {
+        todayItemCount: todayItems ? todayItems.length : null,
+        activeAnnouncementCount: active.length,
+        emergencyCount: active.filter((a) => a.priority === "emergency").length,
+        locationCount: locations.length,
+      };
+      saveAdminCache(festival.id, "dashboard", fresh);
+      if (!cancelled) setSummary(fresh);
     })();
     return () => {
       cancelled = true;

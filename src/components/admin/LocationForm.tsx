@@ -7,7 +7,7 @@ import {
   updateLocation,
   type LocationInput,
 } from "../../lib/adminApi";
-import { meetingPointIcon, toiletIcon } from "../map/markerIcons";
+import { locationIcon } from "../map/markerIcons";
 import { JAPAN_VIEW } from "../../lib/maps";
 
 const inputClass =
@@ -123,6 +123,7 @@ export default function LocationForm({
           >
             <option value="meeting_point">集合場所</option>
             <option value="toilet">トイレ</option>
+            <option value="changing_room">更衣室</option>
           </select>
         </label>
       )}
@@ -161,10 +162,7 @@ export default function LocationForm({
               }}
             />
             {lat != null && lng != null && (
-              <Marker
-                position={[lat, lng]}
-                icon={kind === "meeting_point" ? meetingPointIcon : toiletIcon}
-              />
+              <Marker position={[lat, lng]} icon={locationIcon(kind)} />
             )}
           </MapContainer>
         </div>

@@ -19,7 +19,11 @@ export default function LocationDetailCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-bold text-slate-500">
-            {location.kind === "meeting_point" ? "集合場所" : "トイレ"}
+            {location.kind === "meeting_point"
+              ? "集合場所"
+              : location.kind === "toilet"
+                ? "トイレ"
+                : "更衣室"}
           </p>
           <h2 className="text-lg font-bold text-slate-900">{location.name}</h2>
         </div>

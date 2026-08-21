@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
+import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
 import type {
   FestivalDay,
   FestivalRole,
@@ -122,7 +123,10 @@ function ItemForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const meetingPoints = locations.filter((l) => l.kind === "meeting_point");
+  // 集合場所には更衣室も選べるようにする(更衣室集合の予定があるため)
+  const meetingPoints = locations.filter(
+    (l) => l.kind === "meeting_point" || l.kind === "changing_room",
+  );
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -493,9 +497,33 @@ export default function ScheduleAdminPage() {
     Record<string, { rejoice: number; sakaseya: number }>
   >({});
 
+  // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+  const hydratedForRef = useRef<string | null>(null);
+
   const load = useCallback(async () => {
     if (!festival) return;
-    setLoading(true);
+    interface Cache {
+      days: FestivalDay[];
+      locations: Location[];
+      venueRoutes: VenueRoute[];
+      roles: FestivalRole[];
+      items: ScheduleItem[];
+    }
+    // 初回(または祭り切替時)は前回取得分を即表示し、裏で最新を取得する
+    if (hydratedForRef.current !== festival.id) {
+      hydratedForRef.current = festival.id;
+      const cached = loadAdminCache<Cache>(festival.id, "schedule");
+      if (cached) {
+        setDays(cached.days);
+        setLocations(cached.locations);
+        setVenueRoutes(cached.venueRoutes);
+        setRoles(cached.roles);
+        setItems(cached.items);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
     const [dayList, locationList, routeList, roleList] = await Promise.all([
       listDays(festival.id),
       listLocations(festival.id),
@@ -508,6 +536,13 @@ export default function ScheduleAdminPage() {
     setVenueRoutes(routeList);
     setRoles(roleList);
     setItems(itemList);
+    saveAdminCache<Cache>(festival.id, "schedule", {
+      days: dayList,
+      locations: locationList,
+      venueRoutes: routeList,
+      roles: roleList,
+      items: itemList,
+    });
     setLoading(false);
   }, [festival]);
 
