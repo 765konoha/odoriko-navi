@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import type {
   FestivalDay,
@@ -102,7 +101,7 @@ function ItemForm({
   roles: FestivalRole[];
   danceCountEnabled: boolean;
   nextSortOrder: number;
-  onSaved: (savedTitle: string) => void;
+  onSaved: () => void;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<FormState>(() =>
@@ -174,7 +173,7 @@ function ItemForm({
       } else {
         await createScheduleItem(input);
       }
-      onSaved(input.title);
+      onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存に失敗しました");
       setSaving(false);
@@ -432,7 +431,6 @@ function ItemForm({
 
 export default function ScheduleAdminPage() {
   const { festival } = useAdminFestival();
-  const navigate = useNavigate();
   const [days, setDays] = useState<FestivalDay[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [venueRoutes, setVenueRoutes] = useState<VenueRoute[]>([]);
@@ -596,19 +594,9 @@ export default function ScheduleAdminPage() {
         roles={roles}
         danceCountEnabled={festival.danceCountEnabled}
         nextSortOrder={nextSortOrder}
-        onSaved={(savedTitle) => {
+        onSaved={() => {
           setEditing(null);
           void load();
-          // 保存後、予定変更のお知らせ(定型文入り)の作成画面へ
-          navigate("/admin/announcements", {
-            state: {
-              template: {
-                title: `予定変更のお知らせ(${savedTitle})`,
-                body: `${savedTitle}のスケジュールが変更になりました。詳細は予定タブを確認してください。`,
-                priority: "emergency",
-              },
-            },
-          });
         }}
         onCancel={() => setEditing(null)}
       />
