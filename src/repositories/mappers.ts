@@ -2,6 +2,7 @@ import type {
   Announcement,
   AnnouncementAudience,
   AnnouncementPriority,
+  BaggageGroup,
   Festival,
   FestivalDay,
   FestivalParticipant,
@@ -38,8 +39,25 @@ export interface FestivalParticipantRow {
   serial: string;
   name: string;
   nickname: string;
+  baggage_group_id: string | null;
   /** ネストselect: festival_participant_roles(role_id) */
   festival_participant_roles?: { role_id: string }[];
+}
+
+export interface BaggageGroupRow {
+  id: string;
+  festival_id: string;
+  group_code: string;
+  leader_participant_id: string | null;
+}
+
+export function toBaggageGroup(row: BaggageGroupRow): BaggageGroup {
+  return {
+    id: row.id,
+    festivalId: row.festival_id,
+    groupCode: row.group_code,
+    leaderParticipantId: row.leader_participant_id ?? undefined,
+  };
 }
 
 export function toFestivalRole(row: FestivalRoleRow): FestivalRole {
@@ -62,6 +80,7 @@ export function toFestivalParticipant(
     name: row.name,
     nickname: row.nickname,
     roleIds: (row.festival_participant_roles ?? []).map((r) => r.role_id),
+    baggageGroupId: row.baggage_group_id ?? undefined,
   };
 }
 
@@ -242,4 +261,7 @@ export const FESTIVAL_ROLE_COLUMNS =
   "id, festival_id, name, is_default, sort_order";
 
 export const FESTIVAL_PARTICIPANT_COLUMNS =
-  "id, festival_id, serial, name, nickname, festival_participant_roles(role_id)";
+  "id, festival_id, serial, name, nickname, baggage_group_id, festival_participant_roles(role_id)";
+
+export const BAGGAGE_GROUP_COLUMNS =
+  "id, festival_id, group_code, leader_participant_id";

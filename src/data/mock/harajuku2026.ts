@@ -36,8 +36,14 @@ export const harajuku2026: FestivalData = {
     { id: "hj-role-singer", festivalId, name: "歌い手・煽り", isDefault: false, sortOrder: 4 },
   ],
   participants: [
-    { id: "hj-p-615", festivalId, serial: "615", name: "宮本祥平", nickname: "みや", roleIds: ["hj-role-leader"] },
+    // 615=荷物グループ3のリーダー / 706=同グループの一般メンバー / 216=未配属
+    { id: "hj-p-615", festivalId, serial: "615", name: "宮本祥平", nickname: "みや", roleIds: ["hj-role-leader"], baggageGroupId: "hj-bg-3" },
     { id: "hj-p-216", festivalId, serial: "216", name: "大渕由貴", nickname: "ふっちー", roleIds: ["hj-role-dancer"] },
+    { id: "hj-p-706", festivalId, serial: "706", name: "松本望", nickname: "のぞみ", roleIds: ["hj-role-dancer"], baggageGroupId: "hj-bg-3" },
+  ],
+  baggageGroups: [
+    { id: "hj-bg-3", festivalId, groupCode: "3", leaderParticipantId: "hj-p-615" },
+    { id: "hj-bg-4", festivalId, groupCode: "4" },
   ],
   days: [
     { id: day1, festivalId, date: dateStr(0), label: "本祭", sortOrder: 1 },
