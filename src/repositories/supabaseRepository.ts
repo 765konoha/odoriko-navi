@@ -3,6 +3,7 @@ import type { Festival, FestivalData } from "../types/domain";
 import { supabase } from "../lib/supabase";
 import {
   ANNOUNCEMENT_COLUMNS,
+  BAGGAGE_GROUP_COLUMNS,
   FESTIVAL_COLUMNS,
   FESTIVAL_PARTICIPANT_COLUMNS,
   FESTIVAL_ROLE_COLUMNS,
@@ -10,6 +11,7 @@ import {
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
   toAnnouncement,
+  toBaggageGroup,
   toFestival,
   toFestivalDay,
   toFestivalParticipant,
@@ -18,6 +20,7 @@ import {
   toScheduleItem,
   toVenueRoute,
   type AnnouncementRow,
+  type BaggageGroupRow,
   type FestivalDayRow,
   type FestivalParticipantRow,
   type FestivalRoleRow,
@@ -50,6 +53,7 @@ export const supabaseRepository: FestivalRepository = {
       announcementsRes,
       rolesRes,
       participantsRes,
+      baggageGroupsRes,
     ] = await Promise.all([
       supabase
         .from("festival_days")
@@ -79,6 +83,10 @@ export const supabaseRepository: FestivalRepository = {
         .from("festival_participants")
         .select(FESTIVAL_PARTICIPANT_COLUMNS)
         .eq("festival_id", festivalId),
+      supabase
+        .from("baggage_groups")
+        .select(BAGGAGE_GROUP_COLUMNS)
+        .eq("festival_id", festivalId),
     ]);
 
     if (daysRes.error) throw daysRes.error;
@@ -87,6 +95,7 @@ export const supabaseRepository: FestivalRepository = {
     if (announcementsRes.error) throw announcementsRes.error;
     if (rolesRes.error) throw rolesRes.error;
     if (participantsRes.error) throw participantsRes.error;
+    if (baggageGroupsRes.error) throw baggageGroupsRes.error;
 
     const dayRows = (daysRes.data ?? []) as FestivalDayRow[];
     const dayIds = dayRows.map((d) => d.id);
@@ -117,6 +126,9 @@ export const supabaseRepository: FestivalRepository = {
       participants: (
         (participantsRes.data ?? []) as FestivalParticipantRow[]
       ).map(toFestivalParticipant),
+      baggageGroups: ((baggageGroupsRes.data ?? []) as BaggageGroupRow[]).map(
+        toBaggageGroup,
+      ),
     };
   },
 

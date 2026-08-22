@@ -31,6 +31,18 @@ export interface FestivalParticipant {
   nickname: string;
   /** 付与された役職ID(複数可) */
   roleIds: string[];
+  /** 所属する荷物グループID(最大1つ。未配属は undefined) */
+  baggageGroupId?: string;
+}
+
+/** 荷物グループ(祭りごと。役職とは独立) */
+export interface BaggageGroup {
+  id: string;
+  festivalId: string;
+  /** グループ識別子(文字列。表示は「荷物グループ{code}」) */
+  groupCode: string;
+  /** 荷物リーダーの festival_participants.id(未設定は undefined) */
+  leaderParticipantId?: string;
 }
 
 export interface FestivalDay {
@@ -142,4 +154,5 @@ export interface FestivalData {
   announcements: Announcement[];
   roles: FestivalRole[];
   participants: FestivalParticipant[];
+  baggageGroups: BaggageGroup[];
 }

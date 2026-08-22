@@ -79,6 +79,7 @@ export function loadDataCache(slug: string): CachedFestivalData | null {
     // 旧バージョンで保存されたスナップショットとの互換
     value.data.roles = value.data.roles ?? [];
     value.data.participants = value.data.participants ?? [];
+    value.data.baggageGroups = value.data.baggageGroups ?? [];
     return value;
   } catch {
     return null;

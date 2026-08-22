@@ -8,6 +8,7 @@ import {
 } from "../../lib/schedule";
 import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
+import BaggageGroupCard from "../../components/home/BaggageGroupCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
 import DanceCountCard from "../../components/home/DanceCountCard";
 import WeatherStrip from "../../components/home/WeatherStrip";
@@ -100,6 +101,8 @@ export default function HomePage() {
           変更
         </button>
       </div>
+
+      <BaggageGroupCard data={data} viewer={viewer} />
 
       {unreadCount > 0 && (
         <Link

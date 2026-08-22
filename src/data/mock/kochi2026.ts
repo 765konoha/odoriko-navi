@@ -43,6 +43,8 @@ export const kochi2026: FestivalData = {
     { id: "k-p-001", festivalId, serial: "001", name: "全 太郎", nickname: "ZEN", roleIds: ["k-role-singer", "k-role-dancer"] },
     { id: "k-p-k010", festivalId, serial: "K-010", name: "亀井亮介", nickname: "りょうすけ", roleIds: ["k-role-manager"] },
   ],
+  // 高知は荷物グループ未使用(全員未配属の表示テスト用)
+  baggageGroups: [],
   days: [
     { id: day1, festivalId, date: dateStr(0), label: "本祭1日目", sortOrder: 1 },
     { id: day2, festivalId, date: dateStr(1), label: "本祭2日目", sortOrder: 2 },

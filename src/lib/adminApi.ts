@@ -3,6 +3,7 @@ import type {
   Announcement,
   AnnouncementAudience,
   AnnouncementPriority,
+  BaggageGroup,
   Festival,
   FestivalDay,
   FestivalParticipant,
@@ -15,6 +16,7 @@ import type {
 } from "../types/domain";
 import {
   ANNOUNCEMENT_COLUMNS,
+  BAGGAGE_GROUP_COLUMNS,
   FESTIVAL_COLUMNS,
   FESTIVAL_PARTICIPANT_COLUMNS,
   FESTIVAL_ROLE_COLUMNS,
@@ -22,6 +24,7 @@ import {
   SCHEDULE_ITEM_COLUMNS,
   VENUE_ROUTE_COLUMNS,
   toAnnouncement,
+  toBaggageGroup,
   toFestival,
   toFestivalDay,
   toFestivalParticipant,
@@ -30,6 +33,7 @@ import {
   toScheduleItem,
   toVenueRoute,
   type AnnouncementRow,
+  type BaggageGroupRow,
   type FestivalDayRow,
   type FestivalParticipantRow,
   type FestivalRoleRow,
@@ -705,12 +709,33 @@ export async function createParticipant(
   await setParticipantRoles((data as { id: string }).id, ids);
 }
 
+/** この参加者が荷物リーダーになっているグループ(いなければ null) */
+async function leaderGroupOf(
+  participantId: string,
+): Promise<BaggageGroup | null> {
+  const { data, error } = await client()
+    .from("baggage_groups")
+    .select(BAGGAGE_GROUP_COLUMNS)
+    .eq("leader_participant_id", participantId)
+    .limit(1);
+  if (error) throw error;
+  const row = (data ?? [])[0] as BaggageGroupRow | undefined;
+  return row ? toBaggageGroup(row) : null;
+}
+
 /**
  * 参加者を1人削除する。
  * 役職の紐付け・個人宛お知らせの紐付けは cascade で削除される。
  * 参加者マスター(シリアル)は残る。
+ * 荷物リーダーに設定されている場合は削除せずエラーにする。
  */
 export async function deleteParticipant(id: string): Promise<void> {
+  const leaderOf = await leaderGroupOf(id);
+  if (leaderOf) {
+    throw new Error(
+      `この参加者は荷物グループ${leaderOf.groupCode}のリーダーです。先に別の荷物リーダーを設定するか、リーダー設定を解除してください。`,
+    );
+  }
   const { error } = await client()
     .from("festival_participants")
     .delete()
@@ -720,7 +745,8 @@ export async function deleteParticipant(id: string): Promise<void> {
 
 /**
  * この祭りの参加者を一括削除する。
- * 役職の紐付け・個人宛お知らせの紐付けは cascade で削除される。
+ * 役職・個人宛お知らせ・荷物グループの所属は cascade / set null で解除され、
+ * 荷物リーダー設定も自動で未設定に戻る(グループ本体は残る)。
  * 参加者マスター(シリアル)・お知らせ本体・予定・場所は残る。
  */
 export async function deleteAllParticipants(festivalId: string): Promise<void> {
@@ -728,5 +754,85 @@ export async function deleteAllParticipants(festivalId: string): Promise<void> {
     .from("festival_participants")
     .delete()
     .eq("festival_id", festivalId);
+  if (error) throw error;
+}
+
+// ---------- 荷物グループ ----------
+
+export async function listBaggageGroups(
+  festivalId: string,
+): Promise<BaggageGroup[]> {
+  const { data, error } = await client()
+    .from("baggage_groups")
+    .select(BAGGAGE_GROUP_COLUMNS)
+    .eq("festival_id", festivalId)
+    .order("group_code");
+  if (error) throw error;
+  return ((data ?? []) as BaggageGroupRow[]).map(toBaggageGroup);
+}
+
+export async function createBaggageGroup(
+  festivalId: string,
+  groupCode: string,
+): Promise<void> {
+  const { error } = await client().from("baggage_groups").insert({
+    festival_id: festivalId,
+    group_code: groupCode,
+  });
+  if (error) throw error;
+}
+
+/**
+ * 荷物グループを削除する。
+ * 所属参加者は baggage_group_id の on delete set null で自動的に未配属へ戻る。
+ */
+export async function deleteBaggageGroup(id: string): Promise<void> {
+  const { error } = await client().from("baggage_groups").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** 荷物リーダーを設定・解除する(null で解除) */
+export async function setBaggageGroupLeader(
+  groupId: string,
+  participantId: string | null,
+): Promise<void> {
+  const { error } = await client()
+    .from("baggage_groups")
+    .update({
+      leader_participant_id: participantId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", groupId);
+  if (error) throw error;
+}
+
+/**
+ * 参加者の所属グループを変更する(複数人まとめて可)。
+ * groupId=null で未配属へ戻す。別グループ所属者は自動的に移動になる。
+ * 荷物リーダーに設定中の参加者が含まれる場合はエラーにする(先にリーダーを解除する)。
+ */
+export async function assignBaggageGroup(
+  participantIds: string[],
+  groupId: string | null,
+): Promise<void> {
+  if (participantIds.length === 0) return;
+  // リーダー整合性: 移動対象がどこかのグループのリーダーなら中断
+  const { data, error: leaderError } = await client()
+    .from("baggage_groups")
+    .select(BAGGAGE_GROUP_COLUMNS)
+    .in("leader_participant_id", participantIds);
+  if (leaderError) throw leaderError;
+  const leaderRows = (data ?? []) as BaggageGroupRow[];
+  // 同じグループへの割り当て直しは問題ない(リーダーのまま)
+  const blocking = leaderRows.filter((g) => g.id !== groupId);
+  if (blocking.length > 0) {
+    throw new Error(
+      `荷物グループ${blocking[0].group_code}のリーダーが含まれています。先に別の荷物リーダーを設定するか、リーダー設定を解除してください。`,
+    );
+  }
+  const { error } = await client()
+    .from("festival_participants")
+    .update({ baggage_group_id: groupId })
+    .in("id", participantIds);
   if (error) throw error;
 }
