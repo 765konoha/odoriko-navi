@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import type { BaggageGroup, FestivalParticipant } from "../../types/domain";
 import {
@@ -39,7 +32,6 @@ export default function BaggageAdminPage() {
   const [assigning, setAssigning] = useState(false);
 
   // グループ追加・アコーディオン開閉
-  const [newCode, setNewCode] = useState("");
   const [addingGroup, setAddingGroup] = useState(false);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
@@ -146,15 +138,20 @@ export default function BaggageAdminPage() {
     setAssigning(false);
   }
 
-  async function handleAddGroup(e: FormEvent) {
-    e.preventDefault();
-    const code = newCode.trim();
-    if (!code) return;
+  /** 追加時に使う次の番号(既存の数値コードの最大+1。空なら1) */
+  function nextGroupCode(): string {
+    const numbers = groups
+      .map((g) => Number(g.groupCode))
+      .filter((n) => Number.isInteger(n) && n > 0);
+    return String(numbers.length === 0 ? 1 : Math.max(...numbers) + 1);
+  }
+
+  async function handleAddGroup() {
+    const code = nextGroupCode();
     setAddingGroup(true);
     setErrorMsg(null);
     try {
       await createBaggageGroup(festival!.id, code);
-      setNewCode("");
       await load();
     } catch (err) {
       const message = err instanceof Error ? err.message : "追加に失敗しました";
@@ -418,30 +415,17 @@ export default function BaggageAdminPage() {
         </p>
       )}
 
-      {/* グループ追加 */}
-      <form
-        onSubmit={handleAddGroup}
-        className="flex items-end gap-2 rounded-2xl bg-white p-4 shadow-sm"
+      {/* グループ追加(番号は自動採番) */}
+      <button
+        type="button"
+        onClick={() => void handleAddGroup()}
+        disabled={addingGroup}
+        className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white disabled:opacity-40"
       >
-        <label className="block min-w-0 flex-1">
-          <span className="text-sm font-medium text-slate-600">
-            グループ番号(例: 3)
-          </span>
-          <input
-            value={newCode}
-            onChange={(e) => setNewCode(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
-            placeholder="3"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={addingGroup || !newCode.trim()}
-          className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
-        >
-          + 荷物グループ追加
-        </button>
-      </form>
+        {addingGroup
+          ? "追加中…"
+          : `+ 荷物グループ${nextGroupCode()}を追加`}
+      </button>
     </div>
   );
 }
