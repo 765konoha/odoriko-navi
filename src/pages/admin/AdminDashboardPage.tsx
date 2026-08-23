@@ -63,6 +63,12 @@ export default function AdminDashboardPage() {
           祭りが登録されていません。まずは祭りを登録してください。
         </p>
         <Link
+          to="/admin/props"
+          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
+        >
+          小道具管理(小道具・受け渡し)→
+        </Link>
+        <Link
           to="/admin/festivals"
           className="block rounded-xl bg-slate-900 p-4 text-center font-bold text-white"
         >
@@ -137,6 +143,12 @@ export default function AdminDashboardPage() {
           className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
         >
           参加者管理(一括登録・役職)→
+        </Link>
+        <Link
+          to="/admin/props"
+          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
+        >
+          小道具管理(小道具・受け渡し)→
         </Link>
         <Link
           to="/admin/festivals"

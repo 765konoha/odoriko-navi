@@ -9,6 +9,8 @@ import {
 import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import BaggageGroupCard from "../../components/home/BaggageGroupCard";
+import ModeSwitchCard from "../../components/layout/ModeSwitchCard";
+import PropRelayCard from "../../components/props/PropRelayCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
 import DanceCountCard from "../../components/home/DanceCountCard";
 import WeatherStrip from "../../components/home/WeatherStrip";
@@ -88,6 +90,8 @@ export default function HomePage() {
         <RefreshIndicator />
       </header>
 
+      <ModeSwitchCard />
+
       <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5">
         <span className="text-sm text-slate-500">利用者</span>
         <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
@@ -103,6 +107,8 @@ export default function HomePage() {
       </div>
 
       <BaggageGroupCard data={data} viewer={viewer} />
+
+      <PropRelayCard slug={data.festival.slug} />
 
       {unreadCount > 0 && (
         <Link
