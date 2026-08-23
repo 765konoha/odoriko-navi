@@ -2,7 +2,6 @@ import { createHashRouter, Navigate } from "react-router-dom";
 import { DEFAULT_FESTIVAL_SLUG } from "./config";
 import { loadLastFestivalSlug } from "./lib/storage";
 import DancerLayout from "./components/layout/DancerLayout";
-import HomePage from "./pages/dancer/HomePage";
 import SchedulePage from "./pages/dancer/SchedulePage";
 import MapPage from "./pages/dancer/MapPage";
 import AnnouncementsPage from "./pages/dancer/AnnouncementsPage";
@@ -16,6 +15,10 @@ import AnnouncementAdminPage from "./pages/admin/AnnouncementAdminPage";
 import FestivalAdminPage from "./pages/admin/FestivalAdminPage";
 import ParticipantAdminPage from "./pages/admin/ParticipantAdminPage";
 import BaggageAdminPage from "./pages/admin/BaggageAdminPage";
+import PropsAdminPage from "./pages/admin/props/PropsAdminPage";
+import HomeSwitcher from "./pages/HomeSwitcher";
+import RehearsalPage from "./pages/normal/RehearsalPage";
+import PropsPage from "./pages/props/PropsPage";
 
 // 最後に表示した祭りがあればそこへ(初回はデフォルトの祭りへ)
 function RootRedirect() {
@@ -39,6 +42,7 @@ export const router = createHashRouter([
       { path: "announcements", element: <AnnouncementAdminPage /> },
       { path: "participants", element: <ParticipantAdminPage /> },
       { path: "baggage", element: <BaggageAdminPage /> },
+      { path: "props", element: <PropsAdminPage /> },
       { path: "festivals", element: <FestivalAdminPage /> },
     ],
   },
@@ -46,8 +50,12 @@ export const router = createHashRouter([
     path: "/:festivalSlug",
     element: <DancerLayout />,
     children: [
-      { index: true, element: <HomePage /> },
+      // ホームは選択中のモード(通常/祭り)で切り替える
+      { index: true, element: <HomeSwitcher /> },
       { path: "schedule", element: <SchedulePage /> },
+      // 通常モードの画面(小道具は両モード共通)
+      { path: "rehearsal", element: <RehearsalPage /> },
+      { path: "props", element: <PropsPage /> },
       { path: "map", element: <MapPage /> },
       { path: "announcements", element: <AnnouncementsPage /> },
       {
