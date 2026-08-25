@@ -1,14 +1,14 @@
 import { Link, useParams } from "react-router-dom";
-import { useUser } from "../../context/UserContext";
 import { useViewer } from "../../hooks/useViewer";
 import { viewerLabel } from "../../lib/audience";
 import ModeSwitchCard from "../../components/layout/ModeSwitchCard";
 import PropRelayCard from "../../components/props/PropRelayCard";
+import { useUserSelect } from "../../hooks/useUserSelect";
 
 /** 通常モード(日常運用)のホーム */
 export default function NormalHomePage() {
   const { festivalSlug } = useParams();
-  const { requestChange } = useUser();
+  const { requestChange } = useUserSelect();
   const viewer = useViewer();
 
   return (

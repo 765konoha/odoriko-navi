@@ -15,6 +15,7 @@ import {
 
 // 利用者(シリアル)の選択状態。
 // 本人認証ではなく表示切替のための識別。パスワード等は使わない。
+// 選択画面の開閉は履歴で管理するため useUserSelect(hooks)側に持たせている。
 
 interface UserState {
   /** null = 未選択(初回)。serial=null は「番号指定なし」 */
@@ -23,10 +24,6 @@ interface UserState {
   userKey: UserKey;
   /** シリアル選択を確定する(null = 番号指定なし) */
   selectUser: (serial: string | null) => void;
-  /** 「変更」ボタンで選択画面を再表示する */
-  changeRequested: boolean;
-  requestChange: () => void;
-  cancelChange: () => void;
 }
 
 const UserContext = createContext<UserState | null>(null);
@@ -35,13 +32,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<UserSelection | null>(() =>
     loadUserSelection(),
   );
-  const [changeRequested, setChangeRequested] = useState(false);
 
   const selectUser = useCallback((serial: string | null) => {
     const next: UserSelection = { serial };
     saveUserSelection(next);
     setSelection(next);
-    setChangeRequested(false);
   }, []);
 
   const value = useMemo<UserState>(
@@ -49,11 +44,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       selection,
       userKey: selection?.serial ?? "anonymous",
       selectUser,
-      changeRequested,
-      requestChange: () => setChangeRequested(true),
-      cancelChange: () => setChangeRequested(false),
     }),
-    [selection, selectUser, changeRequested],
+    [selection, selectUser],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

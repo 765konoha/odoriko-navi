@@ -17,7 +17,7 @@ import WeatherStrip from "../../components/home/WeatherStrip";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
-import { useUser } from "../../context/UserContext";
+import { useUserSelect } from "../../hooks/useUserSelect";
 import { useViewer } from "../../hooks/useViewer";
 import { activeAnnouncements } from "../../lib/announcements";
 import {
@@ -30,7 +30,7 @@ export default function HomePage() {
   const { data, loading } = useFestivalData();
   const now = useNow();
   const { ackedIds, markAcked, readIds } = useReadStatus();
-  const { requestChange } = useUser();
+  const { requestChange } = useUserSelect();
   const viewer = useViewer();
 
   if (loading) {
