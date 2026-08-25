@@ -7,6 +7,7 @@ import {
   unsubscribeFromPush,
 } from "../../lib/push";
 import { useUser } from "../../context/UserContext";
+import { useUserSelect } from "../../hooks/useUserSelect";
 
 type State = "hidden" | "off" | "on" | "denied";
 
@@ -17,7 +18,8 @@ const isStandalone =
 
 /** お知らせのプッシュ通知 オン/オフ(シリアル選択が必須) */
 export default function PushToggle() {
-  const { selection, requestChange } = useUser();
+  const { selection } = useUser();
+  const { requestChange } = useUserSelect();
   const serial = selection?.serial ?? null;
   const [state, setState] = useState<State>("hidden");
   const [busy, setBusy] = useState(false);

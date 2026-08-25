@@ -44,7 +44,8 @@ export default function FestivalSwitcher({ slug }: { slug: string }) {
     const rest = location.pathname
       .replace(new RegExp(`^/${slug}`), "")
       .replace(/^\/announcements\/.+$/, "/announcements");
-    navigate(`/${nextSlug}${rest}`);
+    // シリアル選択画面を開いたまま切り替えた場合も開いた状態を保つ
+    navigate(`/${nextSlug}${rest}`, { state: location.state });
   }
 
   const currentName =

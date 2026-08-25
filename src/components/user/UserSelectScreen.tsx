@@ -6,6 +6,7 @@ import {
 } from "../../lib/storage";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useUser } from "../../context/UserContext";
+import { useUserSelect } from "../../hooks/useUserSelect";
 import { compareSerial } from "../../lib/audience";
 
 /**
@@ -15,8 +16,9 @@ import { compareSerial } from "../../lib/audience";
  */
 export default function UserSelectScreen() {
   const { data, loading } = useFestivalData();
-  const { selection, selectUser, cancelChange } = useUser();
-  const isChange = selection != null; // 選択済み→「変更」で開いた場合
+  const { selection, selectUser } = useUser();
+  const { changeRequested, closeChange } = useUserSelect();
+  const isChange = changeRequested; // 選択済み→「変更」で開いた場合
 
   const [serials, setSerials] = useState<string[]>(() =>
     loadSerialListCache(),
@@ -74,6 +76,7 @@ export default function UserSelectScreen() {
       return; // 保存しない
     }
     selectUser(picked);
+    closeChange();
   }
 
   return (
@@ -84,6 +87,11 @@ export default function UserSelectScreen() {
       <p className="mt-2 text-center text-sm text-slate-500">
         選択すると、あなたの役職に合わせた予定とお知らせが表示されます。
       </p>
+      {data && (
+        <p className="mt-1 text-center text-sm font-bold text-slate-600">
+          対象のお祭り: {data.festival.name}
+        </p>
+      )}
 
       <div className="mt-6 space-y-3">
         {serials.length > 8 && (
@@ -146,7 +154,10 @@ export default function UserSelectScreen() {
 
         <button
           type="button"
-          onClick={() => selectUser(null)}
+          onClick={() => {
+            selectUser(null);
+            closeChange();
+          }}
           className="w-full rounded-xl border border-slate-300 bg-white py-3.5 text-base font-bold text-slate-600"
         >
           番号指定なしで利用する
@@ -155,7 +166,7 @@ export default function UserSelectScreen() {
         {isChange && (
           <button
             type="button"
-            onClick={cancelChange}
+            onClick={closeChange}
             className="w-full py-2 text-center text-sm font-medium text-slate-400"
           >
             キャンセル
