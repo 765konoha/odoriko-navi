@@ -9,6 +9,7 @@ import { ReadStatusProvider } from "../../context/ReadStatusContext";
 import { useUser } from "../../context/UserContext";
 import { useCanGoBack, useUserSelect } from "../../hooks/useUserSelect";
 import { useViewer } from "../../hooks/useViewer";
+import { recordSerialAccess } from "../../lib/access";
 import { saveLastFestivalSlug } from "../../lib/storage";
 
 /** 選択中シリアルが今回の祭りに不参加の場合の注意表示 */
@@ -43,6 +44,11 @@ export default function DancerLayout() {
   useEffect(() => {
     if (festivalSlug) saveLastFestivalSlug(festivalSlug);
   }, [festivalSlug]);
+
+  // 利用状況を記録する(運営がインストール状況を確認するための緩い記録)
+  useEffect(() => {
+    recordSerialAccess(selection?.serial ?? null, festivalSlug);
+  }, [selection?.serial, festivalSlug]);
 
   const showUserSelect = selection == null || changeRequested;
 
