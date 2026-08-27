@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useLocation } from "react-router-dom";
 import type { Festival } from "../types/domain";
 import { listFestivals } from "../lib/adminApi";
 import {
@@ -14,13 +15,16 @@ import {
   saveAdminFestivalsCache,
 } from "../lib/adminCache";
 
-const STORAGE_KEY = "odoriko:admin:festivalId";
+// 操作対象の祭りは URL(/admin/f/{slug}/...)で決まる。
+// 端末に保存した選択状態には依存しないので、ブックマークや共有でも同じ画面が開く。
+const WORKSPACE_PATH = /^\/admin\/f\/([^/]+)/;
 
 interface AdminFestivalState {
+  /** 登録されているすべての祭り(終了したものを含む) */
   festivals: Festival[];
+  /** いま開いている祭り。祭りワークスペースの外では null */
   festival: Festival | null;
   loading: boolean;
-  selectFestival: (id: string) => void;
   /** 祭りの追加・編集後に一覧を再読込する */
   reload: () => Promise<void>;
 }
@@ -32,12 +36,10 @@ export function AdminFestivalProvider({ children }: { children: ReactNode }) {
   const [festivals, setFestivals] = useState<Festival[]>(() =>
     loadAdminFestivalsCache(),
   );
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => localStorage.getItem(STORAGE_KEY),
-  );
   const [loading, setLoading] = useState<boolean>(
     () => loadAdminFestivalsCache().length === 0,
   );
+  const { pathname } = useLocation();
 
   const reload = useCallback(async () => {
     const list = await listFestivals();
@@ -49,20 +51,13 @@ export function AdminFestivalProvider({ children }: { children: ReactNode }) {
     void reload().finally(() => setLoading(false));
   }, [reload]);
 
-  const festival =
-    festivals.find((f) => f.id === selectedId) ?? festivals[0] ?? null;
+  const slug = WORKSPACE_PATH.exec(pathname)?.[1] ?? null;
+  const festival = slug
+    ? (festivals.find((f) => f.slug === slug) ?? null)
+    : null;
 
   const value = useMemo<AdminFestivalState>(
-    () => ({
-      festivals,
-      festival,
-      loading,
-      selectFestival(id) {
-        setSelectedId(id);
-        localStorage.setItem(STORAGE_KEY, id);
-      },
-      reload,
-    }),
+    () => ({ festivals, festival, loading, reload }),
     [festivals, festival, loading, reload],
   );
 

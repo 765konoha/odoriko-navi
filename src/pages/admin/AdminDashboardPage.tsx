@@ -5,6 +5,7 @@ import {
   listAllAnnouncements,
   listDays,
   listLocations,
+  listParticipants,
   listScheduleItems,
 } from "../../lib/adminApi";
 import { todayString } from "../../lib/time";
@@ -16,10 +17,14 @@ interface Summary {
   activeAnnouncementCount: number;
   emergencyCount: number;
   locationCount: number;
+  dayCount: number;
+  participantCount: number;
+  scheduleItemCount: number;
 }
 
+/** 祭りワークスペースの「概要」 */
 export default function AdminDashboardPage() {
-  const { festival, loading: festivalLoading } = useAdminFestival();
+  const { festival } = useAdminFestival();
   // 前回の集計を即表示し、裏で最新を取得する
   const [summary, setSummary] = useState<Summary | null>(() =>
     festival ? loadAdminCache<Summary>(festival.id, "dashboard") : null,
@@ -30,20 +35,26 @@ export default function AdminDashboardPage() {
     setSummary(loadAdminCache<Summary>(festival.id, "dashboard"));
     let cancelled = false;
     void (async () => {
-      const [days, locations, announcements] = await Promise.all([
+      const [days, locations, announcements, participants] = await Promise.all([
         listDays(festival.id),
         listLocations(festival.id),
         listAllAnnouncements(festival.id),
+        listParticipants(festival.id),
       ]);
+      const allItems = await listScheduleItems(days.map((d) => d.id));
       const today = days.find((d) => d.date === todayString());
-      const todayItems = today ? await listScheduleItems([today.id]) : null;
       const now = new Date();
       const active = announcements.filter((a) => isActiveAnnouncement(a, now));
       const fresh: Summary = {
-        todayItemCount: todayItems ? todayItems.length : null,
+        todayItemCount: today
+          ? allItems.filter((i) => i.festivalDayId === today.id).length
+          : null,
         activeAnnouncementCount: active.length,
         emergencyCount: active.filter((a) => a.priority === "emergency").length,
         locationCount: locations.length,
+        dayCount: days.length,
+        participantCount: participants.length,
+        scheduleItemCount: allItems.length,
       };
       saveAdminCache(festival.id, "dashboard", fresh);
       if (!cancelled) setSummary(fresh);
@@ -53,116 +64,130 @@ export default function AdminDashboardPage() {
     };
   }, [festival]);
 
-  if (festivalLoading) {
+  if (!festival) return null;
+
+  const base = `/admin/f/${festival.slug}`;
+
+  if (!summary) {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
-  }
-  if (!festival) {
-    return (
-      <div className="space-y-3">
-        <p className="rounded-xl bg-white p-4 text-slate-600">
-          祭りが登録されていません。まずは祭りを登録してください。
-        </p>
-        <Link
-          to="/admin/props"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          小道具管理(小道具・受け渡し)→
-        </Link>
-        <Link
-          to="/admin/festivals"
-          className="block rounded-xl bg-slate-900 p-4 text-center font-bold text-white"
-        >
-          + 祭りを追加
-        </Link>
-      </div>
-    );
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-slate-800">{festival.name}</h1>
+      {(
+        <>
+          <section>
+            <h2 className="mb-2 text-sm font-bold text-slate-500">当日の状況</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label="本日の予定" value={summary.todayItemCount ?? "-"} />
+              <Stat
+                label="公開中お知らせ"
+                value={summary.activeAnnouncementCount}
+              />
+              <Stat
+                label="緊急連絡"
+                value={summary.emergencyCount}
+                alert={summary.emergencyCount > 0}
+              />
+              <Stat label="登録場所" value={summary.locationCount} />
+            </div>
+          </section>
 
-      {summary && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">本日の予定</p>
-            <p className="text-2xl font-bold">
-              {summary.todayItemCount ?? "-"}
-              <span className="text-sm font-normal text-slate-500">件</span>
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">公開中お知らせ</p>
-            <p className="text-2xl font-bold">
-              {summary.activeAnnouncementCount}
-              <span className="text-sm font-normal text-slate-500">件</span>
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">緊急連絡</p>
-            <p
-              className={`text-2xl font-bold ${
-                summary.emergencyCount > 0 ? "text-red-600" : ""
-              }`}
-            >
-              {summary.emergencyCount}
-              <span className="text-sm font-normal text-slate-500">件</span>
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">登録場所</p>
-            <p className="text-2xl font-bold">
-              {summary.locationCount}
-              <span className="text-sm font-normal text-slate-500">件</span>
-            </p>
-          </div>
-        </div>
+          <section>
+            <h2 className="mb-2 text-sm font-bold text-slate-500">準備状況</h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+              <Check
+                to={`${base}/settings`}
+                label="天気予報地点"
+                done={
+                  festival.weatherLat != null && festival.weatherLng != null
+                }
+                detail={
+                  festival.weatherLat != null ? "設定済み" : "未設定"
+                }
+              />
+              <Check
+                to={`${base}/schedule`}
+                label="開催日程"
+                done={summary.dayCount > 0}
+                detail={`${summary.dayCount}日`}
+              />
+              <Check
+                to={`${base}/participants`}
+                label="参加者"
+                done={summary.participantCount > 0}
+                detail={`${summary.participantCount}人`}
+              />
+              <Check
+                to={`${base}/locations`}
+                label="場所"
+                done={summary.locationCount > 0}
+                detail={`${summary.locationCount}件`}
+              />
+              <Check
+                to={`${base}/schedule`}
+                label="予定"
+                done={summary.scheduleItemCount > 0}
+                detail={`${summary.scheduleItemCount}件`}
+              />
+            </div>
+          </section>
+        </>
       )}
-
-      <div className="space-y-2">
-        <Link
-          to="/admin/schedule"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          スケジュール管理 →
-        </Link>
-        <Link
-          to="/admin/locations"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          場所管理 →
-        </Link>
-        <Link
-          to="/admin/announcements"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          お知らせ管理 →
-        </Link>
-        <Link
-          to="/admin/participants"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          参加者管理(一括登録・役職)→
-        </Link>
-        <Link
-          to="/admin/props"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          小道具管理(小道具・受け渡し)→
-        </Link>
-        <Link
-          to="/admin/festivals"
-          className="block rounded-xl bg-white p-4 font-bold text-slate-800 shadow-sm"
-        >
-          祭り管理(追加・天気予報地点)→
-        </Link>
-        <Link
-          to={`/${festival.slug}`}
-          className="block rounded-xl border border-slate-300 p-4 text-center font-bold text-slate-600"
-        >
-          踊り子画面を確認する
-        </Link>
-      </div>
     </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  alert,
+}: {
+  label: string;
+  value: number | string;
+  alert?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className={`text-2xl font-bold ${alert ? "text-red-600" : ""}`}>
+        {value}
+        <span className="text-sm font-normal text-slate-500">件</span>
+      </p>
+    </div>
+  );
+}
+
+function Check({
+  to,
+  label,
+  done,
+  detail,
+}: {
+  to: string;
+  label: string;
+  done: boolean;
+  detail: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 last:border-0"
+    >
+      <span className={done ? "text-emerald-600" : "text-amber-600"}>
+        {done ? "✓" : "!"}
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-bold text-slate-800">
+        {label}
+      </span>
+      <span
+        className={`shrink-0 text-sm ${
+          done ? "text-slate-500" : "font-bold text-amber-700"
+        }`}
+      >
+        {detail}
+      </span>
+      <span className="shrink-0 text-slate-400">›</span>
+    </Link>
   );
 }

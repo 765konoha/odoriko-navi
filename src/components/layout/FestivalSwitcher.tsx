@@ -24,7 +24,7 @@ export default function FestivalSwitcher({ slug }: { slug: string }) {
   useEffect(() => {
     let cancelled = false;
     void repository
-      .listActiveFestivals()
+      .listFestivals()
       .then((list) => {
         if (cancelled || list.length === 0) return;
         setFestivals(list);
@@ -51,6 +51,11 @@ export default function FestivalSwitcher({ slug }: { slug: string }) {
   const currentName =
     festivals.find((f) => f.slug === slug)?.name ?? data?.festival.name ?? "";
 
+  // 終了した祭りも見返せるように残し、「過去の祭り」としてまとめる
+  const current = festivals.filter((f) => f.isActive);
+  const past = festivals.filter((f) => !f.isActive);
+  const unlisted = !festivals.some((f) => f.slug === slug);
+
   // 切替先がない場合は祭り名の表示のみ
   if (festivals.length <= 1) {
     return currentName ? (
@@ -68,15 +73,22 @@ export default function FestivalSwitcher({ slug }: { slug: string }) {
         onChange={(e) => switchTo(e.target.value)}
         className="max-w-44 appearance-none truncate rounded-lg border border-slate-300 bg-slate-50 py-1 pl-2 pr-7 text-sm font-bold text-slate-700"
       >
-        {festivals.map((f) => (
+        {current.map((f) => (
           <option key={f.id} value={f.slug}>
             {f.name}
           </option>
         ))}
-        {/* 一覧に無い slug を開いている場合も現在地を表示できるようにする */}
-        {!festivals.some((f) => f.slug === slug) && (
-          <option value={slug}>{currentName || slug}</option>
+        {past.length > 0 && (
+          <optgroup label="過去の祭り">
+            {past.map((f) => (
+              <option key={f.id} value={f.slug}>
+                {f.name}
+              </option>
+            ))}
+          </optgroup>
         )}
+        {/* 一覧に無い slug を開いている場合も現在地を表示できるようにする */}
+        {unlisted && <option value={slug}>{currentName || slug}</option>}
       </select>
       <svg
         className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-slate-500"

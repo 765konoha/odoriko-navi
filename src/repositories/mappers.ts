@@ -23,6 +23,7 @@ export interface FestivalRow {
   weather_lat: number | null;
   weather_lng: number | null;
   dance_count_enabled: boolean;
+  is_active: boolean;
 }
 
 export interface FestivalRoleRow {
@@ -171,6 +172,7 @@ export function toFestival(row: FestivalRow): Festival {
     weatherLat: row.weather_lat ?? undefined,
     weatherLng: row.weather_lng ?? undefined,
     danceCountEnabled: row.dance_count_enabled ?? false,
+    isActive: row.is_active ?? true,
   };
 }
 
@@ -243,7 +245,7 @@ export function toAnnouncement(row: AnnouncementRow): Announcement {
 }
 
 export const FESTIVAL_COLUMNS =
-  "id, slug, name, weather_lat, weather_lng, dance_count_enabled";
+  "id, slug, name, weather_lat, weather_lng, dance_count_enabled, is_active";
 
 // schedule_item_roles / announcement_* はネストselectで同時取得する
 export const SCHEDULE_ITEM_COLUMNS =

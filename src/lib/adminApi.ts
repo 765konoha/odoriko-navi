@@ -70,6 +70,8 @@ export interface FestivalInput {
   weatherLng: number | null;
   /** 演舞回数の集計機能を使うか */
   danceCountEnabled: boolean;
+  /** 開催中(true)か終了(false)か */
+  isActive: boolean;
 }
 
 function festivalToRow(input: FestivalInput) {
@@ -79,6 +81,7 @@ function festivalToRow(input: FestivalInput) {
     weather_lat: input.weatherLat,
     weather_lng: input.weatherLng,
     dance_count_enabled: input.danceCountEnabled,
+    is_active: input.isActive,
   };
 }
 
@@ -110,6 +113,18 @@ export async function createFestival(input: FestivalInput): Promise<string> {
     .insert(DEFAULT_ROLES.map((r) => ({ ...r, festival_id: festivalId })));
   if (roleError) throw roleError;
   return festivalId;
+}
+
+/** 開催中 / 終了 を切り替える */
+export async function setFestivalActive(
+  id: string,
+  isActive: boolean,
+): Promise<void> {
+  const { error } = await client()
+    .from("festivals")
+    .update({ is_active: isActive })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function updateFestival(

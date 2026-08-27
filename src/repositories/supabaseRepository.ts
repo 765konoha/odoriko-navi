@@ -38,7 +38,6 @@ export const supabaseRepository: FestivalRepository = {
       .from("festivals")
       .select(FESTIVAL_COLUMNS)
       .eq("slug", slug)
-      .eq("is_active", true)
       .maybeSingle<FestivalRow>();
 
     if (festivalError) throw festivalError;
@@ -132,12 +131,11 @@ export const supabaseRepository: FestivalRepository = {
     };
   },
 
-  async listActiveFestivals(): Promise<Festival[]> {
+  async listFestivals(): Promise<Festival[]> {
     if (!supabase) throw new Error("Supabase client is not configured");
     const { data, error } = await supabase
       .from("festivals")
       .select(FESTIVAL_COLUMNS)
-      .eq("is_active", true)
       .order("created_at");
     if (error) throw error;
     return ((data ?? []) as FestivalRow[]).map(toFestival);

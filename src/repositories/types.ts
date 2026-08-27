@@ -6,7 +6,8 @@ export interface FestivalRepository {
   /** slug に対応する祭りの全データを取得する。存在しなければ null。 */
   loadFestivalData(slug: string): Promise<FestivalData | null>;
   /** 公開中(is_active)の祭り一覧。ヘッダーの祭り切替プルダウンに使う。 */
-  listActiveFestivals(): Promise<Festival[]>;
+  /** 切替に出す祭り(終了したものも含む。isActive で区別する) */
+  listFestivals(): Promise<Festival[]>;
   /** 参加者マスターの全シリアル。利用者選択画面のプルダウンに使う。 */
   listParticipantSerials(): Promise<string[]>;
 }
