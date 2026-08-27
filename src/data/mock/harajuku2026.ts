@@ -28,6 +28,7 @@ export const harajuku2026: FestivalData = {
     weatherLat: 35.6702,
     weatherLng: 139.7026,
     danceCountEnabled: false,
+    isActive: true,
   },
   roles: [
     { id: "hj-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },

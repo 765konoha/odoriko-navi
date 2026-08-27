@@ -7,15 +7,19 @@ import MapPage from "./pages/dancer/MapPage";
 import AnnouncementsPage from "./pages/dancer/AnnouncementsPage";
 import AnnouncementDetailPage from "./pages/dancer/AnnouncementDetailPage";
 import AdminLayout from "./components/layout/AdminLayout";
+import CrossFestivalShell from "./components/layout/CrossFestivalShell";
+import WorkspaceShell from "./components/layout/WorkspaceShell";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import ScheduleAdminPage from "./pages/admin/ScheduleAdminPage";
 import LocationAdminPage from "./pages/admin/LocationAdminPage";
 import AnnouncementAdminPage from "./pages/admin/AnnouncementAdminPage";
-import FestivalAdminPage from "./pages/admin/FestivalAdminPage";
 import ParticipantAdminPage from "./pages/admin/ParticipantAdminPage";
 import BaggageAdminPage from "./pages/admin/BaggageAdminPage";
 import PropsAdminPage from "./pages/admin/props/PropsAdminPage";
+import FestivalListPage from "./pages/admin/festival/FestivalListPage";
+import FestivalSettingsPage from "./pages/admin/festival/FestivalSettingsPage";
+import LegacyAdminRedirect from "./pages/admin/LegacyAdminRedirect";
 import HomeSwitcher from "./pages/HomeSwitcher";
 import RehearsalPage from "./pages/normal/RehearsalPage";
 import PropsPage from "./pages/props/PropsPage";
@@ -36,14 +40,41 @@ export const router = createHashRouter([
     path: "/admin",
     element: <AdminLayout />,
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: "schedule", element: <ScheduleAdminPage /> },
-      { path: "locations", element: <LocationAdminPage /> },
-      { path: "announcements", element: <AnnouncementAdminPage /> },
-      { path: "participants", element: <ParticipantAdminPage /> },
-      { path: "baggage", element: <BaggageAdminPage /> },
-      { path: "props", element: <PropsAdminPage /> },
-      { path: "festivals", element: <FestivalAdminPage /> },
+      // 祭りを選ばずに使う画面
+      {
+        element: <CrossFestivalShell />,
+        children: [
+          { index: true, element: <FestivalListPage /> },
+          { path: "props", element: <PropsAdminPage /> },
+        ],
+      },
+      // 祭りごとのワークスペース(操作対象は URL の slug で決まる)
+      {
+        path: "f/:festivalSlug",
+        element: <WorkspaceShell />,
+        children: [
+          { index: true, element: <AdminDashboardPage /> },
+          { path: "schedule", element: <ScheduleAdminPage /> },
+          { path: "locations", element: <LocationAdminPage /> },
+          { path: "announcements", element: <AnnouncementAdminPage /> },
+          { path: "participants", element: <ParticipantAdminPage /> },
+          { path: "baggage", element: <BaggageAdminPage /> },
+          { path: "settings", element: <FestivalSettingsPage /> },
+        ],
+      },
+      // 旧URLの互換(ブックマークからの流入を拾う)
+      { path: "schedule", element: <LegacyAdminRedirect sub="schedule" /> },
+      { path: "locations", element: <LegacyAdminRedirect sub="locations" /> },
+      {
+        path: "announcements",
+        element: <LegacyAdminRedirect sub="announcements" />,
+      },
+      {
+        path: "participants",
+        element: <LegacyAdminRedirect sub="participants" />,
+      },
+      { path: "baggage", element: <LegacyAdminRedirect sub="baggage" /> },
+      { path: "festivals", element: <Navigate to="/admin" replace /> },
     ],
   },
   {

@@ -7,15 +7,14 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useAdminFestival } from "../../context/AdminFestivalContext";
-import type { Festival } from "../../types/domain";
+import type { Festival } from "../../../types/domain";
 import {
   createFestival,
   updateFestival,
   type FestivalInput,
-} from "../../lib/adminApi";
-import { searchPlaces, type GeocodingResult } from "../../lib/weather";
-import { JAPAN_VIEW } from "../../lib/maps";
+} from "../../../lib/adminApi";
+import { searchPlaces, type GeocodingResult } from "../../../lib/weather";
+import { JAPAN_VIEW } from "../../../lib/maps";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
@@ -41,7 +40,7 @@ function RecenterOnPick({ point }: { point: [number, number] | null }) {
   return null;
 }
 
-function FestivalForm({
+export default function FestivalForm({
   festival,
   onSaved,
   onCancel,
@@ -97,6 +96,7 @@ function FestivalForm({
       weatherLat: lat,
       weatherLng: lng,
       danceCountEnabled,
+      isActive: festival?.isActive ?? true,
     };
     try {
       if (festival) {
@@ -294,84 +294,3 @@ function FestivalForm({
   );
 }
 
-export default function FestivalAdminPage() {
-  const { festivals, loading, reload, selectFestival } = useAdminFestival();
-  const [editing, setEditing] = useState<
-    { mode: "new" } | { mode: "edit"; festival: Festival } | null
-  >(null);
-
-  if (loading) {
-    return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
-  }
-
-  if (editing) {
-    return (
-      <FestivalForm
-        festival={editing.mode === "edit" ? editing.festival : null}
-        onSaved={(createdId) => {
-          setEditing(null);
-          void reload().then(() => {
-            // 追加した祭りをそのまま操作対象にする
-            if (createdId) selectFestival(createdId);
-          });
-        }}
-        onCancel={() => setEditing(null)}
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-bold text-slate-800">祭り管理</h1>
-
-      <button
-        type="button"
-        onClick={() => setEditing({ mode: "new" })}
-        className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white"
-      >
-        + 祭りを追加
-      </button>
-
-      <div className="space-y-2">
-        {festivals.map((festival) => (
-          <div key={festival.id} className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-base font-bold text-slate-900">
-              {festival.name}
-            </p>
-            <p className="text-sm text-slate-600">
-              ID: {festival.slug}・天気予報地点:{" "}
-              {festival.weatherLat != null && festival.weatherLng != null ? (
-                <span className="font-bold text-emerald-700">設定済み</span>
-              ) : (
-                <span className="font-bold text-amber-700">未設定</span>
-              )}
-              ・演舞回数集計:{" "}
-              <span className="font-bold">
-                {festival.danceCountEnabled ? "使う" : "使わない"}
-              </span>
-            </p>
-            <div className="mt-2 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setEditing({ mode: "edit", festival })}
-                className="text-sm font-bold text-blue-700"
-              >
-                編集
-              </button>
-            </div>
-          </div>
-        ))}
-        {festivals.length === 0 && (
-          <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
-            祭りが未登録です。「+ 祭りを追加」から登録してください。
-          </p>
-        )}
-      </div>
-
-      <p className="text-xs text-slate-500">
-        ※ 開催日・予定・場所・お知らせは、画面上部のプルダウンで祭りを
-        切り替えてから各タブで登録します。
-      </p>
-    </div>
-  );
-}

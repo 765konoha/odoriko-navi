@@ -9,7 +9,7 @@ export const mockRepository: FestivalRepository = {
   async loadFestivalData(slug: string): Promise<FestivalData | null> {
     return festivals.find((f) => f.festival.slug === slug) ?? null;
   },
-  async listActiveFestivals(): Promise<Festival[]> {
+  async listFestivals(): Promise<Festival[]> {
     return festivals.map((f) => f.festival);
   },
   async listParticipantSerials(): Promise<string[]> {

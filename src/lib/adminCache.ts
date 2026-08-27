@@ -47,3 +47,23 @@ export function saveAdminFestivalsCache(festivals: Festival[]): void {
     // 無視
   }
 }
+
+// ---------- 最後に開いた祭り(旧URLからのリダイレクト先に使う) ----------
+
+const LAST_SLUG_KEY = "odoriko:admin:festivalSlug";
+
+export function saveAdminFestivalSlug(slug: string): void {
+  try {
+    localStorage.setItem(LAST_SLUG_KEY, slug);
+  } catch {
+    // ストレージ不可でも管理画面は動作させる
+  }
+}
+
+export function loadAdminFestivalSlug(): string | null {
+  try {
+    return localStorage.getItem(LAST_SLUG_KEY);
+  } catch {
+    return null;
+  }
+}

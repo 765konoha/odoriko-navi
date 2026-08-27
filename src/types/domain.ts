@@ -10,6 +10,8 @@ export interface Festival {
   weatherLng?: number;
   /** 演舞回数の集計機能を使うか(高知のみ想定) */
   danceCountEnabled: boolean;
+  /** 開催中(true)か終了(false)か。終了した祭りは切替の「過去の祭り」に入る */
+  isActive: boolean;
 }
 
 /** 役職(祭りごと。管理画面から追加可能) */
