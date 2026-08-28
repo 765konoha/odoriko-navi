@@ -10,6 +10,7 @@ import {
   changeTransferTarget,
   completeTransfer,
   loadPropUserData,
+  scheduledLabel,
   serialLabel,
   type PropUserData,
 } from "../../lib/props";
@@ -185,6 +186,11 @@ export default function PropsPage() {
               <p className="text-sm text-slate-700">
                 {serialLabel(transfer.fromSerial, names)} から
               </p>
+              {scheduledLabel(transfer.scheduledAt) && (
+                <p className="text-sm font-bold text-blue-900">
+                  受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
+                </p>
+              )}
               {transfer.note && (
                 <p className="mt-1 text-sm text-slate-600">
                   メモ: {transfer.note}
@@ -222,6 +228,11 @@ export default function PropsPage() {
               <p className="text-sm text-slate-700">
                 → {serialLabel(transfer.toSerial, names)}
               </p>
+              {scheduledLabel(transfer.scheduledAt) && (
+                <p className="text-sm font-bold text-slate-700">
+                  受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
+                </p>
+              )}
               {changingId === transfer.id ? (
                 <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
                   <select

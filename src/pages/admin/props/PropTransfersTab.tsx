@@ -2,9 +2,13 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropTransfer } from "../../../types/props";
 import { BLOCKED_CONDITIONS } from "../../../types/props";
-import { createTransfer, serialLabel } from "../../../lib/props";
+import {
+  createTransfer,
+  scheduledLabel,
+  serialLabel,
+} from "../../../lib/props";
 import { cancelTransfer } from "../../../lib/propsAdminApi";
-import { formatTime, toDateString } from "../../../lib/time";
+import { formatTime, jstToIso, toDateString } from "../../../lib/time";
 
 const STATUS_LABELS: Record<PropTransfer["status"], string> = {
   pending: "受取待ち",
@@ -19,6 +23,7 @@ const labelClass = "text-sm font-medium text-slate-600";
 export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
   const [itemId, setItemId] = useState("");
   const [toSerial, setToSerial] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +59,13 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
         selected.id,
         selected.currentHolderSerial,
         toSerial,
+        // 日付のみの指定。JSTの0時として保存する
+        jstToIso(scheduledDate, "00:00"),
         note.trim() || undefined,
       );
       setItemId("");
       setToSerial("");
+      setScheduledDate("");
       setNote("");
       setFlash("受け渡し予定を作成しました。");
       await data.reload();
@@ -135,6 +143,19 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
         </label>
 
         <label className="block">
+          <span className={labelClass}>受け渡し予定日(任意)</span>
+          <input
+            type="date"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className={inputClass}
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            指定すると、渡す人・受け取る人の画面に予定日が表示されます。
+          </span>
+        </label>
+
+        <label className="block">
           <span className={labelClass}>メモ(任意)</span>
           <input
             value={note}
@@ -193,6 +214,11 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                 {serialLabel(t.fromSerial, data.names)} →{" "}
                 {serialLabel(t.toSerial, data.names)}
               </p>
+              {scheduledLabel(t.scheduledAt) && (
+                <p className="text-sm font-bold text-slate-700">
+                  予定日: {scheduledLabel(t.scheduledAt)}
+                </p>
+              )}
               {t.cancelledReason && (
                 <p className="text-xs text-slate-500">{t.cancelledReason}</p>
               )}
