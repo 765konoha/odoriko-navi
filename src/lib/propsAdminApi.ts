@@ -13,7 +13,6 @@ function client() {
 export interface PropItemInput {
   category: string;
   identifier: string;
-  displayName: string;
   condition: PropCondition;
   conditionNote: string | null;
   note: string | null;
@@ -21,11 +20,19 @@ export interface PropItemInput {
   currentHolderSerial?: string | null;
 }
 
+/**
+ * 表示名は「種類+識別」で固定する。
+ * 個別に付け替えられると現物との突き合わせがぶれるため、ここだけで組み立てる。
+ */
+export function propDisplayName(category: string, identifier: string): string {
+  return `${category.trim()}${identifier.trim()}`;
+}
+
 export async function createPropItem(input: PropItemInput): Promise<void> {
   const { error } = await client().from("prop_items").insert({
     category: input.category,
     identifier: input.identifier,
-    display_name: input.displayName,
+    display_name: propDisplayName(input.category, input.identifier),
     condition: input.condition,
     condition_note: input.conditionNote,
     note: input.note,
@@ -44,7 +51,7 @@ export async function updatePropItem(
     .update({
       category: input.category,
       identifier: input.identifier,
-      display_name: input.displayName,
+      display_name: propDisplayName(input.category, input.identifier),
       condition: input.condition,
       condition_note: input.conditionNote,
       note: input.note,

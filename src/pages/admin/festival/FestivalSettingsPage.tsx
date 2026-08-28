@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminFestival } from "../../../context/AdminFestivalContext";
+import { useAuth } from "../../../context/AuthContext";
 import { setFestivalActive } from "../../../lib/adminApi";
 import FestivalForm from "./FestivalForm";
 
 /** 祭りワークスペースの「設定」。名前・天気予報地点・演舞回数・開催状態 */
 export default function FestivalSettingsPage() {
   const { festival, reload } = useAdminFestival();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -85,13 +87,22 @@ export default function FestivalSettingsPage() {
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => navigate("/admin")}
-        className="w-full py-2 text-center text-sm font-medium text-slate-500"
-      >
-        祭り一覧へ戻る
-      </button>
+      <div className="space-y-2 pt-2">
+        <button
+          type="button"
+          onClick={() => navigate("/admin")}
+          className="w-full py-2 text-center text-sm font-medium text-slate-500"
+        >
+          祭り一覧へ戻る
+        </button>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="w-full py-2 text-center text-sm font-medium text-slate-500"
+        >
+          ログアウト
+        </button>
+      </div>
     </div>
   );
 }
