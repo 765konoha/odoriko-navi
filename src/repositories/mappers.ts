@@ -119,7 +119,6 @@ export interface ScheduleItemRow {
   is_confirmed: boolean;
   tbd_note: string | null;
   is_cancelled: boolean;
-  sort_order: number;
   is_completed: boolean;
   dance_count: number;
   dances_rejoice: boolean;
@@ -215,7 +214,6 @@ export function toScheduleItem(row: ScheduleItemRow): ScheduleItem {
     isConfirmed: row.is_confirmed,
     tbdNote: row.tbd_note ?? undefined,
     isCancelled: row.is_cancelled,
-    sortOrder: row.sort_order,
     isCompleted: row.is_completed ?? false,
     danceCount: Number(row.dance_count ?? 0),
     dancesRejoice: row.dances_rejoice ?? false,
@@ -249,7 +247,7 @@ export const FESTIVAL_COLUMNS =
 
 // schedule_item_roles / announcement_* はネストselectで同時取得する
 export const SCHEDULE_ITEM_COLUMNS =
-  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, sort_order, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count, audience_all, schedule_item_roles(role_id)";
+  "id, festival_day_id, title, category, gather_time, start_time, end_time, venue_name, meeting_location_id, venue_route_id, notes, is_confirmed, tbd_note, is_cancelled, is_completed, dance_count, dances_rejoice, dances_sakaseya, rejoice_count, sakaseya_count, audience_all, schedule_item_roles(role_id)";
 
 export const VENUE_ROUTE_COLUMNS = "id, festival_id, name, path, description";
 

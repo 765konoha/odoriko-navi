@@ -157,7 +157,6 @@ export const kochi2026: FestivalData = {
       notes: "衣装着用で集合。鳴子を忘れずに。",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 1,
       isCompleted: true,
       danceCount: 0,
     },
@@ -173,7 +172,6 @@ export const kochi2026: FestivalData = {
       meetingLocationId: "loc-kochijo-otemon",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 2,
       isCompleted: true,
       danceCount: 1,
       dancesRejoice: true,
@@ -188,7 +186,6 @@ export const kochi2026: FestivalData = {
       notes: "アーケード内は一般客優先。広がって歩かない。",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 3,
       isCompleted: true,
       danceCount: 0,
     },
@@ -205,7 +202,6 @@ export const kochi2026: FestivalData = {
       venueRouteId: "vr-obiyamachi",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 4,
       isCompleted: true,
       danceCount: 1.5,
       dancesRejoice: true,
@@ -224,7 +220,6 @@ export const kochi2026: FestivalData = {
       notes: "熱中症対策のため必ず給水すること。",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 5,
     },
     {
       id: "s-06",
@@ -240,7 +235,6 @@ export const kochi2026: FestivalData = {
       notes: "集合後に隊列確認あり。水分補給を済ませてから集合。",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 6,
       dancesRejoice: true,
     },
     {
@@ -254,7 +248,6 @@ export const kochi2026: FestivalData = {
       isConfirmed: false,
       tbdNote: "17:30頃予定・当日連絡・演舞15分前集合",
       isCancelled: false,
-      sortOrder: 7,
     },
     {
       id: "s-08",
@@ -267,7 +260,6 @@ export const kochi2026: FestivalData = {
       notes: "会場都合により中止。",
       isConfirmed: true,
       isCancelled: true,
-      sortOrder: 8,
     },
     {
       id: "s-09",
@@ -279,7 +271,6 @@ export const kochi2026: FestivalData = {
       notes: "衣装は各自持ち帰り。忘れ物に注意。",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 9,
     },
     {
       id: "s-10",
@@ -290,7 +281,6 @@ export const kochi2026: FestivalData = {
       meetingLocationId: "loc-chuo-park-north",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 1,
     },
     {
       id: "s-11",
@@ -305,7 +295,6 @@ export const kochi2026: FestivalData = {
       isConfirmed: false,
       tbdNote: "審査結果により変動・当日連絡",
       isCancelled: false,
-      sortOrder: 2,
       dancesRejoice: true,
       dancesSakaseya: true,
     },

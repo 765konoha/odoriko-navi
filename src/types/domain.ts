@@ -107,7 +107,6 @@ export interface ScheduleItem {
   /** 未確定時の表示文(例: 17:30頃予定・当日連絡) */
   tbdNote?: string;
   isCancelled: boolean;
-  sortOrder: number;
   /** 運営が完了ボタンで更新(時刻ではなくこれで進行を判定する) */
   isCompleted?: boolean;
   /** 踊った回数の合計(旧仕様との互換用。= rejoiceCount + sakaseyaCount) */
