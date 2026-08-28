@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { formatDateLabel, toDateString } from "./time";
 import type {
   PropAssignment,
   PropEvent,
@@ -175,16 +176,33 @@ export async function loadPropUserData(serial: string): Promise<PropUserData> {
     const item = itemById.get(t.propItemId);
     return item ? { transfer: t, item } : null;
   };
+  const isPair = (
+    v: { transfer: PropTransfer; item: PropItem } | null,
+  ): v is { transfer: PropTransfer; item: PropItem } => v != null;
+  // 予定日の早い順。未設定は末尾
+  const bySchedule = (
+    a: { transfer: PropTransfer },
+    b: { transfer: PropTransfer },
+  ) => {
+    const x = a.transfer.scheduledAt;
+    const y = b.transfer.scheduledAt;
+    if (x === y) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return x < y ? -1 : 1;
+  };
   return {
     holding: items.filter((i) => i.currentHolderSerial === serial),
     outgoing: pending
       .filter((t) => t.fromSerial === serial)
       .map(withItem)
-      .filter((v): v is { transfer: PropTransfer; item: PropItem } => v != null),
+      .filter(isPair)
+      .sort(bySchedule),
     incoming: pending
       .filter((t) => t.toSerial === serial)
       .map(withItem)
-      .filter((v): v is { transfer: PropTransfer; item: PropItem } => v != null),
+      .filter(isPair)
+      .sort(bySchedule),
     names,
   };
 }
@@ -293,14 +311,22 @@ export async function createTransfer(
   propItemId: string,
   actorSerial: string,
   toSerial: string,
+  /** 受け渡し予定日(ISO)。未指定なら null */
+  scheduledAt: string | null,
   note?: string,
 ): Promise<void> {
   await callRpc("prop_create_transfer", {
     p_item_id: propItemId,
     p_actor_serial: actorSerial,
     p_to_serial: toSerial,
+    p_scheduled_at: scheduledAt,
     p_note: note ?? null,
   });
+}
+
+/** 受け渡し予定日の表示(例: 8/29(土))。未設定なら null */
+export function scheduledLabel(iso: string | undefined): string | null {
+  return iso ? formatDateLabel(toDateString(iso)) : null;
 }
 
 /** 受け渡し先の変更(現在の保有者本人のみ) */
