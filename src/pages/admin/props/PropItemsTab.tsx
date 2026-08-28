@@ -6,6 +6,7 @@ import { listAssignments, serialLabel } from "../../../lib/props";
 import {
   adminSetHolder,
   createPropItem,
+  propDisplayName,
   setPropArchived,
   updatePropItem,
   type PropItemInput,
@@ -19,7 +20,6 @@ function emptyInput(): PropItemInput {
   return {
     category: "",
     identifier: "",
-    displayName: "",
     condition: "normal",
     conditionNote: null,
     note: null,
@@ -44,7 +44,6 @@ function ItemForm({
       ? {
           category: item.category,
           identifier: item.identifier,
-          displayName: item.displayName,
           condition: item.condition,
           conditionNote: item.conditionNote ?? null,
           note: item.note ?? null,
@@ -69,9 +68,6 @@ function ItemForm({
       ...form,
       category: form.category.trim(),
       identifier: form.identifier.trim(),
-      displayName:
-        form.displayName.trim() ||
-        `${form.category.trim()}${form.identifier.trim()}`,
       conditionNote: form.conditionNote?.trim() || null,
       note: form.note?.trim() || null,
       currentHolderSerial: item ? undefined : holder || null,
@@ -141,15 +137,15 @@ function ItemForm({
         </label>
       </div>
 
-      <label className="block">
-        <span className={labelClass}>表示名(空欄なら種類+識別)</span>
-        <input
-          value={form.displayName}
-          onChange={(e) => set("displayName", e.target.value)}
-          className={inputClass}
-          placeholder="太鼓8"
-        />
-      </label>
+      <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+        表示名:{" "}
+        <span className="font-bold text-slate-900">
+          {propDisplayName(form.category, form.identifier) || "種類+識別"}
+        </span>
+        <span className="mt-0.5 block text-xs text-slate-500">
+          種類と識別から自動で決まります(個別には変更できません)
+        </span>
+      </p>
 
       <label className="block">
         <span className={labelClass}>状態</span>
