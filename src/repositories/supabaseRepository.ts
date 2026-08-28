@@ -105,7 +105,8 @@ export const supabaseRepository: FestivalRepository = {
         .from("schedule_items")
         .select(SCHEDULE_ITEM_COLUMNS)
         .in("festival_day_id", dayIds)
-        .order("sort_order");
+        .order("gather_time", { nullsFirst: false })
+        .order("start_time", { nullsFirst: false });
       if (error) throw error;
       itemRows = (data ?? []) as ScheduleItemRow[];
     }

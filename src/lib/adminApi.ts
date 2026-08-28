@@ -187,7 +187,6 @@ export interface ScheduleItemInput {
   isConfirmed: boolean;
   tbdNote: string | null;
   isCancelled: boolean;
-  sortOrder: number;
   isCompleted: boolean;
   dancesRejoice: boolean;
   dancesSakaseya: boolean;
@@ -213,7 +212,6 @@ function scheduleItemToRow(input: ScheduleItemInput) {
     is_confirmed: input.isConfirmed,
     tbd_note: input.tbdNote,
     is_cancelled: input.isCancelled,
-    sort_order: input.sortOrder,
     is_completed: input.isCompleted,
     dances_rejoice: input.dancesRejoice,
     dances_sakaseya: input.dancesSakaseya,
@@ -255,7 +253,8 @@ export async function listScheduleItems(
     .from("schedule_items")
     .select(SCHEDULE_ITEM_COLUMNS)
     .in("festival_day_id", dayIds)
-    .order("sort_order");
+    .order("gather_time", { nullsFirst: false })
+    .order("start_time", { nullsFirst: false });
   if (error) throw error;
   return ((data ?? []) as ScheduleItemRow[]).map(toScheduleItem);
 }

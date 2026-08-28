@@ -82,7 +82,6 @@ export const harajuku2026: FestivalData = {
       gatherTime: iso(0, 12, 30),
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 1,
       audienceAll: false,
       audienceRoleIds: ["hj-role-leader"],
     },
@@ -98,7 +97,6 @@ export const harajuku2026: FestivalData = {
       meetingLocationId: "hj-loc-yoyogi",
       isConfirmed: true,
       isCancelled: false,
-      sortOrder: 2,
     },
   ],
   announcements: [

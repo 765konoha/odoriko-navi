@@ -29,8 +29,25 @@ export function displayTime(item: ScheduleItem): string | undefined {
   return item.startTime ?? item.gatherTime;
 }
 
+/**
+ * 予定は集合時間の昇順で並べる。
+ * 集合時間が無いものは開始時間で代用し、どちらも無いものは末尾に置く。
+ * 同じ集合時間なら開始時間で比べる(集合が同じで演舞が別時間のケース)。
+ */
 export function sortItems(items: ScheduleItem[]): ScheduleItem[] {
-  return [...items].sort((a, b) => a.sortOrder - b.sortOrder);
+  return [...items].sort(
+    (a, b) =>
+      compareTime(effectiveTime(a), effectiveTime(b)) ||
+      compareTime(a.startTime, b.startTime),
+  );
+}
+
+/** 時刻の昇順。未設定は末尾 */
+function compareTime(a: string | undefined, b: string | undefined): number {
+  if (a === b) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a < b ? -1 : 1;
 }
 
 export function itemsOfDay(

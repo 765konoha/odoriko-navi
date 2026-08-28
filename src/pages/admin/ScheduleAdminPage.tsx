@@ -25,7 +25,7 @@ import {
   type ScheduleItemInput,
 } from "../../lib/adminApi";
 import { formatDateLabel, formatTime, jstToIso, todayString } from "../../lib/time";
-import { CATEGORY_META } from "../../lib/schedule";
+import { CATEGORY_META, sortItems } from "../../lib/schedule";
 import LocationForm from "../../components/admin/LocationForm";
 import { festivalCenter } from "../../lib/maps";
 
@@ -55,7 +55,6 @@ interface FormState {
   isConfirmed: boolean;
   tbdNote: string;
   isCancelled: boolean;
-  sortOrder: number;
   dancesRejoice: boolean;
   dancesSakaseya: boolean;
   venueRouteId: string;
@@ -63,7 +62,7 @@ interface FormState {
   audienceRoleIds: string[];
 }
 
-function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormState {
+function toFormState(item: ScheduleItem | null): FormState {
   return {
     title: item?.title ?? "",
     category: item?.category ?? "performance",
@@ -76,7 +75,6 @@ function toFormState(item: ScheduleItem | null, nextSortOrder: number): FormStat
     isConfirmed: item?.isConfirmed ?? true,
     tbdNote: item?.tbdNote ?? "",
     isCancelled: item?.isCancelled ?? false,
-    sortOrder: item?.sortOrder ?? nextSortOrder,
     // 新規の演舞は Rejoice をデフォルトで踊る想定
     dancesRejoice: item?.dancesRejoice ?? true,
     dancesSakaseya: item?.dancesSakaseya ?? false,
@@ -95,7 +93,6 @@ function ItemForm({
   roles,
   danceCountEnabled,
   defaultCenter,
-  nextSortOrder,
   onSaved,
   onCancel,
   onLocationCreated,
@@ -109,14 +106,13 @@ function ItemForm({
   danceCountEnabled: boolean;
   /** 場所追加フォームの地図初期位置(祭りの基準地点) */
   defaultCenter: [number, number] | null;
-  nextSortOrder: number;
   onSaved: () => void;
   onCancel: () => void;
   /** 予定フォームから場所を追加したとき、親の場所一覧へ反映する */
   onLocationCreated: (location: Location) => void;
 }) {
   const [form, setForm] = useState<FormState>(() =>
-    toFormState(item, nextSortOrder),
+    toFormState(item),
   );
   // 集合場所の新規追加フォームを開いているか(入力中の予定は保持される)
   const [addingLocation, setAddingLocation] = useState(false);
@@ -165,7 +161,6 @@ function ItemForm({
       isConfirmed: form.isConfirmed,
       tbdNote: form.isConfirmed ? null : form.tbdNote.trim() || null,
       isCancelled: form.isCancelled,
-      sortOrder: form.sortOrder,
       dancesRejoice:
         danceCountEnabled &&
         form.category === "performance" &&
@@ -441,16 +436,6 @@ function ItemForm({
         </label>
       )}
 
-      <label className="block">
-        <span className={labelClass}>表示順(小さいほど上)</span>
-        <input
-          type="number"
-          value={form.sortOrder}
-          onChange={(e) => set("sortOrder", Number(e.target.value))}
-          className={inputClass}
-        />
-      </label>
-
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -560,11 +545,10 @@ export default function ScheduleAdminPage() {
     days.find((d) => d.date === todayString()) ??
     days[0] ??
     null;
-  const dayItems = items
-    .filter((i) => i.festivalDayId === currentDay?.id)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-  const nextSortOrder =
-    dayItems.length > 0 ? Math.max(...dayItems.map((i) => i.sortOrder)) + 1 : 1;
+  // 踊り子側と同じく集合時間の昇順で並べる
+  const dayItems = sortItems(
+    items.filter((i) => i.festivalDayId === currentDay?.id),
+  );
 
   async function handleDelete(item: ScheduleItem) {
     if (!window.confirm(`「${item.title}」を削除しますか?`)) return;
@@ -674,7 +658,6 @@ export default function ScheduleAdminPage() {
         roles={roles}
         danceCountEnabled={festival.danceCountEnabled}
         defaultCenter={festivalCenter(festival, locations)}
-        nextSortOrder={nextSortOrder}
         onLocationCreated={(location) =>
           // フォームを開いたまま(ページ再読込なしで)選択肢へ反映する
           setLocations((prev) => [...prev, location])
@@ -806,9 +789,6 @@ export default function ScheduleAdminPage() {
                       ✓ 完了
                     </span>
                   )}
-                  <span className="ml-auto text-xs text-slate-400">
-                    順:{item.sortOrder}
-                  </span>
                 </div>
                 {!(item.audienceAll ?? true) && (
                   <p className="mt-1 text-xs font-bold text-violet-700">
