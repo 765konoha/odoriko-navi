@@ -160,8 +160,8 @@ export interface PropUserData {
   holding: PropItem[];
   /** 自分が渡す予定(pending) */
   outgoing: { transfer: PropTransfer; item: PropItem }[];
-  /** 自分が受け取る予定(pending) */
-  incoming: { transfer: PropTransfer; item: PropItem }[];
+  /** 自分が受け取る予定(pending)。ready=false は前の受け渡し待ち */
+  incoming: { transfer: PropTransfer; item: PropItem; ready: boolean }[];
   names: Map<string, string>;
 }
 
@@ -191,18 +191,25 @@ export async function loadPropUserData(serial: string): Promise<PropUserData> {
     if (y == null) return -1;
     return x < y ? -1 : 1;
   };
+  const byScheduleThenChain = (
+    a: { transfer: PropTransfer },
+    b: { transfer: PropTransfer },
+  ) =>
+    bySchedule(a, b) ||
+    (a.transfer.createdAt < b.transfer.createdAt ? -1 : 1);
   return {
     holding: items.filter((i) => i.currentHolderSerial === serial),
     outgoing: pending
       .filter((t) => t.fromSerial === serial)
       .map(withItem)
       .filter(isPair)
-      .sort(bySchedule),
+      .sort(byScheduleThenChain),
     incoming: pending
       .filter((t) => t.toSerial === serial)
       .map(withItem)
       .filter(isPair)
-      .sort(bySchedule),
+      .sort(byScheduleThenChain)
+      .map((v) => ({ ...v, ready: isHeadTransfer(v.transfer, pending) })),
     names,
   };
 }
@@ -324,12 +331,52 @@ export async function createTransfer(
   });
 }
 
+/**
+ * 次に受け渡しを作れる人(鎖の末尾の受取者。予定が無ければ現在の保有者)。
+ * DB側の prop_expected_holder と同じ考え方。
+ */
+export function expectedHolder(
+  item: PropItem,
+  pending: PropTransfer[],
+): string | null {
+  const chain = pending
+    .filter((t) => t.propItemId === item.id)
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  const last = chain[chain.length - 1];
+  return last ? last.toSerial : (item.currentHolderSerial ?? null);
+}
+
+/** その受け渡しが鎖の先頭か(先頭だけ受取完了できる) */
+export function isHeadTransfer(
+  transfer: PropTransfer,
+  pending: PropTransfer[],
+): boolean {
+  const first = pending
+    .filter((t) => t.propItemId === transfer.propItemId)
+    .reduce<PropTransfer | null>(
+      (min, t) => (min == null || t.createdAt < min.createdAt ? t : min),
+      null,
+    );
+  return first?.id === transfer.id;
+}
+
 /** 受け渡し予定日の表示(例: 8/29(土))。未設定なら null */
 export function scheduledLabel(iso: string | undefined): string | null {
   return iso ? formatDateLabel(toDateString(iso)) : null;
 }
 
-/** 受け渡し先の変更(現在の保有者本人のみ) */
+/** 受け渡し予定日の変更(管理者のみ) */
+export async function updateTransferSchedule(
+  transferId: string,
+  scheduledAt: string | null,
+): Promise<void> {
+  await callRpc("prop_update_transfer_schedule", {
+    p_transfer_id: transferId,
+    p_scheduled_at: scheduledAt,
+  });
+}
+
+/** 受け渡し先の変更(鎖の末尾のみ・出し手本人) */
 export async function changeTransferTarget(
   transferId: string,
   actorSerial: string,

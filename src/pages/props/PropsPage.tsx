@@ -175,7 +175,7 @@ export default function PropsPage() {
           あなたへの受け渡し
         </h2>
         <div className="space-y-2">
-          {(data?.incoming ?? []).map(({ transfer, item }) => (
+          {(data?.incoming ?? []).map(({ transfer, item, ready }) => (
             <div
               key={transfer.id}
               className="rounded-2xl border border-blue-200 bg-blue-50 p-4"
@@ -196,14 +196,22 @@ export default function PropsPage() {
                   メモ: {transfer.note}
                 </p>
               )}
-              <button
-                type="button"
-                onClick={() => void handleComplete(transfer.id, item.displayName)}
-                disabled={busyId === transfer.id}
-                className="mt-3 w-full rounded-xl bg-blue-700 py-3 text-base font-bold text-white disabled:opacity-50"
-              >
-                {busyId === transfer.id ? "処理中…" : "受け取りました"}
-              </button>
+              {ready ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleComplete(transfer.id, item.displayName)
+                  }
+                  disabled={busyId === transfer.id}
+                  className="mt-3 w-full rounded-xl bg-blue-700 py-3 text-base font-bold text-white disabled:opacity-50"
+                >
+                  {busyId === transfer.id ? "処理中…" : "受け取りました"}
+                </button>
+              ) : (
+                <p className="mt-3 rounded-xl bg-white px-3 py-2.5 text-center text-sm font-bold text-slate-500">
+                  ひとつ前の受け渡しが終わると受け取れます
+                </p>
+              )}
             </div>
           ))}
           {!loading && (data?.incoming.length ?? 0) === 0 && (
