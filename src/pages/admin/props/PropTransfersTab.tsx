@@ -4,8 +4,10 @@ import type { PropTransfer } from "../../../types/props";
 import { BLOCKED_CONDITIONS } from "../../../types/props";
 import {
   createTransfer,
+  expectedHolder,
   scheduledLabel,
   serialLabel,
+  updateTransferSchedule,
 } from "../../../lib/props";
 import { cancelTransfer } from "../../../lib/propsAdminApi";
 import { formatTime, jstToIso, toDateString } from "../../../lib/time";
@@ -28,28 +30,30 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  // 登録済みの予定日を後から入れ直す
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
 
-  const pendingItemIds = useMemo(
-    () =>
-      new Set(
-        data.transfers.filter((t) => t.status === "pending").map((t) => t.propItemId),
-      ),
+  const pending = useMemo(
+    () => data.transfers.filter((t) => t.status === "pending"),
     [data.transfers],
   );
 
-  // 受け渡しを開始できる小道具(保有者が設定済み・紛失/使用停止でない・pendingなし)
+  // 受け渡しを開始できる小道具(保有者が設定済み・紛失/使用停止でない)
+  // 予定がすでにある小道具も、その末尾に続けて登録できる(1日目A→B、2日目B→C)
   const transferable = data.items.filter(
     (i) =>
       !i.isArchived &&
       i.currentHolderSerial &&
-      !BLOCKED_CONDITIONS.includes(i.condition) &&
-      !pendingItemIds.has(i.id),
+      !BLOCKED_CONDITIONS.includes(i.condition),
   );
   const selected = data.items.find((i) => i.id === itemId) ?? null;
+  // 次の受け渡しの出し手は、鎖の末尾の受取者(予定が無ければ現在の保有者)
+  const fromSerial = selected ? expectedHolder(selected, pending) : null;
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
-    if (!selected?.currentHolderSerial) return;
+    if (!selected || !fromSerial) return;
     setSaving(true);
     setError(null);
     setFlash(null);
@@ -57,7 +61,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
       // 受け渡しは常に現在の保有者からの移動として作成する
       await createTransfer(
         selected.id,
-        selected.currentHolderSerial,
+        fromSerial,
         toSerial,
         // 日付のみの指定。JSTの0時として保存する
         jstToIso(scheduledDate, "00:00"),
@@ -73,6 +77,22 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
       setError(err instanceof Error ? err.message : "作成に失敗しました");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveSchedule(transfer: PropTransfer) {
+    setError(null);
+    setFlash(null);
+    try {
+      await updateTransferSchedule(
+        transfer.id,
+        editDate ? jstToIso(editDate, "00:00") : null,
+      );
+      setEditingId(null);
+      setFlash("予定日を更新しました。");
+      await data.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "更新に失敗しました");
     }
   }
 
@@ -113,15 +133,26 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
             <option value="">選択してください</option>
             {transferable.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.displayName}({serialLabel(i.currentHolderSerial, data.names)}
-                )
+                {i.displayName}(
+                {serialLabel(expectedHolder(i, pending), data.names)}から)
               </option>
             ))}
           </select>
           <span className="mt-1 block text-xs text-slate-500">
-            保有者未設定・紛失・使用停止・受け渡し予定ありの小道具は選べません。
+            保有者未設定・紛失・使用停止の小道具は選べません。
+            すでに予定がある場合は、その予定の受取者から続けて登録します
+            (1日目 A→B、2日目 B→C)。
           </span>
         </label>
+
+        {selected && (
+          <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+            渡す人:{" "}
+            <span className="font-bold text-slate-900">
+              {serialLabel(fromSerial, data.names)}
+            </span>
+          </p>
+        )}
 
         <label className="block">
           <span className={labelClass}>受け渡し先</span>
@@ -133,7 +164,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
           >
             <option value="">選択してください</option>
             {data.serials
-              .filter((s) => s !== selected?.currentHolderSerial)
+              .filter((s) => s !== fromSerial)
               .map((s) => (
                 <option key={s} value={s}>
                   {serialLabel(s, data.names)}
@@ -214,10 +245,61 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                 {serialLabel(t.fromSerial, data.names)} →{" "}
                 {serialLabel(t.toSerial, data.names)}
               </p>
-              {scheduledLabel(t.scheduledAt) && (
-                <p className="text-sm font-bold text-slate-700">
-                  予定日: {scheduledLabel(t.scheduledAt)}
-                </p>
+              {t.status === "pending" ? (
+                editingId === t.id ? (
+                  <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className={inputClass}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveSchedule(t)}
+                        className="flex-1 rounded-lg bg-slate-900 py-2 text-sm font-bold text-white"
+                      >
+                        保存
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold text-slate-600"
+                      >
+                        やめる
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      空欄にして保存すると予定日なしに戻ります。
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700">
+                    予定日:{" "}
+                    <span className="font-bold">
+                      {scheduledLabel(t.scheduledAt) ?? "未設定"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(t.id);
+                        setEditDate(
+                          t.scheduledAt ? toDateString(t.scheduledAt) : "",
+                        );
+                      }}
+                      className="ml-2 text-sm font-bold text-blue-700"
+                    >
+                      変更
+                    </button>
+                  </p>
+                )
+              ) : (
+                scheduledLabel(t.scheduledAt) && (
+                  <p className="text-sm text-slate-600">
+                    予定日: {scheduledLabel(t.scheduledAt)}
+                  </p>
+                )
               )}
               {t.cancelledReason && (
                 <p className="text-xs text-slate-500">{t.cancelledReason}</p>
