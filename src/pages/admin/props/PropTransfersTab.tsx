@@ -9,7 +9,10 @@ import {
   serialLabel,
   updateTransferSchedule,
 } from "../../../lib/props";
-import { cancelTransfer } from "../../../lib/propsAdminApi";
+import {
+  adminCompleteTransfer,
+  cancelTransfer,
+} from "../../../lib/propsAdminApi";
 import { formatTime, jstToIso, toDateString } from "../../../lib/time";
 
 const STATUS_LABELS: Record<PropTransfer["status"], string> = {
@@ -33,6 +36,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
   // 登録済みの予定日を後から入れ直す
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const pending = useMemo(
     () => data.transfers.filter((t) => t.status === "pending"),
@@ -93,6 +97,32 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
       await data.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新に失敗しました");
+    }
+  }
+
+  // 現物は渡っているのに本人が押していない場合の代理報告
+  async function handleAdminComplete(transfer: PropTransfer) {
+    const item = data.items.find((i) => i.id === transfer.propItemId);
+    const to = serialLabel(transfer.toSerial, data.names);
+    if (
+      !window.confirm(
+        `${item?.displayName ?? "この小道具"}を ${to} が受け取ったことにします。\n\n` +
+          `現物の受け渡しが済んでいることを確認してから実行してください。\n` +
+          `保有者が ${to} に変わり、履歴には「運営による代理報告」として残ります。`,
+      )
+    )
+      return;
+    setError(null);
+    setFlash(null);
+    setBusyId(transfer.id);
+    try {
+      await adminCompleteTransfer(transfer.id);
+      setFlash(`${to} の受取完了として記録しました。`);
+      await data.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "受取完了に失敗しました");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -305,13 +335,25 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                 <p className="text-xs text-slate-500">{t.cancelledReason}</p>
               )}
               {t.status === "pending" && (
-                <button
-                  type="button"
-                  onClick={() => void handleCancel(t)}
-                  className="mt-2 text-sm font-bold text-red-600"
-                >
-                  キャンセル
-                </button>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleAdminComplete(t)}
+                    disabled={busyId === t.id}
+                    className="flex-1 rounded-xl bg-emerald-700 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                  >
+                    {busyId === t.id
+                      ? "処理中…"
+                      : `受取完了にする(${serialLabel(t.toSerial, data.names)})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleCancel(t)}
+                    className="shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-bold text-red-600"
+                  >
+                    キャンセル
+                  </button>
+                </div>
               )}
             </div>
           );
