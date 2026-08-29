@@ -154,6 +154,24 @@ export async function listAllTransfers(limit = 100): Promise<PropTransfer[]> {
   );
 }
 
+/**
+ * 運営による受取完了の代理報告。
+ * 現物は渡っているのに本人が「受け取りました」を押さない場合に使う。
+ * 保有者の直接変更と違い、受け渡し予定はキャンセルではなく完了として記録され、
+ * 後続の予定(複数日の受け渡し)もそのまま残る。
+ */
+export async function adminCompleteTransfer(
+  transferId: string,
+  note?: string,
+): Promise<void> {
+  requireOnline();
+  const { error } = await client().rpc("prop_admin_complete_transfer", {
+    p_transfer_id: transferId,
+    p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 /** 受け渡し予定のキャンセル(履歴を残す) */
 export async function cancelTransfer(transfer: PropTransfer): Promise<void> {
   const { error } = await client()
