@@ -1,6 +1,7 @@
 import type { ScheduleItem, VenueRoute } from "../../types/domain";
 import { formatTime } from "../../lib/time";
 import { googleMapsRouteUrl } from "../../lib/maps";
+import { useItemDone } from "../../hooks/useItemDone";
 
 function dateTimeLabel(iso: string): string {
   const d = new Date(iso);
@@ -22,6 +23,7 @@ export default function VenueRouteCard({
   danced,
   onClose,
 }: Props) {
+  const doneOf = useItemDone();
   const start = route.path[0];
 
   return (
@@ -63,7 +65,7 @@ export default function VenueRouteCard({
                   {dateTimeLabel(item.startTime)}
                 </span>
               )}
-              {item.isCompleted && (
+              {doneOf(item) && (
                 <span className="ml-auto font-bold text-emerald-600">✓</span>
               )}
             </li>

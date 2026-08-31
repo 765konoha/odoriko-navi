@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
+import { useNow } from "../../hooks/useNow";
 import {
   danceTotals,
   findNextItem,
   findToday,
   itemsOfDay,
+  autoCompleteEnabled,
+  isItemDone,
 } from "../../lib/schedule";
 import { DanceCountInline } from "../../components/home/danceIcons";
 import { useWeather } from "../../hooks/useWeather";
@@ -19,6 +22,7 @@ export default function SchedulePage() {
   const { data, loading } = useFestivalData();
   const weather = useWeather();
   const viewer = useViewer();
+  const now = useNow();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   if (loading) {
@@ -38,8 +42,9 @@ export default function SchedulePage() {
   const currentDay =
     days.find((d) => d.id === selectedDayId) ?? today ?? days[0];
   const items = visibleScheduleItems(itemsOfDay(data, currentDay.id), viewer);
+  const auto = autoCompleteEnabled(data.festival);
   const nextItem =
-    today && currentDay.id === today.id ? findNextItem(items) : null;
+    today && currentDay.id === today.id ? findNextItem(items, now, auto) : null;
   const dayWeather =
     weather?.daily.find((d) => d.date === currentDay.date) ?? null;
   const dayTotals = danceTotals(items);
@@ -48,7 +53,8 @@ export default function SchedulePage() {
     (dayTotals.rejoice > 0 || dayTotals.sakaseya > 0);
   const activeItems = items.filter((i) => !i.isCancelled);
   const allDone =
-    activeItems.length > 0 && activeItems.every((i) => i.isCompleted);
+    activeItems.length > 0 &&
+    activeItems.every((i) => isItemDone(i, now, auto));
 
   return (
     <div className="space-y-4 px-4 py-4">

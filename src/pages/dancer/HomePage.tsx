@@ -18,6 +18,7 @@ import EmergencyBanner from "../../components/home/EmergencyBanner";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
+import { useItemDone } from "../../hooks/useItemDone";
 import { useViewer } from "../../hooks/useViewer";
 import { activeAnnouncements } from "../../lib/announcements";
 import {
@@ -32,6 +33,7 @@ export default function HomePage() {
   const { ackedIds, markAcked, readIds } = useReadStatus();
   const { requestChange } = useUserSelect();
   const viewer = useViewer();
+  const isDone = useItemDone();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -48,7 +50,11 @@ export default function HomePage() {
   const todayItems = today
     ? visibleScheduleItems(itemsOfDay(data, today.id), viewer)
     : [];
-  const nextItem = findNextItem(todayItems);
+  const nextItem = findNextItem(
+    todayItems,
+    now,
+    data.festival.scheduleAutoComplete && !data.festival.danceCountEnabled,
+  );
   const meetingLocation = nextItem?.meetingLocationId
     ? (data.locations.find((l) => l.id === nextItem.meetingLocationId) ?? null)
     : null;
@@ -154,6 +160,7 @@ export default function HomePage() {
           <TodayTimeline
             items={todayItems}
             locations={data.locations}
+            isDone={isDone}
             nextItemId={
               nextItem?.category === "performance" ? nextItem.id : null
             }

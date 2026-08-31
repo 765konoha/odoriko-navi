@@ -56,6 +56,9 @@ export default function FestivalForm({
   const [danceCountEnabled, setDanceCountEnabled] = useState(
     festival?.danceCountEnabled ?? false,
   );
+  const [scheduleAutoComplete, setScheduleAutoComplete] = useState(
+    festival?.scheduleAutoComplete ?? false,
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodingResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -96,6 +99,7 @@ export default function FestivalForm({
       weatherLat: lat,
       weatherLng: lng,
       danceCountEnabled,
+      scheduleAutoComplete,
       isActive: festival?.isActive ?? true,
     };
     try {
@@ -264,6 +268,30 @@ export default function FestivalForm({
           <span className="text-base font-medium">演舞回数の集計を使う</span>
           <span className="block text-xs text-slate-500">
             オンにすると、予定の完了時に踊った回数を記録し、踊り子のホームに合計を表示します(高知向け機能)。
+          </span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          checked={scheduleAutoComplete && !danceCountEnabled}
+          disabled={danceCountEnabled}
+          onChange={(e) => setScheduleAutoComplete(e.target.checked)}
+          className="mt-0.5 h-5 w-5 disabled:opacity-40"
+        />
+        <span>
+          <span
+            className={`text-base font-medium ${
+              danceCountEnabled ? "text-slate-400" : ""
+            }`}
+          >
+            予定を時刻で自動完了する
+          </span>
+          <span className="block text-xs text-slate-500">
+            {danceCountEnabled
+              ? "演舞回数の集計を使う祭りでは、完了時に回数を記録するため手動完了のみです。"
+              : "オンにすると、終了時刻(無ければ開始時刻)を過ぎた予定を自動で完了扱いにします。運営の完了操作は不要になります。"}
           </span>
         </span>
       </label>

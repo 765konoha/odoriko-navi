@@ -11,6 +11,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useFestivalData } from "../../context/FestivalDataContext";
+import { useNow } from "../../hooks/useNow";
 import type {
   Location,
   LocationKind,
@@ -24,6 +25,7 @@ import {
 import { festivalCenter, JAPAN_VIEW } from "../../lib/maps";
 import { useViewer } from "../../hooks/useViewer";
 import { visibleScheduleItems } from "../../lib/audience";
+import { autoCompleteEnabled, isItemDone } from "../../lib/schedule";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
 import VenueRouteCard from "../../components/map/VenueRouteCard";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
@@ -102,6 +104,7 @@ function RecenterOnGeo({
 export default function MapPage() {
   const { data, loading } = useFestivalData();
   const viewer = useViewer();
+  const now = useNow();
   const [searchParams] = useSearchParams();
   const [showKind, setShowKind] = useState<Record<LocationKind, boolean>>({
     meeting_point: true,
@@ -238,7 +241,11 @@ export default function MapPage() {
     );
     return {
       items,
-      danced: items.length > 0 && items.every((i) => i.isCompleted),
+      danced:
+        items.length > 0 &&
+        items.every((i) =>
+          isItemDone(i, now, autoCompleteEnabled(data!.festival)),
+        ),
     };
   }
 

@@ -31,6 +31,7 @@ export const kochi2026: FestivalData = {
     weatherLng: 133.5388,
     danceCountEnabled: true,
     isActive: false,
+    scheduleAutoComplete: false,
   },
   roles: [
     { id: "k-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },

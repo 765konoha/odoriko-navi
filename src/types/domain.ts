@@ -12,6 +12,11 @@ export interface Festival {
   danceCountEnabled: boolean;
   /** 開催中(true)か終了(false)か。終了した祭りは切替の「過去の祭り」に入る */
   isActive: boolean;
+  /**
+   * 予定の完了を時刻の経過で自動判定するか(false=運営の完了操作のみ)。
+   * 演舞回数の集計中は回数を記録する必要があるため、自動完了は使わない。
+   */
+  scheduleAutoComplete: boolean;
 }
 
 /** 役職(祭りごと。管理画面から追加可能) */

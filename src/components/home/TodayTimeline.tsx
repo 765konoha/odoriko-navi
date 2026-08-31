@@ -8,10 +8,17 @@ interface Props {
   items: ScheduleItem[];
   locations: Location[];
   nextItemId: string | null;
+  /** 完了扱いか(運営の完了操作、または自動完了) */
+  isDone: (item: ScheduleItem) => boolean;
 }
 
-/** 本日の演舞予定の簡易タイムライン(✓は運営の完了操作ベース) */
-export default function TodayTimeline({ items, locations, nextItemId }: Props) {
+/** 本日の演舞予定の簡易タイムライン */
+export default function TodayTimeline({
+  items,
+  locations,
+  nextItemId,
+  isDone: doneOf,
+}: Props) {
   const { festivalSlug } = useParams();
   const performances = items.filter((s) => s.category === "performance");
 
@@ -28,7 +35,7 @@ export default function TodayTimeline({ items, locations, nextItemId }: Props) {
       {performances.map((item) => {
         const t = displayTime(item);
         const isNext = item.id === nextItemId;
-        const isDone = !!item.isCompleted;
+        const isDone = doneOf(item);
         const meetingLocation = item.meetingLocationId
           ? (locations.find((l) => l.id === item.meetingLocationId) ?? null)
           : null;
