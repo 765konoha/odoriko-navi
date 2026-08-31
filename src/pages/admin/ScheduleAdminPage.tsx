@@ -25,7 +25,12 @@ import {
   type ScheduleItemInput,
 } from "../../lib/adminApi";
 import { formatDateLabel, formatTime, jstToIso, todayString } from "../../lib/time";
-import { CATEGORY_META, sortItems } from "../../lib/schedule";
+import {
+  CATEGORY_META,
+  autoCompleteEnabled,
+  autoCompleteTime,
+  sortItems,
+} from "../../lib/schedule";
 import LocationForm from "../../components/admin/LocationForm";
 import { festivalCenter } from "../../lib/maps";
 
@@ -545,6 +550,8 @@ export default function ScheduleAdminPage() {
     days.find((d) => d.date === todayString()) ??
     days[0] ??
     null;
+  // この祭りが時刻で自動完了する設定か(演舞回数の集計中は手動のみ)
+  const autoComplete = festival ? autoCompleteEnabled(festival) : false;
   // 踊り子側と同じく集合時間の昇順で並べる
   const dayItems = sortItems(
     items.filter((i) => i.festivalDayId === currentDay?.id),
@@ -806,7 +813,21 @@ export default function ScheduleAdminPage() {
                   {item.startTime && `開始 ${formatTime(item.startTime)}`}
                   {item.endTime && `〜${formatTime(item.endTime)}`}
                 </p>
+                {!item.isCancelled && autoComplete ? (
+                  <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    {autoCompleteTime(item) ? (
+                      <span className="font-medium text-slate-600">
+                        ⏱ {formatTime(autoCompleteTime(item)!)} を過ぎたら自動で完了
+                      </span>
+                    ) : (
+                      <span className="font-bold text-amber-700">
+                        ⚠ 自動完了なし(終了時刻・開始時刻が未入力)
+                      </span>
+                    )}
+                  </div>
+                ) : null}
                 {!item.isCancelled &&
+                  !autoComplete &&
                   (item.isCompleted ? (
                     <div className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2">
                       <span className="text-sm font-bold text-emerald-700">

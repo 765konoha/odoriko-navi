@@ -57,6 +57,16 @@ export default function FestivalSettingsPage() {
           value={festival.danceCountEnabled ? "使う" : "使わない"}
         />
         <Row
+          label="予定の完了"
+          value={
+            festival.danceCountEnabled
+              ? "手動のみ(演舞回数の集計中)"
+              : festival.scheduleAutoComplete
+                ? "時刻で自動完了"
+                : "運営の完了操作"
+          }
+        />
+        <Row
           label="状態"
           value={festival.isActive ? "開催中" : "終了"}
         />

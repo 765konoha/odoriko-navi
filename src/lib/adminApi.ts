@@ -72,6 +72,8 @@ export interface FestivalInput {
   danceCountEnabled: boolean;
   /** 開催中(true)か終了(false)か */
   isActive: boolean;
+  /** 予定の完了を時刻の経過で自動判定するか */
+  scheduleAutoComplete: boolean;
 }
 
 function festivalToRow(input: FestivalInput) {
@@ -82,6 +84,7 @@ function festivalToRow(input: FestivalInput) {
     weather_lng: input.weatherLng,
     dance_count_enabled: input.danceCountEnabled,
     is_active: input.isActive,
+    schedule_auto_complete: input.scheduleAutoComplete,
   };
 }
 

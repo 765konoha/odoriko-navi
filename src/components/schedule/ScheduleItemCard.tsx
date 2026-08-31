@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import type { Location, ScheduleItem } from "../../types/domain";
 import { formatTime } from "../../lib/time";
 import { CATEGORY_META } from "../../lib/schedule";
+import { useItemDone } from "../../hooks/useItemDone";
 
 interface Props {
   item: ScheduleItem;
@@ -17,7 +18,7 @@ export default function ScheduleItemCard({
   const { festivalSlug } = useParams();
   const meta = CATEGORY_META[item.category];
   const isPerformance = item.category === "performance";
-  const isDone = !!item.isCompleted && !item.isCancelled;
+  const isDone = useItemDone()(item);
   const rejoice = item.rejoiceCount ?? 0;
   const sakaseya = item.sakaseyaCount ?? 0;
   // スタンプ内の回数表記(例: "R1・咲0.5")

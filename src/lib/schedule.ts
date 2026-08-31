@@ -1,4 +1,5 @@
 import type {
+  Festival,
   FestivalData,
   FestivalDay,
   ScheduleCategory,
@@ -50,6 +51,42 @@ function compareTime(a: string | undefined, b: string | undefined): number {
   return a < b ? -1 : 1;
 }
 
+/**
+ * 自動完了の基準時刻(終了時刻。無ければ開始時刻)。
+ * どちらも無い予定は自動完了せず、運営の完了操作を待つ。
+ */
+export function autoCompleteTime(item: ScheduleItem): string | undefined {
+  return item.endTime ?? item.startTime;
+}
+
+/**
+ * 祭りの設定として自動完了が有効か。
+ * 演舞回数の集計中は完了時に回数を記録する必要があるため、常に手動のみとする。
+ */
+export function autoCompleteEnabled(
+  festival: Pick<Festival, "scheduleAutoComplete" | "danceCountEnabled">,
+): boolean {
+  return festival.scheduleAutoComplete && !festival.danceCountEnabled;
+}
+
+/**
+ * その予定を完了扱いにするか。
+ * 中止は完了にしない。運営が完了にしたものは常に完了。
+ * 自動完了が有効な祭りでは、基準時刻を過ぎたものも完了扱いにする。
+ */
+export function isItemDone(
+  item: ScheduleItem,
+  now: Date,
+  autoComplete: boolean,
+): boolean {
+  if (item.isCancelled) return false;
+  if (item.isCompleted) return true;
+  if (!autoComplete) return false;
+  const at = autoCompleteTime(item);
+  // 絶対時刻どうしの比較なので時差の影響を受けない
+  return at != null && new Date(at).getTime() <= now.getTime();
+}
+
 export function itemsOfDay(
   data: FestivalData,
   dayId: string,
@@ -63,13 +100,15 @@ export function findToday(days: FestivalDay[]): FestivalDay | null {
   return days.find((d) => d.date === today) ?? null;
 }
 
-/**
- * 次の予定: 中止でなく、まだ完了していない最初の1件。
- * (時刻ではなく、運営が管理画面で押す「完了」で進行する)
- */
-export function findNextItem(items: ScheduleItem[]): ScheduleItem | null {
+/** 次の予定: 中止でなく、まだ完了していない最初の1件 */
+export function findNextItem(
+  items: ScheduleItem[],
+  now: Date,
+  autoComplete: boolean,
+): ScheduleItem | null {
   for (const item of sortItems(items)) {
-    if (item.isCancelled || item.isCompleted) continue;
+    if (item.isCancelled) continue;
+    if (isItemDone(item, now, autoComplete)) continue;
     return item;
   }
   return null;
