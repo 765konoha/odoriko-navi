@@ -10,7 +10,17 @@ import { supabase } from "../../lib/supabase";
 export default function AdminLayout() {
   const { session, loading } = useAuth();
 
+  // mock モード。開発時(npm run dev:mock)はダミーデータで管理画面を確認できるよう
+  // ログインを省略する。本番ビルドでは import.meta.env.DEV が false になるため、
+  // これまで通り「使用できません」の表示になる。
   if (!supabase) {
+    if (import.meta.env.DEV) {
+      return (
+        <AdminFestivalProvider>
+          <Outlet />
+        </AdminFestivalProvider>
+      );
+    }
     return (
       <p className="px-4 py-8 text-center text-slate-600">
         Supabase が設定されていないため管理画面は使用できません。

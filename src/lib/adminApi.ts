@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { mockRepository } from "../repositories/mockRepository";
 import type {
   Announcement,
   AnnouncementAudience,
@@ -53,6 +54,9 @@ function client() {
 // ---------- 祭り・開催日 ----------
 
 export async function listFestivals(): Promise<Festival[]> {
+  // mock モード(Supabase 未設定)では祭りの一覧だけ mock から返し、
+  // 開発時に管理画面の枠を表示できるようにする。
+  if (!supabase) return mockRepository.listFestivals();
   const { data, error } = await client()
     .from("festivals")
     .select(FESTIVAL_COLUMNS)
@@ -591,6 +595,13 @@ export async function createRole(
 export async function listParticipants(
   festivalId: string,
 ): Promise<FestivalParticipant[]> {
+  // mock モード(Supabase 未設定)。リハの出欠集計を開発時に確認するために使う。
+  if (!supabase) {
+    const list = await mockRepository.listFestivals();
+    const slug = list.find((f) => f.id === festivalId)?.slug;
+    const data = slug ? await mockRepository.loadFestivalData(slug) : null;
+    return data?.participants ?? [];
+  }
   const { data, error } = await client()
     .from("festival_participants")
     .select(FESTIVAL_PARTICIPANT_COLUMNS)

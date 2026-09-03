@@ -2,6 +2,29 @@ import { supabase } from "./supabase";
 import type { Attendance, AttendanceStatus, Rehearsal } from "../types/rehearsal";
 import { toRehearsal } from "./rehearsals";
 import type { ImportRow } from "./attendanceImport";
+import {
+  mockCreateRehearsal,
+  mockDeleteRehearsal,
+  mockImportAttendances,
+  mockListAttendances,
+  mockListRehearsals,
+  mockUpdateRehearsal,
+} from "../data/mock/rehearsals";
+
+/** mock モード(Supabase 未設定)ではメモリ上のダミーデータを読み書きする */
+function toDomain(input: RehearsalInput): Omit<Rehearsal, "id"> {
+  return {
+    festivalId: input.festivalId,
+    title: input.title,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt ?? undefined,
+    venueName: input.venueName,
+    venueUrl: input.venueUrl ?? undefined,
+    venueAddress: input.venueAddress ?? undefined,
+    note: input.note ?? undefined,
+    isCancelled: input.isCancelled,
+  };
+}
 
 function client() {
   if (!supabase) throw new Error("Supabase が設定されていません");
@@ -35,6 +58,7 @@ function toRow(input: RehearsalInput) {
 }
 
 export async function createRehearsal(input: RehearsalInput): Promise<void> {
+  if (!supabase) return mockCreateRehearsal(toDomain(input));
   const { error } = await client().from("rehearsals").insert(toRow(input));
   if (error) throw new Error(error.message);
 }
@@ -43,6 +67,7 @@ export async function updateRehearsal(
   id: string,
   input: RehearsalInput,
 ): Promise<void> {
+  if (!supabase) return mockUpdateRehearsal(id, toDomain(input));
   const { error } = await client()
     .from("rehearsals")
     .update({ ...toRow(input), updated_at: new Date().toISOString() })
@@ -51,6 +76,7 @@ export async function updateRehearsal(
 }
 
 export async function deleteRehearsal(id: string): Promise<void> {
+  if (!supabase) return mockDeleteRehearsal(id);
   const { error } = await client().from("rehearsals").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -58,6 +84,7 @@ export async function deleteRehearsal(id: string): Promise<void> {
 export async function listRehearsalsForAdmin(
   festivalId: string,
 ): Promise<Rehearsal[]> {
+  if (!supabase) return mockListRehearsals(festivalId);
   const { data, error } = await client()
     .from("rehearsals")
     .select(
@@ -76,6 +103,7 @@ export async function listAttendances(
   rehearsalIds: string[],
 ): Promise<Attendance[]> {
   if (rehearsalIds.length === 0) return [];
+  if (!supabase) return mockListAttendances(rehearsalIds);
   const { data, error } = await client()
     .from("rehearsal_attendances")
     .select("rehearsal_id, serial, status, time_note")
@@ -104,6 +132,7 @@ export async function importAttendances(
   rows: ImportRow[],
 ): Promise<void> {
   if (rows.length === 0) return;
+  if (!supabase) return mockImportAttendances(rehearsalId, rows);
   const { error } = await client()
     .from("rehearsal_attendances")
     .upsert(

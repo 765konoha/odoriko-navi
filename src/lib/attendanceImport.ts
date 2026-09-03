@@ -91,11 +91,21 @@ export interface ColumnCandidate {
   monthDay: { month: number; day: number } | null;
 }
 
-/** 見出しから、月日を含む列(=リハの出欠列)を拾う */
+/**
+ * 見出しから、月日を含む列(=リハの出欠列)を拾う。
+ * 「9/6 遅刻・早退の時刻」のように、出欠列の右隣にある時刻メモ列も月日を含むこと
+ * があるため、直前が出欠列であれば時刻メモ列とみなして候補から外す。
+ */
 export function findAttendanceColumns(header: string[]): ColumnCandidate[] {
+  const dated = header.map((h) => pickMonthDay(h) != null);
   return header
     .map((h, i) => ({ index: i, header: h, monthDay: pickMonthDay(h) }))
-    .filter((c) => c.monthDay != null);
+    .filter((c) => c.monthDay != null)
+    .filter((c) => {
+      const h = normalize(c.header);
+      const isTimeNote = h.includes("時刻") || h.includes("時間");
+      return !(isTimeNote && dated[c.index - 1] === true);
+    });
 }
 
 export interface ImportRow {

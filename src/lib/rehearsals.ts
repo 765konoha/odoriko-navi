@@ -1,5 +1,9 @@
 import { supabase } from "./supabase";
 import type { Attendance, AttendanceStatus, Rehearsal } from "../types/rehearsal";
+import {
+  mockListAttendances,
+  mockListRehearsals,
+} from "../data/mock/rehearsals";
 
 const REHEARSAL_COLUMNS =
   "id, festival_id, title, starts_at, ends_at, venue_name, venue_url, venue_address, note, is_cancelled";
@@ -50,7 +54,7 @@ function toAttendance(row: AttendanceRow): Attendance {
 
 /** 祭りのリハ一覧(開始時刻の昇順) */
 export async function listRehearsals(festivalId: string): Promise<Rehearsal[]> {
-  if (!supabase) return [];
+  if (!supabase) return mockListRehearsals(festivalId);
   const { data, error } = await supabase
     .from("rehearsals")
     .select(REHEARSAL_COLUMNS)
@@ -65,7 +69,14 @@ export async function listMyAttendances(
   serial: string,
   rehearsalIds: string[],
 ): Promise<Map<string, Attendance>> {
-  if (!supabase || rehearsalIds.length === 0) return new Map();
+  if (rehearsalIds.length === 0) return new Map();
+  if (!supabase) {
+    return new Map(
+      mockListAttendances(rehearsalIds)
+        .filter((a) => a.serial === serial)
+        .map((a) => [a.rehearsalId, a]),
+    );
+  }
   const { data, error } = await supabase
     .from("rehearsal_attendances")
     .select("rehearsal_id, serial, status, time_note")
