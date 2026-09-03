@@ -28,6 +28,15 @@ export const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
   absent: "欠席",
 };
 
+/** 出欠バッジの色(参加=緑、欠席=赤、途中の出入り=橙) */
+export const ATTENDANCE_BADGE_CLASS: Record<AttendanceStatus, string> = {
+  present: "bg-emerald-100 text-emerald-800",
+  late: "bg-amber-100 text-amber-800",
+  leave_early: "bg-amber-100 text-amber-800",
+  late_leave_early: "bg-amber-100 text-amber-800",
+  absent: "bg-red-100 text-red-700",
+};
+
 /** 集計・一覧での並び順(参加から欠席へ) */
 export const ATTENDANCE_ORDER: AttendanceStatus[] = [
   "present",

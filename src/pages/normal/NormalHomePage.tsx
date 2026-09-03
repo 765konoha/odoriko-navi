@@ -3,6 +3,7 @@ import { useViewer } from "../../hooks/useViewer";
 import { viewerLabel } from "../../lib/audience";
 import ModeSwitchCard from "../../components/layout/ModeSwitchCard";
 import PropRelayCard from "../../components/props/PropRelayCard";
+import NextRehearsalCard from "../../components/rehearsal/NextRehearsalCard";
 import { useUserSelect } from "../../hooks/useUserSelect";
 
 /** 通常モード(日常運用)のホーム */
@@ -33,18 +34,7 @@ export default function NormalHomePage() {
 
       <PropRelayCard slug={festivalSlug!} />
 
-      <Link
-        to={`/${festivalSlug}/rehearsal`}
-        className="block rounded-2xl bg-white p-4 shadow-sm"
-      >
-        <div className="flex items-center gap-2">
-          <p className="text-xs font-bold text-slate-500">🕒 リハ予定</p>
-          <span className="ml-auto text-sm font-bold text-blue-700">
-            確認する ›
-          </span>
-        </div>
-        <p className="mt-1 text-base font-bold text-slate-900">近日実装予定</p>
-      </Link>
+      <NextRehearsalCard slug={festivalSlug!} />
 
       <footer className="pt-6 pb-2 text-center">
         <Link to="/admin" className="text-xs text-slate-400 underline">
