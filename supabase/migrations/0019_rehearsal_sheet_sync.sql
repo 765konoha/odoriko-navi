@@ -17,7 +17,8 @@ create table rehearsal_sheet_sync (
   sheet_id       text not null,
   -- シート(タブ)のgid。URLの #gid= の値。先頭シートは 0
   gid            text not null default '0',
-  -- 定期実行の対象にするか(手動の「今すぐ同期」は enabled でなくても実行できる)
+  -- 画面を開いたときに自動で更新するか
+  -- (運営の「今すぐ同期」は enabled でなくても実行できる)
   enabled        boolean not null default true,
   last_synced_at timestamptz,
   -- 直近の結果。成功件数や、失敗した理由をそのまま残す

@@ -99,7 +99,9 @@ export default function SheetSyncPanel({
       <p className="text-xs leading-relaxed text-slate-500">
         エントリーフォームの回答シートを読みに行き、出欠を反映します。
         見出しの月日から対応するリハを自動で選ぶので、貼り付けは不要です。
-        シートは「リンクを知っている全員が閲覧可」にしておいてください。
+        誰かがリハ画面を開いたときに、前回の更新から30分以上たっていれば
+        読み直します。シートは「リンクを知っている全員が閲覧可」に
+        しておいてください。
       </p>
 
       <label className="block">
@@ -123,7 +125,9 @@ export default function SheetSyncPanel({
           onChange={(e) => setEnabled(e.target.checked)}
           className="h-5 w-5"
         />
-        <span className="text-base font-medium">定期的に自動で同期する</span>
+        <span className="text-base font-medium">
+          リハ画面を開いたときに自動で更新する
+        </span>
       </label>
 
       <div className="flex gap-2">

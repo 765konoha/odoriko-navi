@@ -41,6 +41,7 @@ interface SyncSetting {
   festival_id: string;
   sheet_id: string;
   gid: string;
+  enabled: boolean;
   last_synced_at: string | null;
 }
 
@@ -218,8 +219,8 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
     let query = admin
       .from("rehearsal_sheet_sync")
-      .select("festival_id, sheet_id, gid, last_synced_at");
-    // 定期実行は enabled のものだけ。手動の「今すぐ同期」は設定した本人の操作なので対象を絞らない。
+      .select("festival_id, sheet_id, gid, enabled, last_synced_at");
+    // まとめて回す場合は enabled のものだけ。
     if (all) query = query.eq("enabled", true);
     else query = query.eq("festival_id", festivalId);
 
@@ -232,6 +233,17 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const results: Record<string, string>[] = [];
     for (const setting of settings as unknown as SyncSetting[]) {
+      // 自動更新を切っている祭りは、画面を開いても読みに行かない。
+      // 運営の「今すぐ同期」は設定した本人の操作なので、この制限を受けない。
+      if (refreshOnly && !setting.enabled) {
+        results.push({
+          festivalId: setting.festival_id,
+          ok: "true",
+          message: "自動更新が切られています",
+          skipped: "true",
+        });
+        continue;
+      }
       // 画面を開いたときの更新は、前回から間もなければ何もしない。
       // 大勢が同時に開いてもシートを読みに行くのは間隔ごとに1回で済む。
       if (refreshOnly && setting.last_synced_at) {
