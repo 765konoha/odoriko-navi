@@ -61,20 +61,12 @@ function RehearsalCard({
         )}
       </div>
 
-      {rehearsal.title.trim() !== "" && (
-        <p className="mt-1 text-base font-bold text-slate-800">
-          {rehearsal.title}
-        </p>
-      )}
-      <p
-        className={
-          rehearsal.title.trim() === ""
-            ? "mt-1 text-base font-bold text-slate-800"
-            : "text-sm text-slate-600"
-        }
-      >
+      <p className="mt-1 text-base font-bold text-slate-800">
         {rehearsal.venueName}
       </p>
+      {rehearsal.title.trim() !== "" && (
+        <p className="text-sm text-slate-600">{rehearsal.title}</p>
+      )}
       {rehearsal.venueAddress && (
         <p className="text-xs text-slate-500">{rehearsal.venueAddress}</p>
       )}

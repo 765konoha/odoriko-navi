@@ -82,16 +82,6 @@ export default function RehearsalForm({
       </h2>
 
       <label className="block">
-        <span className={labelClass}>目的・内容(任意)</span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className={inputClass}
-          placeholder="踊りこみ、固め(空なら会場名で表示)"
-        />
-      </label>
-
-      <label className="block">
         <span className={labelClass}>日付 *</span>
         <input
           type="date"
@@ -156,6 +146,19 @@ export default function RehearsalForm({
         />
         <span className="mt-1 block text-xs text-slate-500">
           地図は会場名と住所での検索で開きます(緯度経度の登録は不要です)。
+        </span>
+      </label>
+
+      <label className="block">
+        <span className={labelClass}>目的・内容(任意)</span>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className={inputClass}
+          placeholder="踊りこみ、固め"
+        />
+        <span className="mt-1 block text-xs text-slate-500">
+          会場名の下に小さく添えます。空でも構いません。
         </span>
       </label>
 

@@ -92,10 +92,11 @@ export async function listMyAttendances(
 
 /**
  * 一覧や確認ダイアログで使う呼び名。
- * 目的・内容は任意なので、空のときは会場名で呼ぶ。
+ * 踊り子が知りたいのは「いつ・どこ」なので、会場名で呼ぶ。
+ * 目的・内容(「踊りこみ、固め」など)は参考情報として添えるだけにする。
  */
 export function rehearsalLabel(rehearsal: Rehearsal): string {
-  return rehearsal.title.trim() || rehearsal.venueName;
+  return rehearsal.venueName;
 }
 
 /** 会場を地図で開く(緯度経度は持たず、名前と住所で検索する) */

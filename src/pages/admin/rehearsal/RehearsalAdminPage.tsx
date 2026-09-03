@@ -180,11 +180,10 @@ export default function RehearsalAdminPage() {
                 )}
               </div>
               <p className="text-base font-bold text-slate-800">
-                {rehearsalLabel(r)}
+                {r.venueName}
               </p>
-              {/* 目的が無いときは会場名が見出しになるので、繰り返さない */}
               {r.title.trim() !== "" && (
-                <p className="text-sm text-slate-600">{r.venueName}</p>
+                <p className="text-sm text-slate-600">{r.title}</p>
               )}
               {r.note && (
                 <p className="text-sm font-medium text-amber-800">{r.note}</p>
