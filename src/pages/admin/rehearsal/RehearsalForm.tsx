@@ -82,13 +82,12 @@ export default function RehearsalForm({
       </h2>
 
       <label className="block">
-        <span className={labelClass}>目的・内容 *</span>
+        <span className={labelClass}>目的・内容(任意)</span>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          required
           className={inputClass}
-          placeholder="踊りこみ、固め"
+          placeholder="踊りこみ、固め(空なら会場名で表示)"
         />
       </label>
 

@@ -6,7 +6,11 @@ import {
   listAttendances,
   listRehearsalsForAdmin,
 } from "../../../lib/rehearsalsAdminApi";
-import { isPastRehearsal, venueMapUrl } from "../../../lib/rehearsals";
+import {
+  isPastRehearsal,
+  rehearsalLabel,
+  venueMapUrl,
+} from "../../../lib/rehearsals";
 import {
   ATTENDANCE_LABELS,
   ATTENDANCE_ORDER,
@@ -79,7 +83,7 @@ export default function RehearsalAdminPage() {
   async function handleDelete(rehearsal: Rehearsal) {
     if (
       !window.confirm(
-        `「${rehearsal.title}」を削除しますか?\n\n取り込んだ出欠も一緒に消えます。`,
+        `「${rehearsalLabel(rehearsal)}」を削除しますか?\n\n取り込んだ出欠も一緒に消えます。`,
       )
     )
       return;
@@ -175,8 +179,13 @@ export default function RehearsalAdminPage() {
                   </span>
                 )}
               </div>
-              <p className="text-base font-bold text-slate-800">{r.title}</p>
-              <p className="text-sm text-slate-600">{r.venueName}</p>
+              <p className="text-base font-bold text-slate-800">
+                {rehearsalLabel(r)}
+              </p>
+              {/* 目的が無いときは会場名が見出しになるので、繰り返さない */}
+              {r.title.trim() !== "" && (
+                <p className="text-sm text-slate-600">{r.venueName}</p>
+              )}
               {r.note && (
                 <p className="text-sm font-medium text-amber-800">{r.note}</p>
               )}

@@ -3,6 +3,7 @@ import { parseNote, type NoteRehearsal } from "../../../lib/rehearsalNoteImport"
 import { createRehearsal } from "../../../lib/rehearsalsAdminApi";
 import type { Rehearsal } from "../../../types/rehearsal";
 import { formatDateLabel, jstToIso, toDateString } from "../../../lib/time";
+import { rehearsalLabel } from "../../../lib/rehearsals";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
@@ -66,7 +67,6 @@ export default function RehearsalNoteImport({
     return drafts.flatMap((d, i) => {
       if (!d.include) return [];
       const missing: string[] = [];
-      if (!d.title.trim()) missing.push("目的・内容");
       if (!d.venueName.trim()) missing.push("会場名");
       if (!d.date || !d.startTime) missing.push("日付と開始時刻");
       return missing.length > 0 ? [{ index: i, missing }] : [];
@@ -97,7 +97,9 @@ export default function RehearsalNoteImport({
           note: d.note.trim() || null,
           isCancelled: false,
         });
-        lines.push(`${formatDateLabel(d.date)} ${d.title.trim()}`);
+        lines.push(
+          `${formatDateLabel(d.date)} ${d.title.trim() || d.venueName.trim()}`,
+        );
       }
       setResult(lines);
       setDrafts(null);
@@ -179,7 +181,7 @@ export default function RehearsalNoteImport({
 
                 {sameDay && d.include && (
                   <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                    同じ日に「{sameDay.title}」が既に登録されています。
+                    同じ日に「{rehearsalLabel(sameDay)}」が既に登録されています。
                     重複して登録されないよう、チェックを外すか内容を確認してください。
                   </p>
                 )}
@@ -187,12 +189,12 @@ export default function RehearsalNoteImport({
                 {d.include && (
                   <div className="mt-2 space-y-2">
                     <label className="block">
-                      <span className={labelClass}>目的・内容 *</span>
+                      <span className={labelClass}>目的・内容(任意)</span>
                       <input
                         value={d.title}
                         onChange={(e) => update(i, { title: e.target.value })}
-                        placeholder="ノートに書かれていないため入力してください"
-                        className={`${inputClass} ${d.title.trim() === "" ? "border-red-400" : ""}`}
+                        placeholder="空のままなら会場名で表示します"
+                        className={inputClass}
                       />
                     </label>
 

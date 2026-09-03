@@ -90,6 +90,14 @@ export async function listMyAttendances(
   );
 }
 
+/**
+ * 一覧や確認ダイアログで使う呼び名。
+ * 目的・内容は任意なので、空のときは会場名で呼ぶ。
+ */
+export function rehearsalLabel(rehearsal: Rehearsal): string {
+  return rehearsal.title.trim() || rehearsal.venueName;
+}
+
 /** 会場を地図で開く(緯度経度は持たず、名前と住所で検索する) */
 export function venueMapUrl(rehearsal: Rehearsal): string {
   const q = [rehearsal.venueAddress, rehearsal.venueName]
