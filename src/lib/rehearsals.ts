@@ -64,6 +64,23 @@ export async function listRehearsals(festivalId: string): Promise<Rehearsal[]> {
   return ((data ?? []) as RehearsalRow[]).map(toRehearsal);
 }
 
+/**
+ * リハの出欠を全員分取得する。
+ * 誰が来られないかは立ち位置の調整に必要なので、踊り子にも見せる。
+ */
+export async function listAllAttendances(
+  rehearsalIds: string[],
+): Promise<Attendance[]> {
+  if (rehearsalIds.length === 0) return [];
+  if (!supabase) return mockListAttendances(rehearsalIds);
+  const { data, error } = await supabase
+    .from("rehearsal_attendances")
+    .select("rehearsal_id, serial, status, time_note")
+    .in("rehearsal_id", rehearsalIds);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as AttendanceRow[]).map(toAttendance);
+}
+
 /** 自分の出欠だけを取得する */
 export async function listMyAttendances(
   serial: string,
