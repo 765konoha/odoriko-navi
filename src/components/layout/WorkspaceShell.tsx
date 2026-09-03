@@ -9,6 +9,7 @@ function tabs(base: string): AdminTab[] {
   return [
     { to: base, end: true, label: "概要" },
     { to: `${base}/schedule`, end: false, label: "予定" },
+    { to: `${base}/rehearsals`, end: false, label: "リハ" },
     { to: `${base}/locations`, end: false, label: "場所" },
     { to: `${base}/announcements`, end: false, label: "お知らせ" },
     { to: `${base}/participants`, end: false, label: "参加者" },
