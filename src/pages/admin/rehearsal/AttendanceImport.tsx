@@ -8,6 +8,7 @@ import {
   type Sheet,
 } from "../../../lib/attendanceImport";
 import { importAttendances } from "../../../lib/rehearsalsAdminApi";
+import { rehearsalLabel } from "../../../lib/rehearsals";
 import { toDateString } from "../../../lib/time";
 
 const inputClass =
@@ -100,8 +101,10 @@ export default function AttendanceImport({
     try {
       for (const p of preview) {
         const name =
-          rehearsals.find((r) => r.id === p.mapping.rehearsalId)?.title ??
-          "(リハ)";
+          (() => {
+            const r = rehearsals.find((x) => x.id === p.mapping.rehearsalId);
+            return r ? rehearsalLabel(r) : "(リハ)";
+          })();
         const valid = p.result.rows.filter((row) => serials.has(row.serial));
         await importAttendances(p.mapping.rehearsalId, valid);
         lines.push(
@@ -204,7 +207,7 @@ export default function AttendanceImport({
                   {rehearsals.map((r) => (
                     <option key={r.id} value={r.id}>
                       {toDateString(r.startsAt).slice(5).replace("-", "/")}{" "}
-                      {r.title}
+                      {rehearsalLabel(r)}
                     </option>
                   ))}
                 </select>
@@ -240,9 +243,10 @@ export default function AttendanceImport({
               <p className="font-bold text-slate-700">取り込む内容</p>
               <ul className="mt-1 space-y-1 text-slate-600">
                 {preview.map((p) => {
-                  const name =
-                    rehearsals.find((r) => r.id === p.mapping.rehearsalId)
-                      ?.title ?? "";
+                  const target = rehearsals.find(
+                    (r) => r.id === p.mapping.rehearsalId,
+                  );
+                  const name = target ? rehearsalLabel(target) : "";
                   const valid = p.result.rows.length - p.unknown.length;
                   return (
                     <li key={p.mapping.statusColumn}>
