@@ -97,9 +97,7 @@ export default function RehearsalNoteImport({
           note: d.note.trim() || null,
           isCancelled: false,
         });
-        lines.push(
-          `${formatDateLabel(d.date)} ${d.title.trim() || d.venueName.trim()}`,
-        );
+        lines.push(`${formatDateLabel(d.date)} ${d.venueName.trim()}`);
       }
       setResult(lines);
       setDrafts(null);
@@ -189,16 +187,6 @@ export default function RehearsalNoteImport({
                 {d.include && (
                   <div className="mt-2 space-y-2">
                     <label className="block">
-                      <span className={labelClass}>目的・内容(任意)</span>
-                      <input
-                        value={d.title}
-                        onChange={(e) => update(i, { title: e.target.value })}
-                        placeholder="空のままなら会場名で表示します"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="block">
                       <span className={labelClass}>日付 *</span>
                       <input
                         type="date"
@@ -253,6 +241,16 @@ export default function RehearsalNoteImport({
                           update(i, { venueUrl: e.target.value || null })
                         }
                         className={`${inputClass} text-xs`}
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className={labelClass}>目的・内容(任意)</span>
+                      <input
+                        value={d.title}
+                        onChange={(e) => update(i, { title: e.target.value })}
+                        placeholder="踊りこみ、固め"
+                        className={inputClass}
                       />
                     </label>
 
