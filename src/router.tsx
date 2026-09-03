@@ -18,6 +18,7 @@ import ParticipantAdminPage from "./pages/admin/ParticipantAdminPage";
 import BaggageAdminPage from "./pages/admin/BaggageAdminPage";
 import PropsAdminPage from "./pages/admin/props/PropsAdminPage";
 import FestivalListPage from "./pages/admin/festival/FestivalListPage";
+import RehearsalAdminPage from "./pages/admin/rehearsal/RehearsalAdminPage";
 import FestivalSettingsPage from "./pages/admin/festival/FestivalSettingsPage";
 import LegacyAdminRedirect from "./pages/admin/LegacyAdminRedirect";
 import HomeSwitcher from "./pages/HomeSwitcher";
@@ -55,6 +56,7 @@ export const router = createHashRouter([
         children: [
           { index: true, element: <AdminDashboardPage /> },
           { path: "schedule", element: <ScheduleAdminPage /> },
+          { path: "rehearsals", element: <RehearsalAdminPage /> },
           { path: "locations", element: <LocationAdminPage /> },
           { path: "announcements", element: <AnnouncementAdminPage /> },
           { path: "participants", element: <ParticipantAdminPage /> },
