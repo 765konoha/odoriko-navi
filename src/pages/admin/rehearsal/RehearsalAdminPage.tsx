@@ -18,6 +18,7 @@ import { formatDateLabel, formatTime, toDateString } from "../../../lib/time";
 import { compareSerial } from "../../../lib/audience";
 import RehearsalForm from "./RehearsalForm";
 import AttendanceImport from "./AttendanceImport";
+import RehearsalNoteImport from "./RehearsalNoteImport";
 
 export default function RehearsalAdminPage() {
   const { festival } = useAdminFestival();
@@ -29,6 +30,7 @@ export default function RehearsalAdminPage() {
     { mode: "new" } | { mode: "edit"; rehearsal: Rehearsal } | null
   >(null);
   const [importing, setImporting] = useState(false);
+  const [noteImporting, setNoteImporting] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const festivalId = festival?.id ?? null;
@@ -96,6 +98,24 @@ export default function RehearsalAdminPage() {
       >
         + リハを追加
       </button>
+
+      <button
+        type="button"
+        onClick={() => setNoteImporting((v) => !v)}
+        className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-bold text-slate-600"
+      >
+        {noteImporting
+          ? "ノートからの読み取りを閉じる"
+          : "LINEのノートを貼り付けてリハを登録"}
+      </button>
+
+      {noteImporting && (
+        <RehearsalNoteImport
+          festivalId={festival.id}
+          rehearsals={rehearsals}
+          onDone={() => void load()}
+        />
+      )}
 
       <button
         type="button"
