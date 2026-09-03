@@ -30,8 +30,11 @@ comment on table rehearsal_sheet_sync is
   '出欠シートの同期設定。シートのURLを持つため anon には見せない。';
 
 -- =========================================================
--- RLS。設定は運営だけが読み書きする。
--- 踊り子(anon)は同期結果である rehearsal_attendances だけを見る。
+-- RLS。
+-- 設定(シートのURL)は運営だけが読み書きする。
+-- 踊り子には last_synced_at だけを見せる。画面を開いたときに
+-- 「古ければ更新を頼む」を判断させ、無駄な関数呼び出しを避けるため。
+-- 列単位の権限で絞るので、ビューを増やさずに済む。
 -- =========================================================
 
 alter table rehearsal_sheet_sync enable row level security;
@@ -39,4 +42,10 @@ alter table rehearsal_sheet_sync enable row level security;
 create policy "authenticated manage rehearsal_sheet_sync"
   on rehearsal_sheet_sync for all to authenticated using (true) with check (true);
 
+create policy "anon read rehearsal_sheet_sync"
+  on rehearsal_sheet_sync for select to anon using (true);
+
+-- 既定の権限を落としたうえで、最終同期時刻だけを許可する
+-- (sheet_id / gid / last_result を select しようとすると権限エラーになる)
 revoke all on rehearsal_sheet_sync from anon;
+grant select (festival_id, last_synced_at) on rehearsal_sheet_sync to anon;

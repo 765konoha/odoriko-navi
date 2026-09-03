@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useUser } from "../../context/UserContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
 import { useNow } from "../../hooks/useNow";
+import { useSheetAutoRefresh } from "../../hooks/useSheetAutoRefresh";
 import {
   isPastRehearsal,
   listAllAttendances,
@@ -211,6 +212,11 @@ export default function RehearsalPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
 
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+  // シートと同期している祭りなら、画面を開いたときに古ければ読み直す
+  const { refreshing } = useSheetAutoRefresh(festivalId, reload);
+
   useEffect(() => {
     if (!festivalId) return;
     let cancelled = false;
@@ -240,7 +246,7 @@ export default function RehearsalPage() {
     return () => {
       cancelled = true;
     };
-  }, [festivalId, serial]);
+  }, [festivalId, serial, reloadKey]);
 
   // 名前は祭りの参加者から引く(ニックネームがあればそちらを使う)
   const nameBySerial = new Map(
@@ -285,6 +291,12 @@ export default function RehearsalPage() {
 
       {rehearsals == null && !error && (
         <p className="py-4 text-center text-slate-500">読み込み中…</p>
+      )}
+
+      {refreshing && (
+        <p className="text-center text-xs text-slate-500">
+          最新の出欠を取得しています…
+        </p>
       )}
 
       {rehearsals != null && rehearsals.length === 0 && (

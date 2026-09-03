@@ -3,9 +3,13 @@
 // エントリーフォームの回答シートを読みに行き、rehearsal_attendances に反映する。
 // 貼り付けによる手動取り込みでは日々の更新に追いつかないため。
 //
-// 呼び出し方は2通り。
-//   1. 運営画面の「今すぐ同期」    … ログイン済みユーザーとして { festivalId } を渡す
-//   2. 定期実行(pg_cron + pg_net) … service_role キーで { all: true } を渡す
+// 呼び出し方は3通り。
+//   1. リハ画面を開いたとき  … { festivalId, refreshOnly: true }。ログイン不要。
+//      前回の同期から間もなければ何もしない(呼び出しを増やさないため、
+//      画面側でも last_synced_at を見て古いときだけ呼ぶ)
+//   2. 運営画面の「今すぐ同期」… ログイン済みユーザーとして { festivalId }。
+//      間隔にかかわらず必ず読みに行く
+//   3. 定期実行(使う場合)   … service_role キーで { all: true }
 //
 // シートは「リンクを知っている全員が閲覧可」を前提に、書き出しURLから CSV を取る。
 // シートのURLはこの関数(サーバー側)だけが扱い、ブラウザには配らない。
@@ -37,6 +41,7 @@ interface SyncSetting {
   festival_id: string;
   sheet_id: string;
   gid: string;
+  last_synced_at: string | null;
 }
 
 interface RehearsalRow {
@@ -52,6 +57,9 @@ function jstMonthDay(iso: string): { month: number; day: number } {
   const [, m, d] = ymd.split("-");
   return { month: Number(m), day: Number(d) };
 }
+
+/** 画面を開くたびに読みに行かないための間隔 */
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
 function sheetCsvUrl(sheetId: string, gid: string): string {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
@@ -179,11 +187,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
     const auth = req.headers.get("Authorization") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    // 定期実行は service_role キーで呼ぶ。それ以外は実ユーザー(運営)であること。
+    // 定期実行は service_role キーで呼ぶ。
+    // 画面を開いたときの更新(refreshOnly)はログイン不要。
+    // それ以外(運営の「今すぐ同期」)は実ユーザーであることを確かめる。
     const isCron = auth === `Bearer ${serviceKey}`;
-    if (!isCron) {
+    if (!isCron && !body.refreshOnly) {
       const authClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -195,7 +206,11 @@ Deno.serve(async (req) => {
       if (!user) return json({ error: "unauthorized" }, 401);
     }
 
-    const { festivalId, all } = await req.json().catch(() => ({}));
+    const { festivalId, all, refreshOnly } = body as {
+      festivalId?: string;
+      all?: boolean;
+      refreshOnly?: boolean;
+    };
     if (!festivalId && !all) {
       return json({ error: "festivalId or all is required" }, 400);
     }
@@ -203,7 +218,7 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
     let query = admin
       .from("rehearsal_sheet_sync")
-      .select("festival_id, sheet_id, gid");
+      .select("festival_id, sheet_id, gid, last_synced_at");
     // 定期実行は enabled のものだけ。手動の「今すぐ同期」は設定した本人の操作なので対象を絞らない。
     if (all) query = query.eq("enabled", true);
     else query = query.eq("festival_id", festivalId);
@@ -214,8 +229,23 @@ Deno.serve(async (req) => {
       return json({ error: "同期の設定がありません" }, 404);
     }
 
+    const now = Date.now();
     const results: Record<string, string>[] = [];
     for (const setting of settings as unknown as SyncSetting[]) {
+      // 画面を開いたときの更新は、前回から間もなければ何もしない。
+      // 大勢が同時に開いてもシートを読みに行くのは間隔ごとに1回で済む。
+      if (refreshOnly && setting.last_synced_at) {
+        const elapsed = now - new Date(setting.last_synced_at).getTime();
+        if (elapsed < REFRESH_INTERVAL_MS) {
+          results.push({
+            festivalId: setting.festival_id,
+            ok: "true",
+            message: "前回の同期から間もないため、そのままにしました",
+            skipped: "true",
+          });
+          continue;
+        }
+      }
       let outcome: { ok: boolean; message: string };
       try {
         outcome = await syncFestival(admin, setting);
