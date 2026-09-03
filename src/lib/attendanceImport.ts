@@ -8,14 +8,68 @@ export interface Sheet {
   rows: string[][];
 }
 
-/** タブ区切りで解析する(先頭行を見出しとして扱う) */
+/**
+ * 貼り付けられたシートをタブ区切りとして解析する(先頭行を見出しとして扱う)。
+ *
+ * セル内で改行しているとスプレッドシートはそのセルを " で囲んで貼り付けるため、
+ * 改行で無条件に行を切ると、そのセル以降の列が丸ごと失われる。
+ * " の中の改行とタブはセルの一部として扱う("" は文字としての ")。
+ */
+function splitCells(text: string): string[][] {
+  const rows: string[][] = [];
+  let cells: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += c;
+      }
+      continue;
+    }
+    if (c === '"' && cell === "") {
+      quoted = true;
+    } else if (c === "\t") {
+      cells.push(cell);
+      cell = "";
+    } else if (c === "\n") {
+      cells.push(cell);
+      rows.push(cells);
+      cells = [];
+      cell = "";
+    } else {
+      cell += c;
+    }
+  }
+  cells.push(cell);
+  rows.push(cells);
+  return rows;
+}
+
 export function parseSheet(text: string): Sheet | null {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const rows = splitCells(text.replace(/\r\n?/g, "\n"));
   // 末尾の空行は落とすが、行の途中の空セルは保持する
-  while (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
-  if (lines.length < 2) return null;
-  const split = (line: string) => line.split("\t").map((c) => c.trim());
-  return { header: split(lines[0]), rows: lines.slice(1).map(split) };
+  while (rows.length > 0 && rows[rows.length - 1].every((c) => c.trim() === ""))
+    rows.pop();
+  if (rows.length < 2) return null;
+
+  // 見出し行が短くても、データ行にある列を選べるように幅を揃える
+  const width = Math.max(...rows.map((r) => r.length));
+  // セル内の改行は見出しの表示を崩すだけなので、空白ひとつに畳む
+  const clean = (v: string) => v.replace(/\s*\n\s*/g, " ").trim();
+  const pad = (r: string[]) =>
+    Array.from({ length: width }, (_, i) => clean(r[i] ?? ""));
+
+  return { header: pad(rows[0]), rows: rows.slice(1).map(pad) };
 }
 
 /** 全角英数・記号を半角に寄せ、空白を落とす */
