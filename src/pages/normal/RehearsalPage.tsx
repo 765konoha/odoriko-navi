@@ -9,18 +9,12 @@ import {
   listRehearsals,
   venueMapUrl,
 } from "../../lib/rehearsals";
-import { ATTENDANCE_LABELS } from "../../types/rehearsal";
+import {
+  ATTENDANCE_BADGE_CLASS,
+  ATTENDANCE_LABELS,
+} from "../../types/rehearsal";
 import type { Attendance, Rehearsal } from "../../types/rehearsal";
 import { formatDateLabel, formatTime, toDateString } from "../../lib/time";
-
-/** 出欠のバッジ色(参加=緑、欠席=赤、途中の出入り=橙) */
-const STATUS_CLASS: Record<string, string> = {
-  present: "bg-emerald-100 text-emerald-800",
-  late: "bg-amber-100 text-amber-800",
-  leave_early: "bg-amber-100 text-amber-800",
-  late_leave_early: "bg-amber-100 text-amber-800",
-  absent: "bg-red-100 text-red-700",
-};
 
 function RehearsalCard({
   rehearsal,
@@ -51,7 +45,7 @@ function RehearsalCard({
           attendance && (
             <span
               className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${
-                STATUS_CLASS[attendance.status] ?? "bg-slate-100 text-slate-600"
+                ATTENDANCE_BADGE_CLASS[attendance.status]
               }`}
             >
               {ATTENDANCE_LABELS[attendance.status]}
