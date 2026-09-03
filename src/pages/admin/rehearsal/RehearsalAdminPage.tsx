@@ -23,6 +23,7 @@ import { compareSerial } from "../../../lib/audience";
 import RehearsalForm from "./RehearsalForm";
 import AttendanceImport from "./AttendanceImport";
 import RehearsalNoteImport from "./RehearsalNoteImport";
+import SheetSyncPanel from "./SheetSyncPanel";
 
 export default function RehearsalAdminPage() {
   const { festival } = useAdminFestival();
@@ -35,6 +36,7 @@ export default function RehearsalAdminPage() {
   >(null);
   const [importing, setImporting] = useState(false);
   const [noteImporting, setNoteImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const festivalId = festival?.id ?? null;
@@ -118,6 +120,21 @@ export default function RehearsalAdminPage() {
           festivalId={festival.id}
           rehearsals={rehearsals}
           onDone={() => void load()}
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={() => setSyncing((v) => !v)}
+        className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-bold text-slate-600"
+      >
+        {syncing ? "シートとの同期を閉じる" : "出欠シートと同期する"}
+      </button>
+
+      {syncing && (
+        <SheetSyncPanel
+          festivalId={festival.id}
+          onSynced={() => void load()}
         />
       )}
 

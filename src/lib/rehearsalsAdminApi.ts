@@ -147,3 +147,108 @@ export async function importAttendances(
     );
   if (error) throw new Error(error.message);
 }
+
+// ---------- 出欠シートの同期設定 ----------
+
+export interface SheetSync {
+  festivalId: string;
+  /** スプレッドシートのID(URLの /d/ と /edit の間) */
+  sheetId: string;
+  /** シート(タブ)のgid */
+  gid: string;
+  /** 定期実行の対象にするか */
+  enabled: boolean;
+  lastSyncedAt?: string;
+  lastResult?: string;
+  lastOk?: boolean;
+}
+
+interface SheetSyncRow {
+  festival_id: string;
+  sheet_id: string;
+  gid: string;
+  enabled: boolean;
+  last_synced_at: string | null;
+  last_result: string | null;
+  last_ok: boolean | null;
+}
+
+function toSheetSync(row: SheetSyncRow): SheetSync {
+  return {
+    festivalId: row.festival_id,
+    sheetId: row.sheet_id,
+    gid: row.gid,
+    enabled: row.enabled,
+    lastSyncedAt: row.last_synced_at ?? undefined,
+    lastResult: row.last_result ?? undefined,
+    lastOk: row.last_ok ?? undefined,
+  };
+}
+
+/**
+ * 貼り付けられたURLからシートIDとgidを取り出す。
+ * ID だけを貼られた場合もそのまま受ける。
+ */
+export function parseSheetUrl(
+  input: string,
+): { sheetId: string; gid: string } | null {
+  const value = input.trim();
+  if (value === "") return null;
+  const id = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.exec(value)?.[1] ?? value;
+  if (!/^[a-zA-Z0-9-_]{20,}$/.test(id)) return null;
+  const gid = /[#&?]gid=(\d+)/.exec(value)?.[1] ?? "0";
+  return { sheetId: id, gid };
+}
+
+export async function getSheetSync(
+  festivalId: string,
+): Promise<SheetSync | null> {
+  if (!supabase) return null;
+  const { data, error } = await client()
+    .from("rehearsal_sheet_sync")
+    .select("festival_id, sheet_id, gid, enabled, last_synced_at, last_result, last_ok")
+    .eq("festival_id", festivalId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toSheetSync(data as SheetSyncRow) : null;
+}
+
+export async function saveSheetSync(
+  festivalId: string,
+  sheetId: string,
+  gid: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await client()
+    .from("rehearsal_sheet_sync")
+    .upsert(
+      {
+        festival_id: festivalId,
+        sheet_id: sheetId,
+        gid,
+        enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "festival_id" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSheetSync(festivalId: string): Promise<void> {
+  const { error } = await client()
+    .from("rehearsal_sheet_sync")
+    .delete()
+    .eq("festival_id", festivalId);
+  if (error) throw new Error(error.message);
+}
+
+/** 「今すぐ同期」。結果の文言をそのまま返す。 */
+export async function runSheetSync(festivalId: string): Promise<string> {
+  const { data, error } = await client().functions.invoke(
+    "sync-rehearsal-attendance",
+    { body: { festivalId } },
+  );
+  if (error) throw new Error(error.message);
+  const results = (data as { results?: { message: string }[] } | null)?.results;
+  return results?.[0]?.message ?? "同期しました";
+}
