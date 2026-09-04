@@ -4,18 +4,35 @@ import {
   loadSerialListCache,
   saveSerialListCache,
 } from "../../lib/storage";
-import { useFestivalData } from "../../context/FestivalDataContext";
 import { useUser } from "../../context/UserContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
 import { compareSerial } from "../../lib/audience";
 
+/** 祭りモードで表示するときに渡す、その祭りの名簿 */
+export interface UserSelectFestival {
+  name: string;
+  /** 名簿を読み込めているか(読めていないと参加の判定ができない) */
+  ready: boolean;
+  isParticipant: (serial: string) => boolean;
+}
+
 /**
  * 利用者(シリアル)選択画面。
  * 初回アクセス時と「変更」タップ時に表示する。
- * 参加者マスターのシリアルから選択し、今回の祭りに不参加なら保存しない。
+ * 参加者マスターのシリアルから選択する。
+ * 祭りモードでは、その祭りに不参加のシリアルは保存しない(festival を渡す)。
+ * 通常モードは祭りに紐づかないため、参加の判定は行わない。
  */
-export default function UserSelectScreen() {
-  const { data, loading } = useFestivalData();
+export default function UserSelectScreen({
+  nicknameBySerial,
+  loadingNames = false,
+  festival = null,
+}: {
+  /** シリアル → 呼び名(選びやすさのために一覧に添える) */
+  nicknameBySerial: Map<string, string>;
+  loadingNames?: boolean;
+  festival?: UserSelectFestival | null;
+}) {
   const { selection, selectUser } = useUser();
   const { changeRequested, closeChange } = useUserSelect();
   const isChange = changeRequested; // 選択済み→「変更」で開いた場合
@@ -45,13 +62,6 @@ export default function UserSelectScreen() {
     };
   }, []);
 
-  // 今回の祭りの参加者(シリアル→ニックネーム)。選びやすさのために表示に使う
-  const nicknameBySerial = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of data?.participants ?? []) map.set(p.serial, p.nickname);
-    return map;
-  }, [data]);
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return serials;
@@ -64,16 +74,17 @@ export default function UserSelectScreen() {
 
   function handleConfirm() {
     if (!picked) return;
-    if (!data) {
-      setNotice(
-        "祭りの参加者情報を読み込めませんでした。通信環境を確認してください。",
-      );
-      return;
-    }
-    const isParticipant = data.participants.some((p) => p.serial === picked);
-    if (!isParticipant) {
-      setNotice("今回のお祭りには不参加です");
-      return; // 保存しない
+    if (festival) {
+      if (!festival.ready) {
+        setNotice(
+          "祭りの参加者情報を読み込めませんでした。通信環境を確認してください。",
+        );
+        return;
+      }
+      if (!festival.isParticipant(picked)) {
+        setNotice("今回のお祭りには不参加です");
+        return; // 保存しない
+      }
     }
     selectUser(picked);
     closeChange();
@@ -85,11 +96,13 @@ export default function UserSelectScreen() {
         あなたのシリアルを選択してください
       </h1>
       <p className="mt-2 text-center text-sm text-slate-500">
-        選択すると、あなたの役職に合わせた予定とお知らせが表示されます。
+        {festival
+          ? "選択すると、あなたの役職に合わせた予定とお知らせが表示されます。"
+          : "選択すると、あなたのリハの出欠や小道具の受け渡しが表示されます。"}
       </p>
-      {data && (
+      {festival && (
         <p className="mt-1 text-center text-sm font-bold text-slate-600">
-          対象のお祭り: {data.festival.name}
+          対象のお祭り: {festival.name}
         </p>
       )}
 
@@ -126,7 +139,7 @@ export default function UserSelectScreen() {
 
         {serials.length === 0 && (
           <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500">
-            {loading
+            {loadingNames
               ? "参加者情報を読み込み中…"
               : "参加者が登録されていません。「番号指定なし」でご利用ください。"}
           </p>

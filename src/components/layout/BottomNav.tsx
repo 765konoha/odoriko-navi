@@ -1,7 +1,7 @@
 import { NavLink, useParams } from "react-router-dom";
+import type { ReactNode } from "react";
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { useReadStatus } from "../../context/ReadStatusContext";
-import { useMode } from "../../context/ModeContext";
 import { useViewer } from "../../hooks/useViewer";
 import { activeAnnouncements } from "../../lib/announcements";
 import { visibleAnnouncements } from "../../lib/audience";
@@ -89,27 +89,31 @@ const propsItem = {
   ),
 };
 
-const FESTIVAL_ITEMS = [homeItem, scheduleItem, mapItem, announcementItem];
-const NORMAL_ITEMS = [homeItem, rehearsalItem, propsItem];
+interface NavItem {
+  to: string;
+  end: boolean;
+  label: string;
+  icon: ReactNode;
+}
 
-export default function BottomNav() {
-  const { festivalSlug } = useParams();
-  const base = `/${festivalSlug}`;
-  const { data } = useFestivalData();
-  const { readIds } = useReadStatus();
-  const { mode } = useMode();
-  const viewer = useViewer();
+const FESTIVAL_ITEMS: NavItem[] = [
+  homeItem,
+  scheduleItem,
+  mapItem,
+  announcementItem,
+];
+const NORMAL_ITEMS: NavItem[] = [homeItem, rehearsalItem, propsItem];
 
-  // 未読件数: 現在の利用者に配信中のお知らせのうち未読のもの
-  const unreadCount = data
-    ? activeAnnouncements(
-        visibleAnnouncements(data.announcements, viewer),
-        new Date(),
-      ).filter((a) => !readIds.has(a.id)).length
-    : 0;
-
-  const items = mode === "normal" ? NORMAL_ITEMS : FESTIVAL_ITEMS;
-
+/** 下部ナビの見た目。行き先は base からの相対で決める */
+function NavBar({
+  items,
+  base,
+  unreadCount = 0,
+}: {
+  items: NavItem[];
+  base: string;
+  unreadCount?: number;
+}) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
       <div
@@ -120,7 +124,7 @@ export default function BottomNav() {
         {items.map((item) => (
           <NavLink
             key={item.label}
-            to={item.to === "" ? base : `${base}/${item.to}`}
+            to={item.to === "" ? base || "/" : `${base}/${item.to}`}
             end={item.end}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${
@@ -141,5 +145,34 @@ export default function BottomNav() {
         ))}
       </div>
     </nav>
+  );
+}
+
+/** 通常モード(祭りに紐づかない)。ホーム・リハ・小道具 */
+export function NormalBottomNav() {
+  return <NavBar items={NORMAL_ITEMS} base="" />;
+}
+
+/** 祭りモード。予定・マップ・お知らせは選んでいる祭りのもの */
+export default function BottomNav() {
+  const { festivalSlug } = useParams();
+  const { data } = useFestivalData();
+  const { readIds } = useReadStatus();
+  const viewer = useViewer();
+
+  // 未読件数: 現在の利用者に配信中のお知らせのうち未読のもの
+  const unreadCount = data
+    ? activeAnnouncements(
+        visibleAnnouncements(data.announcements, viewer),
+        new Date(),
+      ).filter((a) => !readIds.has(a.id)).length
+    : 0;
+
+  return (
+    <NavBar
+      items={FESTIVAL_ITEMS}
+      base={`/f/${festivalSlug}`}
+      unreadCount={unreadCount}
+    />
   );
 }

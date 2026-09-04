@@ -13,7 +13,7 @@ import { formatDateLabel, formatTime, toDateString } from "../../lib/time";
  * 祭りモードの「次の予定」と同じ形にして、
  * いつ・どこ・自分の出欠が一目で分かるようにする。
  */
-export default function NextRehearsalCard({ slug }: { slug: string }) {
+export default function NextRehearsalCard() {
   const { loading, next } = useNextRehearsal();
   const now = useNow(60_000);
 
@@ -21,7 +21,7 @@ export default function NextRehearsalCard({ slug }: { slug: string }) {
   if (loading || next == null) {
     return (
       <Link
-        to={`/${slug}/rehearsal`}
+        to="/rehearsal"
         className="block rounded-2xl bg-white p-4 shadow-sm"
       >
         <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function NextRehearsalCard({ slug }: { slug: string }) {
           地図を見る
         </a>
         <Link
-          to={`/${slug}/rehearsal`}
+          to="/rehearsal"
           className="rounded-xl border border-slate-500 py-3 text-center text-base font-bold text-white"
         >
           リハ予定を見る

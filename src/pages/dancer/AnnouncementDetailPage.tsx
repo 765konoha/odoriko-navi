@@ -36,7 +36,7 @@ export default function AnnouncementDetailPage() {
           このお知らせは見つかりませんでした。
         </p>
         <Link
-          to={`/${festivalSlug}/announcements`}
+          to={`/f/${festivalSlug}/announcements`}
           className="block text-center font-bold text-blue-700"
         >
           お知らせ一覧へ戻る
@@ -54,7 +54,7 @@ export default function AnnouncementDetailPage() {
   return (
     <div className="space-y-4 px-4 py-4">
       <Link
-        to={`/${festivalSlug}/announcements`}
+        to={`/f/${festivalSlug}/announcements`}
         className="inline-block text-sm font-bold text-blue-700"
       >
         ← お知らせ一覧

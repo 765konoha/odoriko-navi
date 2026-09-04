@@ -137,7 +137,7 @@ export default function ScheduleItemCard({
         <div className="mt-3 flex gap-2">
           {meetingLocation && (
             <Link
-              to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+              to={`/f/${festivalSlug}/map?loc=${meetingLocation.id}`}
               className="flex-1 rounded-lg bg-blue-50 py-2 text-center text-sm font-bold text-blue-700"
             >
               📍 集合場所
@@ -145,7 +145,7 @@ export default function ScheduleItemCard({
           )}
           {item.venueRouteId && (
             <Link
-              to={`/${festivalSlug}/map?route=${item.venueRouteId}`}
+              to={`/f/${festivalSlug}/map?route=${item.venueRouteId}`}
               className="flex-1 rounded-lg bg-[#eef3d4] py-2 text-center text-sm font-bold text-[#005D4D]"
             >
               🚩 演舞会場

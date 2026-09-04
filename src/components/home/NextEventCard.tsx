@@ -57,7 +57,7 @@ export default function NextEventCard({ item, meetingLocation, now }: Props) {
         {meetingLocation && (
           <>
             <Link
-              to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+              to={`/f/${festivalSlug}/map?loc=${meetingLocation.id}`}
               className="rounded-xl bg-white py-3 text-center text-base font-bold text-slate-900"
             >
               地図を見る

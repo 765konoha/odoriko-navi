@@ -40,12 +40,12 @@ export default function FestivalSwitcher({ slug }: { slug: string }) {
 
   function switchTo(nextSlug: string) {
     if (nextSlug === slug) return;
-    // /{slug}/announcements/{id} の id は祭り固有なので一覧まで戻す
+    // /f/{slug}/announcements/{id} の id は祭り固有なので一覧まで戻す
     const rest = location.pathname
-      .replace(new RegExp(`^/${slug}`), "")
+      .replace(new RegExp(`^/f/${slug}`), "")
       .replace(/^\/announcements\/.+$/, "/announcements");
     // シリアル選択画面を開いたまま切り替えた場合も開いた状態を保つ
-    navigate(`/${nextSlug}${rest}`, { state: location.state });
+    navigate(`/f/${nextSlug}${rest}`, { state: location.state });
   }
 
   const currentName =

@@ -73,7 +73,7 @@ export default function WorkspaceShell() {
             </span>
           )}
           <Link
-            to={`/${festival.slug}`}
+            to={`/f/${festival.slug}`}
             className="shrink-0 rounded-lg border border-slate-600 px-2.5 py-1 text-sm text-slate-200"
           >
             踊り子画面

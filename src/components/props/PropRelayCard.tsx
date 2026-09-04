@@ -2,13 +2,13 @@ import { Link } from "react-router-dom";
 import { usePropSummary } from "../../hooks/usePropSummary";
 
 /** ホームに置く小道具リレーの入口(通常モード・祭りモード共通) */
-export default function PropRelayCard({ slug }: { slug: string }) {
+export default function PropRelayCard({ to }: { to: string }) {
   const summary = usePropSummary();
   const hasIncoming = (summary?.incoming ?? 0) > 0;
 
   return (
     <Link
-      to={`/${slug}/props`}
+      to={to}
       className={`block rounded-2xl p-4 ${
         hasIncoming
           ? "border border-blue-200 bg-blue-50"

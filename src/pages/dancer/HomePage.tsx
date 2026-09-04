@@ -9,13 +9,13 @@ import {
 import { formatDateLabel } from "../../lib/time";
 import NextEventCard from "../../components/home/NextEventCard";
 import BaggageGroupCard from "../../components/home/BaggageGroupCard";
-import ModeSwitchCard from "../../components/layout/ModeSwitchCard";
+import { ToNormalModeCard } from "../../components/layout/ModeSwitchCard";
 import PropRelayCard from "../../components/props/PropRelayCard";
 import TodayTimeline from "../../components/home/TodayTimeline";
 import DanceCountCard from "../../components/home/DanceCountCard";
 import WeatherStrip from "../../components/home/WeatherStrip";
 import EmergencyBanner from "../../components/home/EmergencyBanner";
-import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { FestivalRefreshIndicator } from "../../components/layout/RefreshIndicator";
 import { useReadStatus } from "../../context/ReadStatusContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
 import { useItemDone } from "../../hooks/useItemDone";
@@ -93,10 +93,10 @@ export default function HomePage() {
             </p>
           )}
         </div>
-        <RefreshIndicator />
+        <FestivalRefreshIndicator />
       </header>
 
-      <ModeSwitchCard />
+      <ToNormalModeCard festivalName={data.festival.name} />
 
       <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5">
         <span className="text-sm text-slate-500">利用者</span>
@@ -114,7 +114,7 @@ export default function HomePage() {
 
       <BaggageGroupCard data={data} viewer={viewer} />
 
-      <PropRelayCard slug={data.festival.slug} />
+      <PropRelayCard to={`/f/${data.festival.slug}/props`} />
 
       {unreadCount > 0 && (
         <Link

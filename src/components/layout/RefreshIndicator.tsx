@@ -1,14 +1,21 @@
 import { useFestivalData } from "../../context/FestivalDataContext";
 import { formatClockTime } from "../../lib/time";
 
-/** 最終更新時刻と手動更新ボタン */
-export default function RefreshIndicator() {
-  const { refreshing, lastUpdated, refresh } = useFestivalData();
-
+/** 最終更新時刻と手動更新ボタン。何を更新するかは呼び出し側が決める */
+export default function RefreshIndicator({
+  refreshing,
+  lastUpdated,
+  onRefresh,
+}: {
+  refreshing: boolean;
+  lastUpdated: Date | null;
+  onRefresh: () => void;
+}) {
+  const refresh = onRefresh;
   return (
     <button
       type="button"
-      onClick={() => void refresh()}
+      onClick={() => refresh()}
       disabled={refreshing}
       className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm active:bg-slate-50"
     >
@@ -30,5 +37,17 @@ export default function RefreshIndicator() {
           ? `最終更新 ${formatClockTime(lastUpdated)}`
           : "更新"}
     </button>
+  );
+}
+
+/** 祭りのデータを更新する版(祭りモードの各画面) */
+export function FestivalRefreshIndicator() {
+  const { refreshing, lastUpdated, refresh } = useFestivalData();
+  return (
+    <RefreshIndicator
+      refreshing={refreshing}
+      lastUpdated={lastUpdated}
+      onRefresh={() => void refresh()}
+    />
   );
 }

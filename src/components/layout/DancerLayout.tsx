@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
-import OfflineBanner from "./OfflineBanner";
+import { FestivalOfflineBanner } from "./OfflineBanner";
 import FestivalSwitcher from "./FestivalSwitcher";
 import UserSelectScreen from "../user/UserSelectScreen";
-import { FestivalDataProvider } from "../../context/FestivalDataContext";
+import {
+  FestivalDataProvider,
+  useFestivalData,
+} from "../../context/FestivalDataContext";
 import { ReadStatusProvider } from "../../context/ReadStatusContext";
 import { useUser } from "../../context/UserContext";
 import { useCanGoBack, useUserSelect } from "../../hooks/useUserSelect";
@@ -33,6 +36,30 @@ function NotParticipatingBanner() {
   );
 }
 
+/**
+ * 祭りモードの利用者選択。
+ * その祭りの名簿で呼び名を出し、不参加のシリアルは保存しない。
+ */
+function FestivalUserSelect() {
+  const { data } = useFestivalData();
+  const nicknameBySerial = useMemo(
+    () =>
+      new Map((data?.participants ?? []).map((p) => [p.serial, p.nickname])),
+    [data],
+  );
+  return (
+    <UserSelectScreen
+      nicknameBySerial={nicknameBySerial}
+      festival={{
+        name: data?.festival.name ?? "",
+        ready: data != null,
+        isParticipant: (serial) =>
+          (data?.participants ?? []).some((p) => p.serial === serial),
+      }}
+    />
+  );
+}
+
 export default function DancerLayout() {
   const { festivalSlug } = useParams();
   const navigate = useNavigate();
@@ -56,7 +83,7 @@ export default function DancerLayout() {
     <FestivalDataProvider slug={festivalSlug!}>
       <ReadStatusProvider slug={festivalSlug!} userKey={userKey}>
         <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-slate-100">
-          <OfflineBanner />
+          <FestivalOfflineBanner />
           {/* iPhoneのPWAはブラウザの戻るUIが無いため、最上部に戻る導線を常設する。
               右側に祭り切替のプルダウンを置く */}
           <div className="flex w-full items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
@@ -85,7 +112,7 @@ export default function DancerLayout() {
             <FestivalSwitcher slug={festivalSlug!} />
           </div>
           {showUserSelect ? (
-            <UserSelectScreen />
+            <FestivalUserSelect />
           ) : (
             <>
               <NotParticipatingBanner />
