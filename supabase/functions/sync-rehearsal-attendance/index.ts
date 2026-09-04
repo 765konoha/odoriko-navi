@@ -26,7 +26,7 @@ import {
 
 // 差し替えたことを画面から確かめられるようにする。
 // 結果の文言に出るので、古い関数が動いたままかどうかが分かる。
-const FUNCTION_VERSION = "2026-09-04a";
+const FUNCTION_VERSION = "2026-09-04b";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,9 +84,30 @@ function sheetCsvUrl(sheetId: string, gid: string): string {
 async function syncFestival(
   admin: ReturnType<typeof createClient>,
   setting: SyncSetting,
-): Promise<{ ok: boolean; message: string; detail?: string }> {
-  const url = sheetCsvUrl(setting.sheet_id, setting.gid);
-  const res = await fetch(url, { redirect: "follow" });
+): Promise<{
+  ok: boolean;
+  message: string;
+  detail?: string;
+  /** タブの指定が使えず、先頭タブで読めたとき。設定から gid を消す */
+  clearGid?: boolean;
+}> {
+  let url = sheetCsvUrl(setting.sheet_id, setting.gid);
+  let res = await fetch(url, { redirect: "follow" });
+  let clearGid = false;
+
+  // 指定したタブが無いと Google は 400 を返す。
+  // 先頭タブなら読めることが多いので、一度だけ試す。
+  // (指定が効いていない以上、取り逃がすタブは無い)
+  if (!res.ok && setting.gid.trim() !== "") {
+    const fallback = sheetCsvUrl(setting.sheet_id, "");
+    const retry = await fetch(fallback, { redirect: "follow" });
+    if (retry.ok) {
+      url = fallback;
+      res = retry;
+      clearGid = true;
+    }
+  }
+
   if (!res.ok) {
     // 何が返ったのかが分からないと原因を絞れないので、応答の先頭を残す。
     // Google は 400 の理由を本文に書いてくることがある。
@@ -201,10 +222,15 @@ async function syncFestival(
         "リハの日付と、シートの見出しの日付を確認してください。",
     };
   }
+  const note = clearGid
+    ? `タブの指定(gid=${setting.gid})では読めなかったため、先頭のタブを読みました。` +
+      "以後もこのタブを読みます。"
+    : "";
   return {
     ok: true,
-    message: `${total}件を反映 (${notes.join(" / ")})`,
+    message: `${total}件を反映 (${notes.join(" / ")})${note ? " " + note : ""}`,
     detail: `取得先: ${url}`,
+    clearGid,
   };
 }
 
@@ -289,7 +315,12 @@ Deno.serve(async (req) => {
           continue;
         }
       }
-      let outcome: { ok: boolean; message: string; detail?: string };
+      let outcome: {
+        ok: boolean;
+        message: string;
+        detail?: string;
+        clearGid?: boolean;
+      };
       try {
         outcome = await syncFestival(admin, setting);
       } catch (e) {
@@ -308,6 +339,8 @@ Deno.serve(async (req) => {
           last_synced_at: new Date().toISOString(),
           last_result: stored,
           last_ok: outcome.ok,
+          // 使えないタブ指定は消しておく。次からは先頭タブを直接読む
+          ...(outcome.clearGid ? { gid: "" } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("festival_id", setting.festival_id);
