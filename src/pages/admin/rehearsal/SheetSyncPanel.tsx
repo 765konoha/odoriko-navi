@@ -178,13 +178,14 @@ export default function SheetSyncPanel({
         </button>
       </div>
 
+      {/* 結果には取得先のURLが入る。長い1語なので途中でも折り返す */}
       {message && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 [overflow-wrap:anywhere]">
           {message}
         </p>
       )}
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 [overflow-wrap:anywhere]">
           {error}
         </p>
       )}
@@ -195,7 +196,11 @@ export default function SheetSyncPanel({
             最終同期 {formatDateLabel(toDateString(sync.lastSyncedAt))}{" "}
             {formatTime(sync.lastSyncedAt)}
           </p>
-          <p className={sync.lastOk === false ? "text-red-700" : "text-slate-600"}>
+          <p
+            className={`[overflow-wrap:anywhere] ${
+              sync.lastOk === false ? "text-red-700" : "text-slate-600"
+            }`}
+          >
             {sync.lastResult}
           </p>
         </div>
