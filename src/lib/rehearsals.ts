@@ -129,3 +129,45 @@ export function isPastRehearsal(rehearsal: Rehearsal, now: Date): boolean {
   const at = rehearsal.endsAt ?? rehearsal.startsAt;
   return new Date(at).getTime() < now.getTime();
 }
+
+// ---------- 出欠シートの自動更新 ----------
+
+/**
+ * 画面を開いたときにシートを読み直す間隔。
+ * Edge Function 側でも同じ間隔で弾いているが、ここで先に判断することで
+ * 「古くないときは関数を呼ばない」= 呼び出し回数をほぼ同期の回数まで減らす。
+ */
+export const SHEET_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
+/**
+ * 最後にシートを読んだ時刻。設定が無ければ null。
+ * anon には last_synced_at の列だけ権限を与えてあるので、
+ * シートのURLはここからは読めない。
+ */
+export async function getSheetSyncedAt(
+  festivalId: string,
+): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("rehearsal_sheet_sync")
+    .select("festival_id, last_synced_at")
+    .eq("festival_id", festivalId)
+    .maybeSingle();
+  if (error) return null; // 設定が無い・権限が無い場合は自動更新しないだけ
+  return (data as { last_synced_at: string | null } | null)?.last_synced_at ?? null;
+}
+
+/**
+ * シートを読み直すよう頼む。実際に読むかは Edge Function が判断する。
+ * 失敗しても画面は既存のデータで動くので、例外は投げない。
+ */
+export async function requestSheetRefresh(festivalId: string): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.functions.invoke("sync-rehearsal-attendance", {
+      body: { festivalId, refreshOnly: true },
+    });
+  } catch {
+    // 同期できなくても、取り込み済みの出欠は表示できる
+  }
+}
