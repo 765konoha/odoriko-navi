@@ -154,7 +154,7 @@ export interface SheetSync {
   festivalId: string;
   /** スプレッドシートのID(URLの /d/ と /edit の間) */
   sheetId: string;
-  /** シート(タブ)のgid */
+  /** シート(タブ)のgid。空なら先頭のタブを読む */
   gid: string;
   /** 定期実行の対象にするか */
   enabled: boolean;
@@ -188,6 +188,10 @@ function toSheetSync(row: SheetSyncRow): SheetSync {
 /**
  * 貼り付けられたURLからシートIDとgidを取り出す。
  * ID だけを貼られた場合もそのまま受ける。
+ *
+ * gid が無いURL(共有ダイアログの .../edit?usp=sharing など)では空にする。
+ * 既定を 0 にすると、先頭タブのgidが0でないシート(フォームの回答シートに多い)で
+ * 存在しないタブを指してしまい、書き出しが 400 になるため。
  */
 export function parseSheetUrl(
   input: string,
@@ -196,7 +200,7 @@ export function parseSheetUrl(
   if (value === "") return null;
   const id = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.exec(value)?.[1] ?? value;
   if (!/^[a-zA-Z0-9-_]{20,}$/.test(id)) return null;
-  const gid = /[#&?]gid=(\d+)/.exec(value)?.[1] ?? "0";
+  const gid = /[#&?]gid=(\d+)/.exec(value)?.[1] ?? "";
   return { sheetId: id, gid };
 }
 

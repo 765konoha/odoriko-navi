@@ -32,7 +32,10 @@ export default function SheetSyncPanel({
     const s = await getSheetSync(festivalId);
     setSync(s);
     if (s) {
-      setUrl(`https://docs.google.com/spreadsheets/d/${s.sheetId}/edit#gid=${s.gid}`);
+      setUrl(
+        `https://docs.google.com/spreadsheets/d/${s.sheetId}/edit` +
+          (s.gid ? `#gid=${s.gid}` : ""),
+      );
       setEnabled(s.enabled);
     }
   }, [festivalId]);
@@ -114,7 +117,8 @@ export default function SheetSyncPanel({
           inputMode="url"
         />
         <span className="mt-1 block text-xs text-slate-500">
-          取り込みたいタブを開いた状態のURLを貼ってください(#gid= でタブを見分けます)。
+          取り込みたいタブを開いた状態のURLを貼ってください。
+          URLに #gid= が含まれていればそのタブを、無ければ先頭のタブを読みます。
         </span>
       </label>
 

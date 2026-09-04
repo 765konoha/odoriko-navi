@@ -62,8 +62,14 @@ function jstMonthDay(iso: string): { month: number; day: number } {
 /** 画面を開くたびに読みに行かないための間隔 */
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
+/**
+ * 書き出し(CSV)のURL。
+ * gid が空なら付けない。先頭タブのgidは0とは限らず(フォームの回答シートに多い)、
+ * 存在しないタブを指すと Google は 400 を返すため。
+ */
 function sheetCsvUrl(sheetId: string, gid: string): string {
-  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  const base = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+  return gid.trim() === "" ? base : `${base}&gid=${gid}`;
 }
 
 /** 1つの祭りを同期する。結果の文言をそのまま last_result に残す。 */
@@ -75,12 +81,18 @@ async function syncFestival(
     redirect: "follow",
   });
   if (!res.ok) {
+    // 400 はタブ(gid)の指定違いで出ることが多い。原因ごとに案内を変える。
+    const hint =
+      res.status === 400
+        ? setting.gid.trim() === ""
+          ? "シートIDが正しいか確認してください。"
+          : `タブの指定(gid=${setting.gid})が違う可能性があります。` +
+            "取り込みたいタブを開いた状態のURLを貼り直してください。"
+        : "共有設定が「リンクを知っている全員が閲覧可」になっているか、" +
+          "シートIDが正しいか確認してください。";
     return {
       ok: false,
-      message:
-        `シートを読めませんでした(HTTP ${res.status})。` +
-        `共有設定が「リンクを知っている全員が閲覧可」になっているか、` +
-        `シートIDとgidが正しいか確認してください。`,
+      message: `シートを読めませんでした(HTTP ${res.status})。${hint}`,
     };
   }
   const csv = await res.text();
