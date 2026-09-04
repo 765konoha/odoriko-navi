@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { useFestivalData } from "../../context/FestivalDataContext";
 import { useUser } from "../../context/UserContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
 import { useNow } from "../../hooks/useNow";
 import { useSheetAutoRefresh } from "../../hooks/useSheetAutoRefresh";
 import {
   isPastRehearsal,
-  listAllAttendances,
-  listMyAttendances,
-  listRehearsals,
+  loadRehearsalBoard,
   venueMapUrl,
+  type RehearsalBoard,
 } from "../../lib/rehearsals";
 import {
   ATTENDANCE_BADGE_CLASS,
@@ -93,12 +91,14 @@ function AttendanceBreakdown({
 
 function RehearsalCard({
   rehearsal,
+  festivalName,
   attendance,
   past,
   all,
   nameBySerial,
 }: {
   rehearsal: Rehearsal;
+  festivalName: string | null;
   attendance: Attendance | undefined;
   past: boolean;
   all: Attendance[];
@@ -138,6 +138,11 @@ function RehearsalCard({
       <p className="mt-1 text-base font-bold text-slate-800">
         {rehearsal.venueName}
       </p>
+      {festivalName && (
+        <p className="mt-0.5 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+          {festivalName}
+        </p>
+      )}
       {rehearsal.title.trim() !== "" && (
         <p className="text-sm text-slate-600">{rehearsal.title}</p>
       )}
@@ -199,44 +204,24 @@ function RehearsalCard({
 }
 
 export default function RehearsalPage() {
-  const { data } = useFestivalData();
   const { selection } = useUser();
   const { requestChange } = useUserSelect();
   const now = useNow(60_000);
-  const festivalId = data?.festival.id ?? null;
   const serial = selection?.serial ?? null;
 
-  const [rehearsals, setRehearsals] = useState<Rehearsal[] | null>(null);
-  const [mine, setMine] = useState<Map<string, Attendance>>(new Map());
-  const [all, setAll] = useState<Attendance[]>([]);
+  const [board, setBoard] = useState<RehearsalBoard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
 
   const [reloadKey, setReloadKey] = useState(0);
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
-  // シートと同期している祭りなら、画面を開いたときに古ければ読み直す
-  const { refreshing } = useSheetAutoRefresh(festivalId, reload);
 
   useEffect(() => {
-    if (!festivalId) return;
     let cancelled = false;
     void (async () => {
       try {
-        const list = await listRehearsals(festivalId);
-        if (cancelled) return;
-        setRehearsals(list);
-        const everyone = await listAllAttendances(list.map((r) => r.id));
-        if (cancelled) return;
-        setAll(everyone);
-        if (serial) {
-          const map = await listMyAttendances(
-            serial,
-            list.map((r) => r.id),
-          );
-          if (!cancelled) setMine(map);
-        } else {
-          setMine(new Map());
-        }
+        const loaded = await loadRehearsalBoard(serial);
+        if (!cancelled) setBoard(loaded);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "読み込みに失敗しました");
@@ -246,27 +231,40 @@ export default function RehearsalPage() {
     return () => {
       cancelled = true;
     };
-  }, [festivalId, serial, reloadKey]);
+  }, [serial, reloadKey]);
 
-  // 名前は祭りの参加者から引く(ニックネームがあればそちらを使う)
-  const nameBySerial = new Map(
-    (data?.participants ?? []).map((p) => [p.serial, p.nickname || p.name]),
-  );
+  const rehearsals = board?.rehearsals ?? null;
+  const upcoming = (rehearsals ?? []).filter((r) => !isPastRehearsal(r, now));
+  const past = (rehearsals ?? []).filter((r) => isPastRehearsal(r, now));
+
+  // シートと同期している祭りなら、画面を開いたときに古ければ読み直す。
+  // これから先のリハがある祭りだけを見る(終わった祭りは読み直しても変わらない)
+  const activeFestivalIds = [...new Set(upcoming.map((r) => r.festivalId))];
+  const { refreshing } = useSheetAutoRefresh(activeFestivalIds, reload);
+
   const byRehearsal = new Map<string, Attendance[]>();
-  for (const a of all) {
+  for (const a of board?.all ?? []) {
     byRehearsal.set(a.rehearsalId, [...(byRehearsal.get(a.rehearsalId) ?? []), a]);
   }
 
-  const upcoming = (rehearsals ?? []).filter((r) => !isPastRehearsal(r, now));
-  const past = (rehearsals ?? []).filter((r) => isPastRehearsal(r, now));
+  function cardProps(r: Rehearsal) {
+    return {
+      rehearsal: r,
+      festivalName: board?.festivalNameById.get(r.festivalId) ?? null,
+      attendance: board?.mine.get(r.id),
+      all: byRehearsal.get(r.id) ?? [],
+      // 未回答が誰かは祭りごとの名簿で決まる
+      nameBySerial: board?.rosterByFestival.get(r.festivalId) ?? new Map(),
+    };
+  }
 
   return (
     <div className="space-y-4 px-4 py-4">
       <h1 className="text-xl font-bold">リハ予定</h1>
 
-      {data && (
-        <p className="text-sm text-slate-500">{data.festival.name}</p>
-      )}
+      <p className="text-sm text-slate-500">
+        参加する祭りに関わらず、これからのリハをまとめて表示しています。
+      </p>
 
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
@@ -307,14 +305,7 @@ export default function RehearsalPage() {
 
       <div className="space-y-2">
         {upcoming.map((r) => (
-          <RehearsalCard
-            key={r.id}
-            rehearsal={r}
-            attendance={mine.get(r.id)}
-            past={false}
-            all={byRehearsal.get(r.id) ?? []}
-            nameBySerial={nameBySerial}
-          />
+          <RehearsalCard key={r.id} {...cardProps(r)} past={false} />
         ))}
       </div>
 
@@ -336,14 +327,7 @@ export default function RehearsalPage() {
           {showPast && (
             <div className="space-y-2">
               {past.map((r) => (
-                <RehearsalCard
-                  key={r.id}
-                  rehearsal={r}
-                  attendance={mine.get(r.id)}
-                  past
-                  all={byRehearsal.get(r.id) ?? []}
-                  nameBySerial={nameBySerial}
-                />
+                <RehearsalCard key={r.id} {...cardProps(r)} past />
               ))}
             </div>
           )}
