@@ -28,6 +28,7 @@ export default function PropsPage() {
   const [serials, setSerials] = useState<string[]>(() => loadSerialListCache());
   const [data, setData] = useState<PropUserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [changingId, setChangingId] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export default function PropsPage() {
     setLoading(true);
     try {
       setData(await loadPropUserData(serial));
+      setLoadedAt(new Date());
       setError(null);
     } catch {
       setError("小道具の情報を取得できませんでした。通信環境を確認してください。");
@@ -149,7 +151,11 @@ export default function PropsPage() {
     <div className="space-y-4 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">小道具リレー</h1>
-        <RefreshIndicator />
+        <RefreshIndicator
+          refreshing={loading}
+          lastUpdated={loadedAt}
+          onRefresh={() => void load()}
+        />
       </div>
 
       <p className="rounded-xl bg-white px-4 py-2.5 text-sm text-slate-600">

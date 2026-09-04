@@ -195,9 +195,14 @@ export function saveSerialListCache(serials: string[]): void {
 
 const APP_MODE_KEY = "odoriko:appMode";
 
-/** 通常モード(日常運用)/ 祭りモード(祭り当日)。表示の切替のみでデータは共通 */
+/** 通常モード(日常運用)/ 祭りモード(祭り当日) */
 export type AppMode = "normal" | "festival";
 
+/**
+ * 以前の版が保存していたモード。
+ * 今はどちらのモードかはURL(/ か /f/:slug か)で決まるため、
+ * 旧URLからの引き取り先を決めるためだけに読む。書き込みはもう行わない。
+ */
 export function loadAppMode(): AppMode {
   try {
     return localStorage.getItem(APP_MODE_KEY) === "normal"
@@ -205,13 +210,5 @@ export function loadAppMode(): AppMode {
       : "festival";
   } catch {
     return "festival";
-  }
-}
-
-export function saveAppMode(mode: AppMode): void {
-  try {
-    localStorage.setItem(APP_MODE_KEY, mode);
-  } catch {
-    // ストレージ不可でも動作継続
   }
 }

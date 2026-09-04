@@ -1,7 +1,5 @@
 import type { Attendance, Rehearsal } from "../../types/rehearsal";
 import type { ImportRow } from "../../lib/attendanceImport";
-import { kochi2026 } from "./kochi2026";
-import { harajuku2026 } from "./harajuku2026";
 
 // Supabase 未設定(mock モード)でリハ画面を動かすための、メモリ上のダミーデータ。
 // 本番では supabase 側が使われるため、ここは開発時の確認専用。
@@ -111,22 +109,6 @@ export function mockListRehearsals(id: string): Rehearsal[] {
 /** 祭りを問わない一覧(踊り子の画面はどの祭りのリハもまとめて出す) */
 export function mockListAllRehearsals(): Rehearsal[] {
   return [...rehearsals].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
-}
-
-/** 祭りごとの名簿(シリアル → 表示名)。未回答を数えるのに使う */
-export function mockRosters(
-  festivalIds: string[],
-): Map<string, Map<string, string>> {
-  const wanted = new Set(festivalIds);
-  const result = new Map<string, Map<string, string>>();
-  for (const f of [kochi2026, harajuku2026]) {
-    if (!wanted.has(f.festival.id)) continue;
-    result.set(
-      f.festival.id,
-      new Map(f.participants.map((p) => [p.serial, p.nickname || p.name])),
-    );
-  }
-  return result;
 }
 
 /** 全リハの出欠(踊り子の画面は祭りをまたいでまとめて読む) */

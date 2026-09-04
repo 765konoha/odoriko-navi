@@ -1,27 +1,27 @@
-import { Link, useParams } from "react-router-dom";
-import { useViewer } from "../../hooks/useViewer";
-import { viewerLabel } from "../../lib/audience";
-import ModeSwitchCard from "../../components/layout/ModeSwitchCard";
+import { Link } from "react-router-dom";
+import { useUser } from "../../context/UserContext";
+import { displayLabel, useDisplayNames } from "../../hooks/useDisplayNames";
+import { ToFestivalModeCard } from "../../components/layout/ModeSwitchCard";
 import PropRelayCard from "../../components/props/PropRelayCard";
 import NextRehearsalCard from "../../components/rehearsal/NextRehearsalCard";
 import { useUserSelect } from "../../hooks/useUserSelect";
 
-/** 通常モード(日常運用)のホーム */
+/** 通常モード(日常運用)のホーム。祭りには紐づかない */
 export default function NormalHomePage() {
-  const { festivalSlug } = useParams();
   const { requestChange } = useUserSelect();
-  const viewer = useViewer();
+  const { selection } = useUser();
+  const { names } = useDisplayNames();
 
   return (
     <div className="space-y-4 px-4 py-4">
       <h1 className="text-lg font-bold text-slate-700">踊り子ナビ</h1>
 
-      <ModeSwitchCard />
+      <ToFestivalModeCard />
 
       <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5">
         <span className="text-sm text-slate-500">利用者</span>
         <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
-          {viewerLabel(viewer)}
+          {displayLabel(selection?.serial ?? null, names)}
         </span>
         <button
           type="button"
@@ -32,9 +32,9 @@ export default function NormalHomePage() {
         </button>
       </div>
 
-      <PropRelayCard slug={festivalSlug!} />
+      <PropRelayCard to="/props" />
 
-      <NextRehearsalCard slug={festivalSlug!} />
+      <NextRehearsalCard />
 
       <footer className="pt-6 pb-2 text-center">
         <Link to="/admin" className="text-xs text-slate-400 underline">

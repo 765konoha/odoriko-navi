@@ -5,7 +5,7 @@ import { activeAnnouncements } from "../../lib/announcements";
 import { formatTime, toDateString, todayString } from "../../lib/time";
 import PriorityBadge from "../../components/announcements/PriorityBadge";
 import PushToggle from "../../components/announcements/PushToggle";
-import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { FestivalRefreshIndicator } from "../../components/layout/RefreshIndicator";
 import { useViewer } from "../../hooks/useViewer";
 import { visibleAnnouncements } from "../../lib/audience";
 
@@ -35,7 +35,7 @@ export default function AnnouncementsPage() {
     <div className="space-y-4 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">お知らせ</h1>
-        <RefreshIndicator />
+        <FestivalRefreshIndicator />
       </div>
 
       <PushToggle />

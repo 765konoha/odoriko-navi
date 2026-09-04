@@ -176,7 +176,7 @@ function AnnouncementForm({
                   title: input.title,
                   body: input.body,
                   // 通知タップでこのお知らせの詳細を開く
-                  url: `${import.meta.env.BASE_URL}#/${festivalSlug}/announcements/${newId}`,
+                  url: `${import.meta.env.BASE_URL}#/f/${festivalSlug}/announcements/${newId}`,
                   // 配信対象のシリアルにのみ通知(null=全端末)
                   serials,
                 },

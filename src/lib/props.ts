@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { mockDisplayNames } from "../data/mock/participants";
 import { formatDateLabel, toDateString } from "./time";
 import type {
   PropAssignment,
@@ -134,7 +135,7 @@ export async function listTransfersOfItem(
 /** シリアル → 最新のニックネーム(取得できない場合はシリアルのみ表示する) */
 export async function loadDisplayNames(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  if (!supabase) return map;
+  if (!supabase) return mockDisplayNames();
   const { data, error } = await supabase
     .from("participant_display")
     .select("serial, nickname");

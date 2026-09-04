@@ -153,7 +153,7 @@ export default function FestivalForm({
         />
         <span className="mt-1 block text-xs text-slate-500">
           半角の小文字英数字とハイフン。踊り子に共有するURLが
-          「…/#/{slug.trim() || "harajuku-2026"}」になります。
+          「…/#/f/{slug.trim() || "harajuku-2026"}」になります。
           {festival && "変更すると共有済みのURLが無効になるので注意。"}
         </span>
       </label>

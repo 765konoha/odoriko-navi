@@ -14,7 +14,7 @@ import { useWeather } from "../../hooks/useWeather";
 import { weatherMeta } from "../../lib/weather";
 import { formatDateLabel } from "../../lib/time";
 import ScheduleItemCard from "../../components/schedule/ScheduleItemCard";
-import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { FestivalRefreshIndicator } from "../../components/layout/RefreshIndicator";
 import { useViewer } from "../../hooks/useViewer";
 import { visibleScheduleItems } from "../../lib/audience";
 
@@ -60,7 +60,7 @@ export default function SchedulePage() {
     <div className="space-y-4 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">スケジュール</h1>
-        <RefreshIndicator />
+        <FestivalRefreshIndicator />
       </div>
 
       {days.length > 1 && (

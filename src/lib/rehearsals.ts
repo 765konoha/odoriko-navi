@@ -3,8 +3,8 @@ import type { Attendance, AttendanceStatus, Rehearsal } from "../types/rehearsal
 import {
   mockListAllAttendances,
   mockListAllRehearsals,
-  mockRosters,
 } from "../data/mock/rehearsals";
+import { mockRosters } from "../data/mock/participants";
 import { repository } from "../repositories";
 import { formatDuration, minutesUntil, toDateString } from "./time";
 

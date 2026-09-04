@@ -28,7 +28,7 @@ import { visibleScheduleItems } from "../../lib/audience";
 import { autoCompleteEnabled, isItemDone } from "../../lib/schedule";
 import LocationDetailCard from "../../components/map/LocationDetailCard";
 import VenueRouteCard from "../../components/map/VenueRouteCard";
-import RefreshIndicator from "../../components/layout/RefreshIndicator";
+import { FestivalRefreshIndicator } from "../../components/layout/RefreshIndicator";
 
 /** 予定カードからの遷移・現在地表示で使う拡大率 */
 const FOCUS_ZOOM = 18;
@@ -313,7 +313,7 @@ export default function MapPage() {
           演舞会場
         </label>
         <div className="ml-auto shrink-0 self-center">
-          <RefreshIndicator />
+          <FestivalRefreshIndicator />
         </div>
       </div>
 

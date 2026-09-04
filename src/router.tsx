@@ -1,6 +1,4 @@
 import { createHashRouter, Navigate } from "react-router-dom";
-import { DEFAULT_FESTIVAL_SLUG } from "./config";
-import { loadLastFestivalSlug } from "./lib/storage";
 import DancerLayout from "./components/layout/DancerLayout";
 import SchedulePage from "./pages/dancer/SchedulePage";
 import MapPage from "./pages/dancer/MapPage";
@@ -21,21 +19,27 @@ import FestivalListPage from "./pages/admin/festival/FestivalListPage";
 import RehearsalAdminPage from "./pages/admin/rehearsal/RehearsalAdminPage";
 import FestivalSettingsPage from "./pages/admin/festival/FestivalSettingsPage";
 import LegacyAdminRedirect from "./pages/admin/LegacyAdminRedirect";
-import HomeSwitcher from "./pages/HomeSwitcher";
+import HomePage from "./pages/dancer/HomePage";
+import NormalLayout from "./components/layout/NormalLayout";
+import NormalHomePage from "./pages/normal/NormalHomePage";
 import RehearsalPage from "./pages/normal/RehearsalPage";
 import PropsPage from "./pages/props/PropsPage";
-
-// 最後に表示した祭りがあればそこへ(初回はデフォルトの祭りへ)
-function RootRedirect() {
-  const slug = loadLastFestivalSlug() ?? DEFAULT_FESTIVAL_SLUG;
-  return <Navigate to={`/${slug}`} replace />;
-}
+import FestivalSelectPage from "./pages/FestivalSelectPage";
+import LegacyDancerRedirect from "./pages/LegacyDancerRedirect";
 
 export const router = createHashRouter([
+  // 通常モード(日常運用)。祭りには紐づかない
   {
     path: "/",
-    element: <RootRedirect />,
+    element: <NormalLayout />,
+    children: [
+      { index: true, element: <NormalHomePage /> },
+      { path: "rehearsal", element: <RehearsalPage /> },
+      { path: "props", element: <PropsPage /> },
+    ],
   },
+  // 祭りモードに入るときだけ祭りを選ぶ
+  { path: "/festivals", element: <FestivalSelectPage /> },
   { path: "/admin/login", element: <AdminLoginPage /> },
   {
     path: "/admin",
@@ -79,26 +83,25 @@ export const router = createHashRouter([
       { path: "festivals", element: <Navigate to="/admin" replace /> },
     ],
   },
+  // 祭りモード(祭り当日)。操作対象は URL の slug で決まる
   {
-    path: "/:festivalSlug",
+    path: "/f/:festivalSlug",
     element: <DancerLayout />,
     children: [
-      // ホームは選択中のモード(通常/祭り)で切り替える
-      { index: true, element: <HomeSwitcher /> },
+      { index: true, element: <HomePage /> },
       { path: "schedule", element: <SchedulePage /> },
-      // 通常モードの画面(小道具は両モード共通)
-      { path: "rehearsal", element: <RehearsalPage /> },
-      { path: "props", element: <PropsPage /> },
       { path: "map", element: <MapPage /> },
       { path: "announcements", element: <AnnouncementsPage /> },
       {
         path: "announcements/:announcementId",
         element: <AnnouncementDetailPage />,
       },
+      // 小道具は祭りに紐づかないが、祭りモードのホームからも入れる
+      { path: "props", element: <PropsPage /> },
     ],
   },
-  {
-    path: "*",
-    element: <RootRedirect />,
-  },
+  // 旧URL(/:festivalSlug/...)の引き取り
+  { path: "/:festivalSlug", element: <LegacyDancerRedirect /> },
+  { path: "/:festivalSlug/*", element: <LegacyDancerRedirect /> },
+  { path: "*", element: <Navigate to="/" replace /> },
 ]);

@@ -89,7 +89,7 @@ export default function TodayTimeline({
                     <span className="mt-1 flex gap-1.5">
                       {meetingLocation && (
                         <Link
-                          to={`/${festivalSlug}/map?loc=${meetingLocation.id}`}
+                          to={`/f/${festivalSlug}/map?loc=${meetingLocation.id}`}
                           className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700"
                         >
                           📍 集合場所
@@ -97,7 +97,7 @@ export default function TodayTimeline({
                       )}
                       {item.venueRouteId && (
                         <Link
-                          to={`/${festivalSlug}/map?route=${item.venueRouteId}`}
+                          to={`/f/${festivalSlug}/map?route=${item.venueRouteId}`}
                           className="rounded bg-[#eef3d4] px-2 py-0.5 text-[11px] font-bold text-[#005D4D]"
                         >
                           🚩 演舞会場
