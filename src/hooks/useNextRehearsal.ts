@@ -24,7 +24,8 @@ export interface NextRehearsalState {
 
 /**
  * ホームに出す「次のリハ」。
- * リハは祭りをまたいで続くので、選んでいる祭りで絞らずに一番近いものを出す。
+ * リハは祭りをまたいで続くので、自分が参加する祭りのうち一番近いものを出す
+ * (画面で選んでいる祭りでは絞らない)。
  * 中止のリハは飛ばす(行く先として案内するものではないため)。
  * 取得はシリアルが変わったときだけ行い、
  * 「次はどれか」は現在時刻から表示のたびに求める。
@@ -51,6 +52,7 @@ export function useNextRehearsal(): NextRehearsalState {
             rosterByFestival: new Map(),
             mine: new Map(),
             all: [],
+            filteredBySerial: serial != null,
           });
         }
       }

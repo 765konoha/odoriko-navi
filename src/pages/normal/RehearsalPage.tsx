@@ -263,7 +263,7 @@ export default function RehearsalPage() {
       <h1 className="text-xl font-bold">リハ予定</h1>
 
       <p className="text-sm text-slate-500">
-        参加する祭りに関わらず、これからのリハをまとめて表示しています。
+        参加している祭りのリハを、祭りをまたいでまとめて表示しています。
       </p>
 
       {error && (
@@ -299,7 +299,9 @@ export default function RehearsalPage() {
 
       {rehearsals != null && rehearsals.length === 0 && (
         <p className="rounded-xl bg-white p-4 text-slate-600">
-          リハの予定はまだ登録されていません。
+          {board?.filteredBySerial
+            ? "参加しているお祭りのリハは登録されていません。"
+            : "リハの予定はまだ登録されていません。"}
         </p>
       )}
 
