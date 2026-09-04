@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { FestivalOfflineBanner } from "./OfflineBanner";
-import FestivalSwitcher from "./FestivalSwitcher";
+import { FestivalHeaderName } from "./FestivalPicker";
 import UserSelectScreen from "../user/UserSelectScreen";
 import {
   FestivalDataProvider,
@@ -85,7 +85,7 @@ export default function DancerLayout() {
         <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-slate-100">
           <FestivalOfflineBanner />
           {/* iPhoneのPWAはブラウザの戻るUIが無いため、最上部に戻る導線を常設する。
-              右側に祭り切替のプルダウンを置く */}
+              右側は見ている祭りの表示のみ(切替はホームのカードで行う) */}
           <div className="flex w-full items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
             {canGoBack ? (
               <button
@@ -109,7 +109,7 @@ export default function DancerLayout() {
             ) : (
               <span className="min-w-0 flex-1 py-0.5" />
             )}
-            <FestivalSwitcher slug={festivalSlug!} />
+            <FestivalHeaderName />
           </div>
           {showUserSelect ? (
             <FestivalUserSelect />

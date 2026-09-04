@@ -24,7 +24,6 @@ import NormalLayout from "./components/layout/NormalLayout";
 import NormalHomePage from "./pages/normal/NormalHomePage";
 import RehearsalPage from "./pages/normal/RehearsalPage";
 import PropsPage from "./pages/props/PropsPage";
-import FestivalSelectPage from "./pages/FestivalSelectPage";
 import LegacyDancerRedirect from "./pages/LegacyDancerRedirect";
 
 export const router = createHashRouter([
@@ -38,8 +37,6 @@ export const router = createHashRouter([
       { path: "props", element: <PropsPage /> },
     ],
   },
-  // 祭りモードに入るときだけ祭りを選ぶ
-  { path: "/festivals", element: <FestivalSelectPage /> },
   { path: "/admin/login", element: <AdminLoginPage /> },
   {
     path: "/admin",
