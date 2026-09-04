@@ -23,6 +23,7 @@ export default function SheetSyncPanel({
 }) {
   const [sync, setSync] = useState<SheetSync | null>(null);
   const [url, setUrl] = useState("");
+  const [gid, setGid] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -32,10 +33,10 @@ export default function SheetSyncPanel({
     const s = await getSheetSync(festivalId);
     setSync(s);
     if (s) {
-      setUrl(
-        `https://docs.google.com/spreadsheets/d/${s.sheetId}/edit` +
-          (s.gid ? `#gid=${s.gid}` : ""),
-      );
+      // タブの指定はURLに混ぜず、下のチェックで扱う。
+      // #gid= が付いたまま保存し直すと、使えない指定が残り続けるため。
+      setUrl(`https://docs.google.com/spreadsheets/d/${s.sheetId}/edit`);
+      setGid(s.gid);
       setEnabled(s.enabled);
     }
   }, [festivalId]);
@@ -54,7 +55,13 @@ export default function SheetSyncPanel({
     setError(null);
     setMessage(null);
     try {
-      await saveSheetSync(festivalId, parsed.sheetId, parsed.gid, enabled);
+      // URLに #gid= があればそれを、無ければ画面で保持している指定を使う
+      await saveSheetSync(
+        festivalId,
+        parsed.sheetId,
+        parsed.gid || gid,
+        enabled,
+      );
       await load();
       setMessage("保存しました。");
     } catch (e) {
@@ -121,6 +128,24 @@ export default function SheetSyncPanel({
           URLに #gid= が含まれていればそのタブを、無ければ先頭のタブを読みます。
         </span>
       </label>
+
+      {gid !== "" && (
+        <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3">
+          <input
+            type="checkbox"
+            checked={gid !== ""}
+            onChange={(e) => !e.target.checked && setGid("")}
+            className="mt-0.5 h-5 w-5"
+          />
+          <span className="text-sm text-slate-700">
+            タブを指定して読む(gid={gid})
+            <span className="mt-0.5 block text-xs text-slate-500">
+              外すと先頭のタブを読みます。指定したタブが無いと読み取りに失敗するので、
+              うまくいかないときは外してください。
+            </span>
+          </span>
+        </label>
+      )}
 
       <label className="flex items-center gap-2">
         <input
