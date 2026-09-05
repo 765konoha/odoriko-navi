@@ -51,7 +51,7 @@ export default function RehearsalNoteImport({
     if (rows.length === 0) {
       setDrafts(null);
       setError(
-        "リハの予定が見つかりませんでした。「9/5土 18:00〜21:30」のように、月日ではじまる行が必要です。",
+        "リハの予定が見つかりませんでした。「9/5土 18:00〜21:30」のように、月日ではじまる行が必要です。「リハ」を含む見出しがある場合は、その見出しから下だけを読み取ります。",
       );
       return;
     }
@@ -261,12 +261,24 @@ export default function RehearsalNoteImport({
         LINEのノートから読み取る
       </h2>
       <p className="text-xs leading-relaxed text-slate-500">
-        ノートの本文をそのまま貼り付けてください。「リハーサル」の見出しがあれば、
-        その部分だけを読み取ります。読み取った内容はこの画面で直せます。
+        ノートの本文をそのまま貼り付けてください。読み取った内容はこの画面で直せます。
         1つのノートに複数の祭りのリハが載っていることがあります。
         ここで登録されるのは「{festivalName}」なので、
         別の祭りのまとまりはチェックを外してください。
       </p>
+
+      {/* 読み取る範囲は「リハ」を含む見出しで決まる。
+          ここを外すと本番や締切の日付まで候補に出るため、先に伝えておく */}
+      <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+        <p className="font-bold">「リハ」を含む見出しが目印です</p>
+        <p className="mt-0.5">
+          「🔸リハーサル」「🔸リハーサル日」のように
+          <span className="font-bold">「リハ」を含む見出し</span>
+          があると、そこから下だけを読み取ります。
+          見出しが無いとノート全体を読むため、本番や締切の日付も候補に出ます。
+          その場合はリハの部分だけを切り取って貼るか、いらない行のチェックを外してください。
+        </p>
+      </div>
 
       <textarea
         value={text}
