@@ -28,15 +28,18 @@ function findSameDay(
 
 export default function RehearsalNoteImport({
   festivalId,
+  festivalName,
   rehearsals,
   onDone,
 }: {
   festivalId: string;
+  festivalName: string;
   rehearsals: Rehearsal[];
   onDone: () => void;
 }) {
   const [text, setText] = useState("");
   const [drafts, setDrafts] = useState<Draft[] | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string[] | null>(null);
@@ -48,7 +51,7 @@ export default function RehearsalNoteImport({
     if (rows.length === 0) {
       setDrafts(null);
       setError(
-        "リハの予定が見つかりませんでした。「9/5土 18:00〜21:30」のように、月日ではじまる行が必要です。",
+        "リハの予定が見つかりませんでした。「9/5土 18:00〜21:30」のように、月日ではじまる行が必要です。「リハ」を含む見出しがある場合は、その見出しから下だけを読み取ります。",
       );
       return;
     }
@@ -72,6 +75,30 @@ export default function RehearsalNoteImport({
       return missing.length > 0 ? [{ index: i, missing }] : [];
     });
   }, [drafts]);
+
+  // 1つのノートに複数の祭りのリハが載ることがあるため、まとまりごとに出す
+  const groups = useMemo(() => {
+    if (!drafts) return [];
+    const order: string[] = [];
+    const byGroup = new Map<string, number[]>();
+    drafts.forEach((d, i) => {
+      const list = byGroup.get(d.group);
+      if (list) {
+        list.push(i);
+      } else {
+        byGroup.set(d.group, [i]);
+        order.push(d.group);
+      }
+    });
+    return order.map((name) => ({ name, indexes: byGroup.get(name)! }));
+  }, [drafts]);
+
+  function setGroupInclude(indexes: number[], include: boolean) {
+    const target = new Set(indexes);
+    setDrafts((prev) =>
+      prev ? prev.map((d, i) => (target.has(i) ? { ...d, include } : d)) : prev,
+    );
+  }
 
   const targets = drafts?.filter((d) => d.include) ?? [];
   const canSave = targets.length > 0 && problems.length === 0 && !saving;
@@ -110,15 +137,148 @@ export default function RehearsalNoteImport({
     }
   }
 
+  function renderDraft(d: Draft, i: number) {
+          const sameDay = findSameDay(d, rehearsals);
+          const problem = problems.find((p) => p.index === i);
+          return (
+            <div
+              key={i}
+              className={`rounded-lg p-3 ${d.include ? "bg-slate-50" : "bg-slate-100 opacity-60"}`}
+            >
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={d.include}
+                  onChange={(e) => update(i, { include: e.target.checked })}
+                  className="mt-1 size-4"
+                />
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
+                  {d.sourceLine}
+                </span>
+              </label>
+
+              {sameDay && d.include && (
+                <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                  同じ日に「{rehearsalLabel(sameDay)}」が既に登録されています。
+                  重複して登録されないよう、チェックを外すか内容を確認してください。
+                </p>
+              )}
+
+              {d.include && (
+                <div className="mt-2 space-y-2">
+                  <label className="block">
+                    <span className={labelClass}>日付 *</span>
+                    <input
+                      type="date"
+                      value={d.date}
+                      onChange={(e) => update(i, { date: e.target.value })}
+                      className={inputClass}
+                    />
+                  </label>
+
+                  {/* 端末のロケールによっては AM/PM が付くため、時刻は2つで1行使う */}
+                  <div className="flex gap-2">
+                    <label className="block min-w-0 flex-1">
+                      <span className={labelClass}>開始 *</span>
+                      <input
+                        type="time"
+                        value={d.startTime ?? ""}
+                        onChange={(e) =>
+                          update(i, { startTime: e.target.value || null })
+                        }
+                        className={inputClass}
+                      />
+                    </label>
+                    <label className="block min-w-0 flex-1">
+                      <span className={labelClass}>終了</span>
+                      <input
+                        type="time"
+                        value={d.endTime ?? ""}
+                        onChange={(e) =>
+                          update(i, { endTime: e.target.value || null })
+                        }
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+
+                  <label className="block">
+                    <span className={labelClass}>会場名 *</span>
+                    <input
+                      value={d.venueName}
+                      onChange={(e) =>
+                        update(i, { venueName: e.target.value })
+                      }
+                      className={`${inputClass} ${d.venueName.trim() === "" ? "border-red-400" : ""}`}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className={labelClass}>会場のURL</span>
+                    <input
+                      value={d.venueUrl ?? ""}
+                      onChange={(e) =>
+                        update(i, { venueUrl: e.target.value || null })
+                      }
+                      className={`${inputClass} text-xs`}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className={labelClass}>目的・内容(任意)</span>
+                    <input
+                      value={d.title}
+                      onChange={(e) => update(i, { title: e.target.value })}
+                      placeholder="踊りこみ、固め"
+                      className={inputClass}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className={labelClass}>特記事項</span>
+                    <textarea
+                      value={d.note}
+                      onChange={(e) => update(i, { note: e.target.value })}
+                      rows={2}
+                      className={`${inputClass} text-sm`}
+                    />
+                  </label>
+
+                  {problem && (
+                    <p className="text-xs font-bold text-red-600">
+                      {problem.missing.join("・")}が空です
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+  }
+
   return (
     <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
       <h2 className="text-base font-bold text-slate-800">
         LINEのノートから読み取る
       </h2>
       <p className="text-xs leading-relaxed text-slate-500">
-        ノートの本文をそのまま貼り付けてください。「リハーサル」の見出しがあれば、
-        その部分だけを読み取ります。読み取った内容はこの画面で直せます。
+        ノートの本文をそのまま貼り付けてください。読み取った内容はこの画面で直せます。
+        1つのノートに複数の祭りのリハが載っていることがあります。
+        ここで登録されるのは「{festivalName}」なので、
+        別の祭りのまとまりはチェックを外してください。
       </p>
+
+      {/* 読み取る範囲は「リハ」を含む見出しで決まる。
+          ここを外すと本番や締切の日付まで候補に出るため、先に伝えておく */}
+      <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+        <p className="font-bold">「リハ」を含む見出しが目印です</p>
+        <p className="mt-0.5">
+          「🔸リハーサル」「🔸リハーサル日」のように
+          <span className="font-bold">「リハ」を含む見出し</span>
+          があると、そこから下だけを読み取ります。
+          見出しが無いとノート全体を読むため、本番や締切の日付も候補に出ます。
+          その場合はリハの部分だけを切り取って貼るか、いらない行のチェックを外してください。
+        </p>
+      </div>
 
       <textarea
         value={text}
@@ -157,120 +317,32 @@ export default function RehearsalNoteImport({
             {drafts.length}件を読み取りました
           </p>
 
-          {drafts.map((d, i) => {
-            const sameDay = findSameDay(d, rehearsals);
-            const problem = problems.find((p) => p.index === i);
+          {groups.map((g) => {
+            const included = g.indexes.filter((i) => drafts[i].include).length;
             return (
-              <div
-                key={i}
-                className={`rounded-lg p-3 ${d.include ? "bg-slate-50" : "bg-slate-100 opacity-60"}`}
-              >
-                <label className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={d.include}
-                    onChange={(e) => update(i, { include: e.target.checked })}
-                    className="mt-1 size-4"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
-                    {d.sourceLine}
-                  </span>
-                </label>
-
-                {sameDay && d.include && (
-                  <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                    同じ日に「{rehearsalLabel(sameDay)}」が既に登録されています。
-                    重複して登録されないよう、チェックを外すか内容を確認してください。
-                  </p>
-                )}
-
-                {d.include && (
-                  <div className="mt-2 space-y-2">
-                    <label className="block">
-                      <span className={labelClass}>日付 *</span>
-                      <input
-                        type="date"
-                        value={d.date}
-                        onChange={(e) => update(i, { date: e.target.value })}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    {/* 端末のロケールによっては AM/PM が付くため、時刻は2つで1行使う */}
-                    <div className="flex gap-2">
-                      <label className="block min-w-0 flex-1">
-                        <span className={labelClass}>開始 *</span>
-                        <input
-                          type="time"
-                          value={d.startTime ?? ""}
-                          onChange={(e) =>
-                            update(i, { startTime: e.target.value || null })
-                          }
-                          className={inputClass}
-                        />
-                      </label>
-                      <label className="block min-w-0 flex-1">
-                        <span className={labelClass}>終了</span>
-                        <input
-                          type="time"
-                          value={d.endTime ?? ""}
-                          onChange={(e) =>
-                            update(i, { endTime: e.target.value || null })
-                          }
-                          className={inputClass}
-                        />
-                      </label>
-                    </div>
-
-                    <label className="block">
-                      <span className={labelClass}>会場名 *</span>
-                      <input
-                        value={d.venueName}
-                        onChange={(e) =>
-                          update(i, { venueName: e.target.value })
-                        }
-                        className={`${inputClass} ${d.venueName.trim() === "" ? "border-red-400" : ""}`}
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className={labelClass}>会場のURL</span>
-                      <input
-                        value={d.venueUrl ?? ""}
-                        onChange={(e) =>
-                          update(i, { venueUrl: e.target.value || null })
-                        }
-                        className={`${inputClass} text-xs`}
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className={labelClass}>目的・内容(任意)</span>
-                      <input
-                        value={d.title}
-                        onChange={(e) => update(i, { title: e.target.value })}
-                        placeholder="踊りこみ、固め"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className={labelClass}>特記事項</span>
-                      <textarea
-                        value={d.note}
-                        onChange={(e) => update(i, { note: e.target.value })}
-                        rows={2}
-                        className={`${inputClass} text-sm`}
-                      />
-                    </label>
-
-                    {problem && (
-                      <p className="text-xs font-bold text-red-600">
-                        {problem.missing.join("・")}が空です
-                      </p>
-                    )}
+              <div key={g.name} className="space-y-3">
+                {(groups.length > 1 || g.name !== "") && (
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2">
+                    <p className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">
+                      {g.name || "まとまりの指定なし"}
+                    </p>
+                    <span className="shrink-0 text-xs font-medium text-slate-500">
+                      {included}/{g.indexes.length}件
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setGroupInclude(g.indexes, included < g.indexes.length)
+                      }
+                      className="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-600"
+                    >
+                      {included < g.indexes.length
+                        ? "まとめて選ぶ"
+                        : "まとめて外す"}
+                    </button>
                   </div>
                 )}
+                {g.indexes.map((i) => renderDraft(drafts[i], i))}
               </div>
             );
           })}

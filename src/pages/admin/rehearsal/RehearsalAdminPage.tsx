@@ -118,6 +118,7 @@ export default function RehearsalAdminPage() {
       {noteImporting && (
         <RehearsalNoteImport
           festivalId={festival.id}
+          festivalName={festival.name}
           rehearsals={rehearsals}
           onDone={() => void load()}
         />
