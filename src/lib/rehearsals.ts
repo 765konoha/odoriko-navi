@@ -102,7 +102,7 @@ export async function loadRosters(
 
 /** 踊り子の画面が必要とするものを一度にまとめたもの */
 export interface RehearsalBoard {
-  /** 全祭りのリハ(開始時刻の昇順) */
+  /** 表示するリハ(開始時刻の昇順)。自分が参加する祭りのものだけ */
   rehearsals: Rehearsal[];
   /** リハに添える祭りの名前 */
   festivalNameById: Map<string, string>;
@@ -112,6 +112,11 @@ export interface RehearsalBoard {
   mine: Map<string, Attendance>;
   /** 全員の出欠 */
   all: Attendance[];
+  /**
+   * シリアルで祭りを絞ったか。
+   * 番号指定なしのときは誰の名簿とも照合できないため絞らない。
+   */
+  filteredBySerial: boolean;
 }
 
 export async function loadRehearsalBoard(
@@ -129,12 +134,21 @@ export async function loadRehearsalBoard(
       ? listMyAttendances(serial)
       : Promise.resolve(new Map<string, Attendance>()),
   ]);
+  // 自分が名簿に載っている祭りのリハだけを出す。
+  // 祭りをまたいで並べるが、参加していない祭りのリハまでは要らないため。
+  const visible = serial
+    ? rehearsals.filter(
+        (r) => rosterByFestival.get(r.festivalId)?.has(serial) ?? false,
+      )
+    : rehearsals;
+
   return {
-    rehearsals,
+    rehearsals: visible,
     festivalNameById: new Map(festivals.map((f) => [f.id, f.name])),
     rosterByFestival,
     mine,
     all,
+    filteredBySerial: serial != null,
   };
 }
 
