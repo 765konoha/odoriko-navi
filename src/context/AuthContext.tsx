@@ -8,12 +8,14 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { clearAdminCache } from "../lib/adminCache";
 
 interface AuthState {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  /** 成功したときだけ管理画面のキャッシュを消す。失敗は呼び出し側へ返す */
+  signOut: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -50,7 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error ? error.message : null };
       },
       async signOut() {
-        await supabase?.auth.signOut();
+        if (supabase) {
+          const { error } = await supabase.auth.signOut();
+          // 失敗したらログイン状態のままなので、キャッシュは消さない
+          if (error) return { error: error.message };
+        }
+        // 管理画面の下書き・一覧キャッシュだけを消す。
+        // 踊り子側の既読・利用者選択・祭りのスナップショットは残す
+        clearAdminCache();
+        return { error: null };
       },
     }),
     [session, loading],
