@@ -9,6 +9,8 @@ import {
 import { listAllTransfers } from "../../../lib/propsAdminApi";
 import { repository } from "../../../repositories";
 import { compareSerial } from "../../../lib/audience";
+import { AdminLoadError } from "../../../components/admin/AdminErrorNotice";
+import { LOAD_ERROR_MESSAGE, reportAdminError } from "../../../lib/adminError";
 import PropsDashboard from "./PropsDashboard";
 import PropItemsTab from "./PropItemsTab";
 import PropEventsTab from "./PropEventsTab";
@@ -59,23 +61,28 @@ export default function PropsAdminPage() {
     });
   }, []);
 
-  useEffect(() => {
+  // 再試行でも同じ流れを使う(エラーの詳細は画面に出さずログへ)
+  const runLoad = useCallback(() => {
     setLoading(true);
+    setError(null);
     void reload()
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "読み込みに失敗しました"),
-      )
+      .catch((err) => {
+        reportAdminError("props:load", err);
+        setError(LOAD_ERROR_MESSAGE);
+      })
       .finally(() => setLoading(false));
   }, [reload]);
+
+  useEffect(() => {
+    runLoad();
+  }, [runLoad]);
 
   if (loading) {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
   }
   if (error || !data) {
     return (
-      <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-        {error ?? "読み込みに失敗しました"}
-      </p>
+      <AdminLoadError message={error ?? LOAD_ERROR_MESSAGE} onRetry={runLoad} />
     );
   }
 
