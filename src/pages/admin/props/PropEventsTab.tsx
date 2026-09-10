@@ -3,6 +3,11 @@ import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropAssignment, PropEvent, PropEventKind } from "../../../types/props";
 import { PROP_EVENT_KINDS } from "../../../types/props";
 import { listAssignments, serialLabel } from "../../../lib/props";
+import { AdminActionError } from "../../../components/admin/AdminErrorNotice";
+import {
+  DELETE_ERROR_MESSAGE,
+  reportAdminError,
+} from "../../../lib/adminError";
 import {
   createPropEvent,
   deletePropEvent,
@@ -122,6 +127,8 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     void listFestivals()
@@ -160,12 +167,23 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
       )
     )
       return;
-    await deletePropEvent(event.id);
-    await data.reload();
+    setDeleteError(null);
+    setDeletingId(event.id);
+    try {
+      await deletePropEvent(event.id);
+      await data.reload(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("propEvents:delete", err);
+      setDeleteError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
     <div className="space-y-3">
+      {deleteError && <AdminActionError message={deleteError} />}
+
       {adding ? (
         <form
           onSubmit={handleAdd}
@@ -293,9 +311,10 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
               <button
                 type="button"
                 onClick={() => void handleDelete(event)}
-                className="mt-3 w-full rounded-lg border border-red-300 py-2 text-sm font-bold text-red-600"
+                disabled={deletingId === event.id}
+                className="mt-3 w-full rounded-lg border border-red-300 py-2 text-sm font-bold text-red-600 disabled:opacity-50"
               >
-                このイベントを削除
+                {deletingId === event.id ? "削除中…" : "このイベントを削除"}
               </button>
             </div>
           )}
