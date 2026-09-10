@@ -11,6 +11,7 @@ import { useLocation } from "react-router-dom";
 import type { FestivalData } from "../types/domain";
 import { repository } from "../repositories";
 import { loadDataCache, saveDataCache } from "../lib/storage";
+import { createRequestTracker } from "../lib/requestTracker";
 
 // タブ復帰などで連続発火した際の再取得間隔の下限
 const MIN_REFRESH_INTERVAL_MS = 10_000;
@@ -49,26 +50,43 @@ export function FestivalDataProvider({
   const [refreshing, setRefreshing] = useState(false);
   const [isStale, setIsStale] = useState(data != null);
   const lastFetchRef = useRef(0);
-  const inFlightRef = useRef(false);
+  // 祭りごとの取得を追う。祭りAの取得中にBへ切り替えたとき、
+  // あとから届いたAの結果をBの画面に入れないために使う
+  const trackerRef = useRef(createRequestTracker());
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const doFetch = useCallback(async () => {
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
+    const token = trackerRef.current.begin(slug);
+    if (token == null) return; // 同じ祭りの取得が動いているので待つ
+    // いまの画面に反映してよい取得か(古い取得・画面を離れたあとは触らない)
+    const isCurrent = () =>
+      mountedRef.current && trackerRef.current.isCurrent(token);
     setRefreshing(true);
     try {
       const result = await repository.loadFestivalData(slug);
+      // キャッシュは祭りごとに分かれているので、古い取得でも保存してよい
+      if (result) saveDataCache(slug, result);
+      if (!isCurrent()) return;
       setData(result);
       setLastUpdated(new Date());
       setIsStale(false);
       lastFetchRef.current = Date.now();
-      if (result) saveDataCache(slug, result);
     } catch {
       // 取得失敗時(オフライン等)は前回のデータを保持したまま
-      setIsStale(true);
+      if (isCurrent()) setIsStale(true);
     } finally {
-      inFlightRef.current = false;
-      setRefreshing(false);
-      setLoading(false);
+      // 古い取得の後始末で、新しい取得の loading/refreshing を解除しない
+      if (trackerRef.current.finish(token) && mountedRef.current) {
+        setRefreshing(false);
+        setLoading(false);
+      }
     }
   }, [slug]);
 
