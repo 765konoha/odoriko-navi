@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAdminFestival } from "../../../context/AdminFestivalContext";
 import { listParticipants } from "../../../lib/adminApi";
 import {
@@ -54,9 +54,22 @@ export default function RehearsalAdminPage() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const festivalId = festival?.id ?? null;
+  // 表示中の祭り(切替時に前の祭りの一覧・エラーを残さないための目印)
+  const shownForRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     if (!festivalId) return;
+    if (shownForRef.current !== festivalId) {
+      // この画面はキャッシュを持たないので、取得できるまで前の祭りの内容を出さない
+      shownForRef.current = festivalId;
+      setRehearsals([]);
+      setAttendances([]);
+      setParticipants([]);
+      setLoadError(null);
+      setActionError(null);
+      setLoaded(false);
+      setLoading(true);
+    }
     try {
       const [list, people] = await Promise.all([
         listRehearsalsForAdmin(festivalId),

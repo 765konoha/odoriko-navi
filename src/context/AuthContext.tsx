@@ -9,6 +9,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { clearAdminCache } from "../lib/adminCache";
+import { runSignOut } from "../lib/adminSignOut";
 
 interface AuthState {
   session: Session | null;
@@ -52,15 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error ? error.message : null };
       },
       async signOut() {
-        if (supabase) {
-          const { error } = await supabase.auth.signOut();
-          // 失敗したらログイン状態のままなので、キャッシュは消さない
-          if (error) return { error: error.message };
-        }
-        // 管理画面の下書き・一覧キャッシュだけを消す。
+        // 消してよいのは確かにログアウトできたときだけ。
+        // 消すのは管理画面の下書き・一覧キャッシュで、
         // 踊り子側の既読・利用者選択・祭りのスナップショットは残す
-        clearAdminCache();
-        return { error: null };
+        return runSignOut({
+          signOut: async () =>
+            supabase ? await supabase.auth.signOut() : { error: null },
+          clearCache: clearAdminCache,
+        });
       },
     }),
     [session, loading],

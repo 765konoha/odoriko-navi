@@ -6,6 +6,7 @@ import { listAssignments, serialLabel } from "../../../lib/props";
 import { AdminActionError } from "../../../components/admin/AdminErrorNotice";
 import {
   DELETE_ERROR_MESSAGE,
+  LOAD_ERROR_MESSAGE,
   reportAdminError,
 } from "../../../lib/adminError";
 import {
@@ -171,12 +172,19 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
     setDeletingId(event.id);
     try {
       await deletePropEvent(event.id);
-      await data.reload(); // 消せたときだけ読み直す
     } catch (err) {
       reportAdminError("propEvents:delete", err);
       setDeleteError(DELETE_ERROR_MESSAGE);
+      return;
     } finally {
       setDeletingId(null);
+    }
+    // ここから先は削除できている。読み直しの失敗を削除の失敗として出さない
+    try {
+      await data.reload();
+    } catch (err) {
+      reportAdminError("propEvents:reloadAfterDelete", err);
+      setDeleteError(LOAD_ERROR_MESSAGE);
     }
   }
 

@@ -516,6 +516,9 @@ export default function ScheduleAdminPage() {
     // 初回(または祭り切替時)は前回取得分を即表示し、裏で最新を取得する
     if (hydratedForRef.current !== festival.id) {
       hydratedForRef.current = festival.id;
+      // 前の祭りの結果を新しい祭りの画面に残さない
+      setLoadError(null);
+      setActionError(null);
       const cached = loadAdminCache<Cache>(festival.id, "schedule");
       if (cached) {
         setDays(cached.days);
