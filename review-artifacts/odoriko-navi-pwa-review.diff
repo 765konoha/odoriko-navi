@@ -1,0 +1,2424 @@
+diff --git a/package-lock.json b/package-lock.json
+index e9e1f52..d80acff 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -24,7 +24,8 @@
+         "tailwindcss": "^4.1.8",
+         "typescript": "^5.8.3",
+         "vite": "^6.3.5",
+-        "vite-plugin-pwa": "^1.3.0"
++        "vite-plugin-pwa": "^1.3.0",
++        "vitest": "^3.2.7"
+       },
+       "engines": {
+         "node": ">=20"
+@@ -2142,9 +2143,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2384,9 +2382,6 @@
+         "arm"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2401,9 +2396,6 @@
+         "arm"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2418,9 +2410,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2435,9 +2424,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2452,9 +2438,6 @@
+         "loong64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2469,9 +2452,6 @@
+         "loong64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2486,9 +2466,6 @@
+         "ppc64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2503,9 +2480,6 @@
+         "ppc64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2520,9 +2494,6 @@
+         "riscv64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2537,9 +2508,6 @@
+         "riscv64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2554,9 +2522,6 @@
+         "s390x"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2571,9 +2536,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2588,9 +2550,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2906,9 +2865,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2926,9 +2882,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2946,9 +2899,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -2966,9 +2916,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -3118,6 +3065,24 @@
+         "@babel/types": "^7.28.2"
+       }
+     },
++    "node_modules/@types/chai": {
++      "version": "5.2.3",
++      "resolved": "https://registry.npmjs.org/@types/chai/-/chai-5.2.3.tgz",
++      "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/deep-eql": "*",
++        "assertion-error": "^2.0.1"
++      }
++    },
++    "node_modules/@types/deep-eql": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@types/deep-eql/-/deep-eql-4.0.2.tgz",
++      "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/@types/estree": {
+       "version": "1.0.9",
+       "resolved": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
+@@ -3197,6 +3162,131 @@
+         "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+       }
+     },
++    "node_modules/@vitest/expect": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/expect/-/expect-3.2.7.tgz",
++      "integrity": "sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/chai": "^5.2.2",
++        "@vitest/spy": "3.2.7",
++        "@vitest/utils": "3.2.7",
++        "chai": "^5.2.0",
++        "tinyrainbow": "^2.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/@vitest/mocker": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/mocker/-/mocker-3.2.7.tgz",
++      "integrity": "sha512-Trr0hYO9CM3Wj6ksWHRhK9IZpIY6wTMO5u/MqXurMxT57sWBaOPEtP3Oq60ihZuh5JsiagKfz95OcxdEP6dBrA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/spy": "3.2.7",
++        "estree-walker": "^3.0.3",
++        "magic-string": "^0.30.17"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "msw": "^2.4.9",
++        "vite": "^5.0.0 || ^6.0.0 || ^7.0.0-0"
++      },
++      "peerDependenciesMeta": {
++        "msw": {
++          "optional": true
++        },
++        "vite": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@vitest/mocker/node_modules/estree-walker": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/estree-walker/-/estree-walker-3.0.3.tgz",
++      "integrity": "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/estree": "^1.0.0"
++      }
++    },
++    "node_modules/@vitest/pretty-format": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/pretty-format/-/pretty-format-3.2.7.tgz",
++      "integrity": "sha512-KUHlwqVu0sRlhCdyPdQ/wBoTfRahjUky1MubOmYw9fWfIZy1gNoHpuaaQBPAaMaVYdQYHJLurzj8ECCj5OwTqA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "tinyrainbow": "^2.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/@vitest/runner": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/runner/-/runner-3.2.7.tgz",
++      "integrity": "sha512-sB9y4ovltoQP+WaUPwmSxO9WIg9Ig694Di5PalVPsYHklAdE027mehpWF2SQSVq+k6sFgaivbTjTJwZLSHbedA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/utils": "3.2.7",
++        "pathe": "^2.0.3",
++        "strip-literal": "^3.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/@vitest/snapshot": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/snapshot/-/snapshot-3.2.7.tgz",
++      "integrity": "sha512-7C+MwShwtBSI5Buwoyg3s/iY1eHL9PKAf+O1wVh/TdnjXUtkoL/9YQtre90i4MtNXM6edP1wJ2zOBpfCyhIS7g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/pretty-format": "3.2.7",
++        "magic-string": "^0.30.17",
++        "pathe": "^2.0.3"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/@vitest/spy": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/spy/-/spy-3.2.7.tgz",
++      "integrity": "sha512-Q2eQGI6d2L/hBtZ0qNuKcAGid68XK6cv1xsoaIma6PaJhHPoqcEJhYpXZ/5myCMqkNgtP6UKuBhbc0nHKnrkuQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "tinyspy": "^4.0.3"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/@vitest/utils": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/@vitest/utils/-/utils-3.2.7.tgz",
++      "integrity": "sha512-x6BDOd7dyo3PFLY3I9/HJ25X/6OurhGXk2/B9gOZNPF7XDVjeBK4k01lQE5uvDpbuheErh91qYuE1E2OEjK3Rw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/pretty-format": "3.2.7",
++        "loupe": "^3.1.4",
++        "tinyrainbow": "^2.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
+     "node_modules/acorn": {
+       "version": "8.18.0",
+       "resolved": "https://registry.npmjs.org/acorn/-/acorn-8.18.0.tgz",
+@@ -3266,6 +3356,16 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/assertion-error": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/assertion-error/-/assertion-error-2.0.1.tgz",
++      "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12"
++      }
++    },
+     "node_modules/async": {
+       "version": "3.2.6",
+       "resolved": "https://registry.npmjs.org/async/-/async-3.2.6.tgz",
+@@ -3428,6 +3528,16 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/cac": {
++      "version": "6.7.14",
++      "resolved": "https://registry.npmjs.org/cac/-/cac-6.7.14.tgz",
++      "integrity": "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
+     "node_modules/call-bind": {
+       "version": "1.0.9",
+       "resolved": "https://registry.npmjs.org/call-bind/-/call-bind-1.0.9.tgz",
+@@ -3499,6 +3609,33 @@
+       ],
+       "license": "CC-BY-4.0"
+     },
++    "node_modules/chai": {
++      "version": "5.3.3",
++      "resolved": "https://registry.npmjs.org/chai/-/chai-5.3.3.tgz",
++      "integrity": "sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "assertion-error": "^2.0.1",
++        "check-error": "^2.1.1",
++        "deep-eql": "^5.0.1",
++        "loupe": "^3.1.0",
++        "pathval": "^2.0.0"
++      },
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/check-error": {
++      "version": "2.1.3",
++      "resolved": "https://registry.npmjs.org/check-error/-/check-error-2.1.3.tgz",
++      "integrity": "sha512-PAJdDJusoxnwm1VwW07VWwUN1sl7smmC3OKggvndJFadxxDRyFJBX/ggnu/KE4kQAB7a3Dp8f/YXC1FlUprWmA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 16"
++      }
++    },
+     "node_modules/commander": {
+       "version": "2.20.3",
+       "resolved": "https://registry.npmjs.org/commander/-/commander-2.20.3.tgz",
+@@ -3657,6 +3794,16 @@
+         }
+       }
+     },
++    "node_modules/deep-eql": {
++      "version": "5.0.2",
++      "resolved": "https://registry.npmjs.org/deep-eql/-/deep-eql-5.0.2.tgz",
++      "integrity": "sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
+     "node_modules/deepmerge": {
+       "version": "4.3.1",
+       "resolved": "https://registry.npmjs.org/deepmerge/-/deepmerge-4.3.1.tgz",
+@@ -3873,6 +4020,13 @@
+         "node": ">= 0.4"
+       }
+     },
++    "node_modules/es-module-lexer": {
++      "version": "1.7.0",
++      "resolved": "https://registry.npmjs.org/es-module-lexer/-/es-module-lexer-1.7.0.tgz",
++      "integrity": "sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/es-object-atoms": {
+       "version": "1.1.2",
+       "resolved": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz",
+@@ -4005,6 +4159,16 @@
+         "url": "https://github.com/bgub/eta?sponsor=1"
+       }
+     },
++    "node_modules/expect-type": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/expect-type/-/expect-type-1.4.0.tgz",
++      "integrity": "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=12.0.0"
++      }
++    },
+     "node_modules/fast-deep-equal": {
+       "version": "3.1.3",
+       "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
+@@ -5158,9 +5322,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -5182,9 +5343,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -5206,9 +5364,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -5230,9 +5385,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -5295,6 +5447,13 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/loupe": {
++      "version": "3.2.1",
++      "resolved": "https://registry.npmjs.org/loupe/-/loupe-3.2.1.tgz",
++      "integrity": "sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/lru-cache": {
+       "version": "5.1.1",
+       "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-5.1.1.tgz",
+@@ -5501,6 +5660,23 @@
+         "node": "20 || >=22"
+       }
+     },
++    "node_modules/pathe": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz",
++      "integrity": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/pathval": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/pathval/-/pathval-2.0.1.tgz",
++      "integrity": "sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 14.16"
++      }
++    },
+     "node_modules/picocolors": {
+       "version": "1.1.1",
+       "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+@@ -6071,6 +6247,13 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/siginfo": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/siginfo/-/siginfo-2.0.0.tgz",
++      "integrity": "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==",
++      "dev": true,
++      "license": "ISC"
++    },
+     "node_modules/signal-exit": {
+       "version": "4.1.0",
+       "resolved": "https://registry.npmjs.org/signal-exit/-/signal-exit-4.1.0.tgz",
+@@ -6135,6 +6318,20 @@
+         "node": ">=0.10.0"
+       }
+     },
++    "node_modules/stackback": {
++      "version": "0.0.2",
++      "resolved": "https://registry.npmjs.org/stackback/-/stackback-0.0.2.tgz",
++      "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/std-env": {
++      "version": "3.10.0",
++      "resolved": "https://registry.npmjs.org/std-env/-/std-env-3.10.0.tgz",
++      "integrity": "sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/stop-iteration-iterator": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/stop-iteration-iterator/-/stop-iteration-iterator-1.1.0.tgz",
+@@ -6262,6 +6459,26 @@
+         "node": ">=10"
+       }
+     },
++    "node_modules/strip-literal": {
++      "version": "3.1.0",
++      "resolved": "https://registry.npmjs.org/strip-literal/-/strip-literal-3.1.0.tgz",
++      "integrity": "sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "js-tokens": "^9.0.1"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/antfu"
++      }
++    },
++    "node_modules/strip-literal/node_modules/js-tokens": {
++      "version": "9.0.1",
++      "resolved": "https://registry.npmjs.org/js-tokens/-/js-tokens-9.0.1.tgz",
++      "integrity": "sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/supports-preserve-symlinks-flag": {
+       "version": "1.0.0",
+       "resolved": "https://registry.npmjs.org/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz",
+@@ -6344,6 +6561,20 @@
+         "node": ">=10"
+       }
+     },
++    "node_modules/tinybench": {
++      "version": "2.9.0",
++      "resolved": "https://registry.npmjs.org/tinybench/-/tinybench-2.9.0.tgz",
++      "integrity": "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tinyexec": {
++      "version": "0.3.2",
++      "resolved": "https://registry.npmjs.org/tinyexec/-/tinyexec-0.3.2.tgz",
++      "integrity": "sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/tinyglobby": {
+       "version": "0.2.17",
+       "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+@@ -6361,6 +6592,36 @@
+         "url": "https://github.com/sponsors/SuperchupuDev"
+       }
+     },
++    "node_modules/tinypool": {
++      "version": "1.1.1",
++      "resolved": "https://registry.npmjs.org/tinypool/-/tinypool-1.1.1.tgz",
++      "integrity": "sha512-Zba82s87IFq9A9XmjiX5uZA/ARWDrB03OHlq+Vw1fSdt0I+4/Kutwy8BP4Y/y/aORMo61FQ0vIb5j44vSo5Pkg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "^18.0.0 || >=20.0.0"
++      }
++    },
++    "node_modules/tinyrainbow": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/tinyrainbow/-/tinyrainbow-2.0.0.tgz",
++      "integrity": "sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=14.0.0"
++      }
++    },
++    "node_modules/tinyspy": {
++      "version": "4.0.6",
++      "resolved": "https://registry.npmjs.org/tinyspy/-/tinyspy-4.0.6.tgz",
++      "integrity": "sha512-u8KszXvGfU68hVcZpRHKG28T0krMuv2G5nDhiHaMLen/gIuFEgIJhaJuO69qjnXg5paSrbPMFfx3brNuN8eVSg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=14.0.0"
++      }
++    },
+     "node_modules/tslib": {
+       "version": "2.8.1",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+@@ -6675,6 +6936,29 @@
+         }
+       }
+     },
++    "node_modules/vite-node": {
++      "version": "3.2.4",
++      "resolved": "https://registry.npmjs.org/vite-node/-/vite-node-3.2.4.tgz",
++      "integrity": "sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "cac": "^6.7.14",
++        "debug": "^4.4.1",
++        "es-module-lexer": "^1.7.0",
++        "pathe": "^2.0.3",
++        "vite": "^5.0.0 || ^6.0.0 || ^7.0.0-0"
++      },
++      "bin": {
++        "vite-node": "vite-node.mjs"
++      },
++      "engines": {
++        "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
+     "node_modules/vite-plugin-pwa": {
+       "version": "1.3.0",
+       "resolved": "https://registry.npmjs.org/vite-plugin-pwa/-/vite-plugin-pwa-1.3.0.tgz",
+@@ -6706,6 +6990,79 @@
+         }
+       }
+     },
++    "node_modules/vitest": {
++      "version": "3.2.7",
++      "resolved": "https://registry.npmjs.org/vitest/-/vitest-3.2.7.tgz",
++      "integrity": "sha512-KrxIJ62Fd89gfysR4WotlgZABiz2dqFPgqGzX7s+CwsqLFomRH7777ZcrOD6+WVAh7khPQP41A+BKbpcJFrdEg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/chai": "^5.2.2",
++        "@vitest/expect": "3.2.7",
++        "@vitest/mocker": "3.2.7",
++        "@vitest/pretty-format": "^3.2.7",
++        "@vitest/runner": "3.2.7",
++        "@vitest/snapshot": "3.2.7",
++        "@vitest/spy": "3.2.7",
++        "@vitest/utils": "3.2.7",
++        "chai": "^5.2.0",
++        "debug": "^4.4.1",
++        "expect-type": "^1.2.1",
++        "magic-string": "^0.30.17",
++        "pathe": "^2.0.3",
++        "picomatch": "^4.0.2",
++        "std-env": "^3.9.0",
++        "tinybench": "^2.9.0",
++        "tinyexec": "^0.3.2",
++        "tinyglobby": "^0.2.14",
++        "tinypool": "^1.1.1",
++        "tinyrainbow": "^2.0.0",
++        "vite": "^5.0.0 || ^6.0.0 || ^7.0.0-0",
++        "vite-node": "3.2.4",
++        "why-is-node-running": "^2.3.0"
++      },
++      "bin": {
++        "vitest": "vitest.mjs"
++      },
++      "engines": {
++        "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "@edge-runtime/vm": "*",
++        "@types/debug": "^4.1.12",
++        "@types/node": "^18.0.0 || ^20.0.0 || >=22.0.0",
++        "@vitest/browser": "3.2.7",
++        "@vitest/ui": "3.2.7",
++        "happy-dom": "*",
++        "jsdom": "*"
++      },
++      "peerDependenciesMeta": {
++        "@edge-runtime/vm": {
++          "optional": true
++        },
++        "@types/debug": {
++          "optional": true
++        },
++        "@types/node": {
++          "optional": true
++        },
++        "@vitest/browser": {
++          "optional": true
++        },
++        "@vitest/ui": {
++          "optional": true
++        },
++        "happy-dom": {
++          "optional": true
++        },
++        "jsdom": {
++          "optional": true
++        }
++      }
++    },
+     "node_modules/which": {
+       "version": "2.0.2",
+       "resolved": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+@@ -6811,6 +7168,23 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/why-is-node-running": {
++      "version": "2.3.0",
++      "resolved": "https://registry.npmjs.org/why-is-node-running/-/why-is-node-running-2.3.0.tgz",
++      "integrity": "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "siginfo": "^2.0.0",
++        "stackback": "0.0.2"
++      },
++      "bin": {
++        "why-is-node-running": "cli.js"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
+     "node_modules/workbox-background-sync": {
+       "version": "7.4.1",
+       "resolved": "https://registry.npmjs.org/workbox-background-sync/-/workbox-background-sync-7.4.1.tgz",
+diff --git a/package.json b/package.json
+index 58aef90..19f20df 100644
+--- a/package.json
++++ b/package.json
+@@ -8,6 +8,7 @@
+     "dev:mock": "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= vite",
+     "build:function": "esbuild supabase/functions/sync-rehearsal-attendance/index.ts --bundle --format=esm --target=esnext --external:npm:* --outfile=dist/functions/sync-rehearsal-attendance.ts",
+     "build": "tsc -b && vite build",
++    "test": "vitest run",
+     "preview": "vite preview"
+   },
+   "dependencies": {
+@@ -27,7 +28,8 @@
+     "tailwindcss": "^4.1.8",
+     "typescript": "^5.8.3",
+     "vite": "^6.3.5",
+-    "vite-plugin-pwa": "^1.3.0"
++    "vite-plugin-pwa": "^1.3.0",
++    "vitest": "^3.2.7"
+   },
+   "engines": {
+     "node": ">=20"
+diff --git a/src/components/admin/AdminErrorNotice.tsx b/src/components/admin/AdminErrorNotice.tsx
+new file mode 100644
+index 0000000..df4cb6b
+--- /dev/null
++++ b/src/components/admin/AdminErrorNotice.tsx
+@@ -0,0 +1,63 @@
++// 管理画面の共通エラー表示(小さいものだけ)。
++// 画面ごとの作りは変えず、必要な箇所にこの3つを差し込んで使う。
++
++/** 取得に失敗し、表示できるものが何も無いとき(再試行できる) */
++export function AdminLoadError({
++  message,
++  onRetry,
++  retrying = false,
++}: {
++  message: string;
++  onRetry: () => void;
++  retrying?: boolean;
++}) {
++  return (
++    <div className="space-y-3 rounded-xl bg-red-50 px-4 py-3">
++      <p className="text-sm font-bold text-red-700">{message}</p>
++      <button
++        type="button"
++        onClick={onRetry}
++        disabled={retrying}
++        className="rounded-lg bg-red-700 px-3 py-1.5 text-sm font-bold text-white disabled:bg-slate-300"
++      >
++        {retrying ? "再試行中…" : "再試行"}
++      </button>
++    </div>
++  );
++}
++
++/** 前回取得分は表示できているが、最新の取得に失敗したとき */
++export function AdminStaleNotice({
++  message,
++  onRetry,
++  retrying = false,
++}: {
++  message: string;
++  onRetry: () => void;
++  retrying?: boolean;
++}) {
++  return (
++    <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5">
++      <p className="min-w-0 flex-1 text-xs font-medium text-amber-900">
++        {message}前回取得した内容を表示しています。
++      </p>
++      <button
++        type="button"
++        onClick={onRetry}
++        disabled={retrying}
++        className="shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-bold text-amber-900 disabled:opacity-50"
++      >
++        {retrying ? "再試行中…" : "再試行"}
++      </button>
++    </div>
++  );
++}
++
++/** 削除など、操作に失敗したとき */
++export function AdminActionError({ message }: { message: string }) {
++  return (
++    <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
++      {message}
++    </p>
++  );
++}
+diff --git a/src/components/layout/CrossFestivalShell.tsx b/src/components/layout/CrossFestivalShell.tsx
+index d7f57d1..21c520d 100644
+--- a/src/components/layout/CrossFestivalShell.tsx
++++ b/src/components/layout/CrossFestivalShell.tsx
+@@ -1,6 +1,10 @@
+ import { Link, Outlet } from "react-router-dom";
+ import { useAuth } from "../../context/AuthContext";
+ import AdminShellFrame, { type AdminTab } from "./AdminShellFrame";
++import {
++  reportAdminError,
++  SIGN_OUT_ERROR_MESSAGE,
++} from "../../lib/adminError";
+ 
+ // 祭りを選ばずに使う画面(祭り一覧・小道具)
+ const TABS: AdminTab[] = [
+@@ -10,6 +14,16 @@ const TABS: AdminTab[] = [
+ 
+ export default function CrossFestivalShell() {
+   const { signOut } = useAuth();
++
++  // 失敗したときはログイン状態のままなので、そのことを伝える
++  async function handleSignOut() {
++    const { error } = await signOut();
++    if (error) {
++      reportAdminError("signOut", error);
++      window.alert(SIGN_OUT_ERROR_MESSAGE);
++    }
++  }
++
+   return (
+     <AdminShellFrame
+       tabs={TABS}
+@@ -26,7 +40,7 @@ export default function CrossFestivalShell() {
+             </Link>
+             <button
+               type="button"
+-              onClick={() => void signOut()}
++              onClick={() => void handleSignOut()}
+               className="rounded-lg bg-slate-700 px-3 py-1 text-sm"
+             >
+               ログアウト
+diff --git a/src/context/AuthContext.tsx b/src/context/AuthContext.tsx
+index 3c08141..73ddfac 100644
+--- a/src/context/AuthContext.tsx
++++ b/src/context/AuthContext.tsx
+@@ -8,12 +8,15 @@ import {
+ } from "react";
+ import type { Session } from "@supabase/supabase-js";
+ import { supabase } from "../lib/supabase";
++import { clearAdminCache } from "../lib/adminCache";
++import { runSignOut } from "../lib/adminSignOut";
+ 
+ interface AuthState {
+   session: Session | null;
+   loading: boolean;
+   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+-  signOut: () => Promise<void>;
++  /** 成功したときだけ管理画面のキャッシュを消す。失敗は呼び出し側へ返す */
++  signOut: () => Promise<{ error: string | null }>;
+ }
+ 
+ const AuthContext = createContext<AuthState | null>(null);
+@@ -50,7 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
+         return { error: error ? error.message : null };
+       },
+       async signOut() {
+-        await supabase?.auth.signOut();
++        // 消してよいのは確かにログアウトできたときだけ。
++        // 消すのは管理画面の下書き・一覧キャッシュで、
++        // 踊り子側の既読・利用者選択・祭りのスナップショットは残す
++        return runSignOut({
++          signOut: async () =>
++            supabase ? await supabase.auth.signOut() : { error: null },
++          clearCache: clearAdminCache,
++        });
+       },
+     }),
+     [session, loading],
+diff --git a/src/context/FestivalDataContext.tsx b/src/context/FestivalDataContext.tsx
+index 9304c58..99d78c8 100644
+--- a/src/context/FestivalDataContext.tsx
++++ b/src/context/FestivalDataContext.tsx
+@@ -11,6 +11,7 @@ import { useLocation } from "react-router-dom";
+ import type { FestivalData } from "../types/domain";
+ import { repository } from "../repositories";
+ import { loadDataCache, saveDataCache } from "../lib/storage";
++import { createRequestTracker } from "../lib/requestTracker";
+ 
+ // タブ復帰などで連続発火した際の再取得間隔の下限
+ const MIN_REFRESH_INTERVAL_MS = 10_000;
+@@ -49,26 +50,43 @@ export function FestivalDataProvider({
+   const [refreshing, setRefreshing] = useState(false);
+   const [isStale, setIsStale] = useState(data != null);
+   const lastFetchRef = useRef(0);
+-  const inFlightRef = useRef(false);
++  // 祭りごとの取得を追う。祭りAの取得中にBへ切り替えたとき、
++  // あとから届いたAの結果をBの画面に入れないために使う
++  const trackerRef = useRef(createRequestTracker());
++  const mountedRef = useRef(true);
++
++  useEffect(() => {
++    mountedRef.current = true;
++    return () => {
++      mountedRef.current = false;
++    };
++  }, []);
+ 
+   const doFetch = useCallback(async () => {
+-    if (inFlightRef.current) return;
+-    inFlightRef.current = true;
++    const token = trackerRef.current.begin(slug);
++    if (token == null) return; // 同じ祭りの取得が動いているので待つ
++    // いまの画面に反映してよい取得か(古い取得・画面を離れたあとは触らない)
++    const isCurrent = () =>
++      mountedRef.current && trackerRef.current.isCurrent(token);
+     setRefreshing(true);
+     try {
+       const result = await repository.loadFestivalData(slug);
++      // キャッシュは祭りごとに分かれているので、古い取得でも保存してよい
++      if (result) saveDataCache(slug, result);
++      if (!isCurrent()) return;
+       setData(result);
+       setLastUpdated(new Date());
+       setIsStale(false);
+       lastFetchRef.current = Date.now();
+-      if (result) saveDataCache(slug, result);
+     } catch {
+       // 取得失敗時(オフライン等)は前回のデータを保持したまま
+-      setIsStale(true);
++      if (isCurrent()) setIsStale(true);
+     } finally {
+-      inFlightRef.current = false;
+-      setRefreshing(false);
+-      setLoading(false);
++      // 古い取得の後始末で、新しい取得の loading/refreshing を解除しない
++      if (trackerRef.current.finish(token) && mountedRef.current) {
++        setRefreshing(false);
++        setLoading(false);
++      }
+     }
+   }, [slug]);
+ 
+diff --git a/src/lib/adminCache.test.ts b/src/lib/adminCache.test.ts
+new file mode 100644
+index 0000000..854be40
+--- /dev/null
++++ b/src/lib/adminCache.test.ts
+@@ -0,0 +1,99 @@
++import { describe, expect, it } from "vitest";
++import { clearAdminCache, isAdminCacheKey } from "./adminCache";
++
++/** localStorage の代わり(テスト用) */
++function fakeStorage(entries: Record<string, string>) {
++  const map = new Map(Object.entries(entries));
++  return {
++    get length() {
++      return map.size;
++    },
++    key(index: number) {
++      return [...map.keys()][index] ?? null;
++    },
++    removeItem(key: string) {
++      map.delete(key);
++    },
++    keys() {
++      return [...map.keys()];
++    },
++  };
++}
++
++/** 踊り子側と Supabase のキー(消してはいけないもの) */
++const DANCER_KEYS = {
++  "odoriko:kochi-2026:dataCache": "{}",
++  "odoriko:kochi-2026:615:readAnnouncements": "[]",
++  "odoriko:kochi-2026:615:ackedEmergencies": "[]",
++  "odoriko:festivalList": "[]",
++  "odoriko:lastFestivalSlug": "kochi-2026",
++  "odoriko:userSelection": '{"serial":"615"}',
++  "odoriko:participantSerials": "[]",
++  "odoriko:appMode": "normal",
++  "odoriko:accessRecorded": "{}",
++  "sb-abcdefg-auth-token": "{}",
++};
++
++const ADMIN_KEYS = {
++  "odoriko:admin:festivalsCache": "[]",
++  "odoriko:admin:festivalSlug": "kochi-2026",
++  "odoriko:admin:f-kochi-2026:schedule": "{}",
++  "odoriko:admin:f-kochi-2026:participants": "{}",
++};
++
++describe("isAdminCacheKey", () => {
++  it("管理画面のキーだけを true にする", () => {
++    for (const key of Object.keys(ADMIN_KEYS)) {
++      expect(isAdminCacheKey(key)).toBe(true);
++    }
++  });
++
++  it("踊り子側と Supabase のキーは false にする", () => {
++    for (const key of Object.keys(DANCER_KEYS)) {
++      expect(isAdminCacheKey(key)).toBe(false);
++    }
++  });
++
++  it("接頭辞が途中から一致するだけのキーは対象にしない", () => {
++    expect(isAdminCacheKey("odoriko:adminX:foo")).toBe(false);
++    expect(isAdminCacheKey("other:odoriko:admin:foo")).toBe(false);
++    expect(isAdminCacheKey("odoriko:admin")).toBe(false);
++  });
++});
++
++describe("clearAdminCache", () => {
++  it("管理画面のキーだけを消し、踊り子側は残す", () => {
++    const storage = fakeStorage({ ...DANCER_KEYS, ...ADMIN_KEYS });
++    clearAdminCache(storage);
++    expect(storage.keys().sort()).toEqual(Object.keys(DANCER_KEYS).sort());
++  });
++
++  it("連続する管理キーを取りこぼさない(走査中の削除で添字がずれない)", () => {
++    const storage = fakeStorage({
++      "odoriko:admin:a": "1",
++      "odoriko:admin:b": "1",
++      "odoriko:admin:c": "1",
++      "odoriko:admin:d": "1",
++      "odoriko:userSelection": "1",
++    });
++    clearAdminCache(storage);
++    expect(storage.keys()).toEqual(["odoriko:userSelection"]);
++  });
++
++  it("ストレージが例外を投げても落ちない", () => {
++    const broken = {
++      get length(): number {
++        throw new Error("storage disabled");
++      },
++      key: () => null,
++      removeItem: () => {},
++    };
++    expect(() => clearAdminCache(broken)).not.toThrow();
++  });
++
++  it("消すものが無くても落ちない", () => {
++    const storage = fakeStorage(DANCER_KEYS);
++    clearAdminCache(storage);
++    expect(storage.keys().sort()).toEqual(Object.keys(DANCER_KEYS).sort());
++  });
++});
+diff --git a/src/lib/adminCache.ts b/src/lib/adminCache.ts
+index 56fd3b2..79a3f87 100644
+--- a/src/lib/adminCache.ts
++++ b/src/lib/adminCache.ts
+@@ -4,8 +4,11 @@
+ 
+ import type { Festival } from "../types/domain";
+ 
++/** 管理画面のキャッシュにだけ付く接頭辞 */
++const ADMIN_PREFIX = "odoriko:admin:";
++
+ function cacheKey(festivalId: string, key: string): string {
+-  return `odoriko:admin:${festivalId}:${key}`;
++  return `${ADMIN_PREFIX}${festivalId}:${key}`;
+ }
+ 
+ export function loadAdminCache<T>(festivalId: string, key: string): T | null {
+@@ -29,7 +32,7 @@ export function saveAdminCache<T>(
+   }
+ }
+ 
+-const FESTIVALS_KEY = "odoriko:admin:festivalsCache";
++const FESTIVALS_KEY = `${ADMIN_PREFIX}festivalsCache`;
+ 
+ export function loadAdminFestivalsCache(): Festival[] {
+   try {
+@@ -50,7 +53,7 @@ export function saveAdminFestivalsCache(festivals: Festival[]): void {
+ 
+ // ---------- 最後に開いた祭り(旧URLからのリダイレクト先に使う) ----------
+ 
+-const LAST_SLUG_KEY = "odoriko:admin:festivalSlug";
++const LAST_SLUG_KEY = `${ADMIN_PREFIX}festivalSlug`;
+ 
+ export function saveAdminFestivalSlug(slug: string): void {
+   try {
+@@ -67,3 +70,38 @@ export function loadAdminFestivalSlug(): string | null {
+     return null;
+   }
+ }
++
++// ---------- ログアウト時の後始末 ----------
++
++/**
++ * 管理画面だけのキーか。
++ * 踊り子側のキー(odoriko:{祭りのslug}:… / odoriko:userSelection など)は
++ * 消してはいけないので、接頭辞が完全に一致するものだけを対象にする。
++ */
++export function isAdminCacheKey(key: string): boolean {
++  return key.startsWith(ADMIN_PREFIX);
++}
++
++/**
++ * 管理画面のキャッシュだけを消す(ログアウトが成功したときに呼ぶ)。
++ *
++ * localStorage.clear() は使わない。踊り子側の既読・確認済み・利用者選択・
++ * 祭りのスナップショット・プッシュ購読が同じ端末に同居しているため。
++ * Supabase のセッションキーもここでは触らない(signOut に任せる)。
++ *
++ * 走査しながら消すと添字がずれて取りこぼすので、先に集めてから消す。
++ */
++export function clearAdminCache(
++  storage: Pick<Storage, "length" | "key" | "removeItem"> = localStorage,
++): void {
++  try {
++    const keys: string[] = [];
++    for (let i = 0; i < storage.length; i += 1) {
++      const key = storage.key(i);
++      if (key != null && isAdminCacheKey(key)) keys.push(key);
++    }
++    for (const key of keys) storage.removeItem(key);
++  } catch {
++    // ストレージを触れない環境でもログアウト自体は成功させる
++  }
++}
+diff --git a/src/lib/adminError.ts b/src/lib/adminError.ts
+new file mode 100644
+index 0000000..39819ba
+--- /dev/null
++++ b/src/lib/adminError.ts
+@@ -0,0 +1,23 @@
++// 管理画面のエラー表示。
++//
++// 画面に出す文言と、開発者が見るログを分ける。
++// API の詳細(制約名・内部ID・接続設定など)は運営には対処できないため、
++// 画面には出さずログにだけ残す。
++
++/** 画面には出さない詳細をログにだけ残す */
++export function reportAdminError(context: string, err: unknown): void {
++  const detail = err instanceof Error ? err.message : String(err);
++  console.error(`[admin] ${context}: ${detail}`);
++}
++
++/** 一覧の取得に失敗したとき */
++export const LOAD_ERROR_MESSAGE =
++  "最新の情報を取得できませんでした。通信環境を確認してください。";
++
++/** 削除に失敗したとき */
++export const DELETE_ERROR_MESSAGE =
++  "削除できませんでした。通信環境を確認して、もう一度お試しください。";
++
++/** ログアウトに失敗したとき */
++export const SIGN_OUT_ERROR_MESSAGE =
++  "ログアウトできませんでした。通信環境を確認して、もう一度お試しください。";
+diff --git a/src/lib/adminSignOut.test.ts b/src/lib/adminSignOut.test.ts
+new file mode 100644
+index 0000000..51cb8a0
+--- /dev/null
++++ b/src/lib/adminSignOut.test.ts
+@@ -0,0 +1,48 @@
++import { describe, expect, it, vi } from "vitest";
++import { runSignOut } from "./adminSignOut";
++
++describe("runSignOut", () => {
++  it("成功したときだけ管理キャッシュを消す", async () => {
++    const clearCache = vi.fn();
++    const result = await runSignOut({
++      signOut: async () => ({ error: null }),
++      clearCache,
++    });
++    expect(result).toEqual({ error: null });
++    expect(clearCache).toHaveBeenCalledTimes(1);
++  });
++
++  it("error が返ったらキャッシュを消さず、理由を返す", async () => {
++    const clearCache = vi.fn();
++    const result = await runSignOut({
++      signOut: async () => ({ error: { message: "network error" } }),
++      clearCache,
++    });
++    expect(result).toEqual({ error: "network error" });
++    expect(clearCache).not.toHaveBeenCalled();
++  });
++
++  it("例外が飛んでもキャッシュを消さず、投げ返さない", async () => {
++    const clearCache = vi.fn();
++    const result = await runSignOut({
++      signOut: async () => {
++        throw new Error("Failed to fetch");
++      },
++      clearCache,
++    });
++    expect(result).toEqual({ error: "Failed to fetch" });
++    expect(clearCache).not.toHaveBeenCalled();
++  });
++
++  it("Error 以外が投げられても落ちない", async () => {
++    const clearCache = vi.fn();
++    const result = await runSignOut({
++      signOut: async () => {
++        throw "boom";
++      },
++      clearCache,
++    });
++    expect(result).toEqual({ error: "ログアウトに失敗しました" });
++    expect(clearCache).not.toHaveBeenCalled();
++  });
++});
+diff --git a/src/lib/adminSignOut.ts b/src/lib/adminSignOut.ts
+new file mode 100644
+index 0000000..2020ec1
+--- /dev/null
++++ b/src/lib/adminSignOut.ts
+@@ -0,0 +1,30 @@
++// ログアウトの手順(成功したときだけ管理画面のキャッシュを消す)。
++//
++// 消してよいのは「確かにログアウトできた」ときだけ。
++// エラーが返ったときも、通信エラー等で例外になったときも、
++// ログイン状態のままなのでキャッシュは残す。
++// 例外はここで受け止め、呼び出し側へは必ず戻り値で伝える
++// (未処理の Promise にしない)。
++
++export interface SignOutDeps {
++  /** Supabase のサインアウト。error を返すか、例外を投げることがある */
++  signOut: () => Promise<{ error: { message: string } | null }>;
++  /** 管理画面のキャッシュ削除 */
++  clearCache: () => void;
++}
++
++export async function runSignOut({
++  signOut,
++  clearCache,
++}: SignOutDeps): Promise<{ error: string | null }> {
++  try {
++    const { error } = await signOut();
++    if (error) return { error: error.message };
++  } catch (e) {
++    return {
++      error: e instanceof Error ? e.message : "ログアウトに失敗しました",
++    };
++  }
++  clearCache();
++  return { error: null };
++}
+diff --git a/src/lib/requestTracker.test.ts b/src/lib/requestTracker.test.ts
+new file mode 100644
+index 0000000..64a7021
+--- /dev/null
++++ b/src/lib/requestTracker.test.ts
+@@ -0,0 +1,60 @@
++import { describe, expect, it } from "vitest";
++import { createRequestTracker } from "./requestTracker";
++
++describe("createRequestTracker", () => {
++  it("同じ祭りの取得が動いている間は二重に始めない", () => {
++    const tracker = createRequestTracker();
++    expect(tracker.begin("kochi")).toBe(1);
++    expect(tracker.begin("kochi")).toBeNull();
++    expect(tracker.begin("kochi")).toBeNull();
++  });
++
++  it("終わったあとは同じ祭りでも始められる", () => {
++    const tracker = createRequestTracker();
++    const first = tracker.begin("kochi")!;
++    expect(tracker.finish(first)).toBe(true);
++    expect(tracker.begin("kochi")).toBe(2);
++  });
++
++  it("別の祭りに切り替えたら、古い取得を待たずに始められる", () => {
++    const tracker = createRequestTracker();
++    const kochi = tracker.begin("kochi")!;
++    const harajuku = tracker.begin("harajuku");
++    expect(harajuku).not.toBeNull();
++    expect(harajuku).not.toBe(kochi);
++  });
++
++  it("古い取得の結果は反映しない(あとから届いても)", () => {
++    const tracker = createRequestTracker();
++    const kochi = tracker.begin("kochi")!;
++    const harajuku = tracker.begin("harajuku")!;
++
++    // 先に新しい方(harajuku)が返ってきた場合
++    expect(tracker.isCurrent(harajuku)).toBe(true);
++    // そのあとに古い方(kochi)が返ってきても反映しない
++    expect(tracker.isCurrent(kochi)).toBe(false);
++  });
++
++  it("古い取得の終了で、新しい取得の状態を解除しない", () => {
++    const tracker = createRequestTracker();
++    const kochi = tracker.begin("kochi")!;
++    const harajuku = tracker.begin("harajuku")!;
++
++    // 古い kochi が finally に入っても、harajuku の状態は触らせない
++    expect(tracker.finish(kochi)).toBe(false);
++    // harajuku はまだ動いているので、二重取得も始まらない
++    expect(tracker.begin("harajuku")).toBeNull();
++    // harajuku 自身の終了だけが状態を解除できる
++    expect(tracker.finish(harajuku)).toBe(true);
++  });
++
++  it("切り替えて戻ってきた場合、最後の取得だけが有効になる", () => {
++    const tracker = createRequestTracker();
++    const first = tracker.begin("kochi")!;
++    tracker.begin("harajuku");
++    const back = tracker.begin("kochi")!;
++
++    expect(tracker.isCurrent(first)).toBe(false);
++    expect(tracker.isCurrent(back)).toBe(true);
++  });
++});
+diff --git a/src/lib/requestTracker.ts b/src/lib/requestTracker.ts
+new file mode 100644
+index 0000000..e89cdb7
+--- /dev/null
++++ b/src/lib/requestTracker.ts
+@@ -0,0 +1,47 @@
++// 「いま有効な取得はどれか」を追うための小さな道具。
++//
++// 祭りAの取得中に祭りBへ切り替えると、あとから届いたAの結果がBの画面に
++// 入ってしまう。取得ごとに番号(token)を振り、最後に始めた取得の番号と
++// 一致するときだけ結果を反映することで、古い取得を捨てる。
++//
++// 同じ祭りの取得が動いている間は二重に走らせない(タブ切替・復帰・手動更新が
++// 重なっても、実際に取りに行くのは1回)。祭りが変わったときは、古い取得の
++// 終了を待たずに新しい取得を始める。
++
++export interface RequestTracker {
++  /**
++   * 取得を始める。取得の番号を返す。
++   * 同じ key の取得が動いている場合は null(二重取得しない)。
++   */
++  begin(key: string): number | null;
++  /** その取得の結果を、いまの画面へ反映してよいか */
++  isCurrent(token: number): boolean;
++  /**
++   * 取得の終了を伝える。最後に始めた取得なら true。
++   * 古い取得なら false を返すので、呼び出し側は
++   * loading/refreshing のような共有の状態を触らずに済む。
++   */
++  finish(token: number): boolean;
++}
++
++export function createRequestTracker(): RequestTracker {
++  let latest = 0;
++  let running: { key: string; token: number } | null = null;
++
++  return {
++    begin(key) {
++      if (running?.key === key) return null;
++      latest += 1;
++      running = { key, token: latest };
++      return latest;
++    },
++    isCurrent(token) {
++      return token === latest;
++    },
++    finish(token) {
++      if (token !== latest) return false;
++      running = null;
++      return true;
++    },
++  };
++}
+diff --git a/src/pages/admin/AnnouncementAdminPage.tsx b/src/pages/admin/AnnouncementAdminPage.tsx
+index 1c7f850..f5c694e 100644
+--- a/src/pages/admin/AnnouncementAdminPage.tsx
++++ b/src/pages/admin/AnnouncementAdminPage.tsx
+@@ -8,6 +8,16 @@ import {
+ } from "react";
+ import { useAdminFestival } from "../../context/AdminFestivalContext";
+ import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
++import {
++  AdminActionError,
++  AdminLoadError,
++  AdminStaleNotice,
++} from "../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../lib/adminError";
+ import { supabase } from "../../lib/supabase";
+ import type {
+   Announcement,
+@@ -398,6 +408,10 @@ export default function AnnouncementAdminPage() {
+   >(null);
+   const [flash, setFlash] = useState<string | null>(null);
+   const [loading, setLoading] = useState(true);
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [loaded, setLoaded] = useState(false);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [deletingId, setDeletingId] = useState<string | null>(null);
+ 
+   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+   const hydratedForRef = useRef<string | null>(null);
+@@ -412,30 +426,44 @@ export default function AnnouncementAdminPage() {
+     // 初回は前回取得分を即表示し、裏で最新を取得する
+     if (hydratedForRef.current !== festival.id) {
+       hydratedForRef.current = festival.id;
++      // 前の祭りの結果を新しい祭りの画面に残さない
++      setLoadError(null);
++      setActionError(null);
+       const cached = loadAdminCache<Cache>(festival.id, "announcements");
+       if (cached) {
+         setAnnouncements(cached.announcements);
+         setRoles(cached.roles);
+         setParticipants(cached.participants);
++        setLoaded(true);
+         setLoading(false);
+       } else {
++        setLoaded(false);
+         setLoading(true);
+       }
+     }
+-    const [announcementList, roleList, participantList] = await Promise.all([
+-      listAllAnnouncements(festival.id),
+-      listRoles(festival.id),
+-      listParticipants(festival.id),
+-    ]);
+-    setAnnouncements(announcementList);
+-    setRoles(roleList);
+-    setParticipants(participantList);
+-    saveAdminCache<Cache>(festival.id, "announcements", {
+-      announcements: announcementList,
+-      roles: roleList,
+-      participants: participantList,
+-    });
+-    setLoading(false);
++    try {
++      const [announcementList, roleList, participantList] = await Promise.all([
++        listAllAnnouncements(festival.id),
++        listRoles(festival.id),
++        listParticipants(festival.id),
++      ]);
++      setAnnouncements(announcementList);
++      setRoles(roleList);
++      setParticipants(participantList);
++      saveAdminCache<Cache>(festival.id, "announcements", {
++        announcements: announcementList,
++        roles: roleList,
++        participants: participantList,
++      });
++      setLoaded(true);
++      setLoadError(null);
++    } catch (err) {
++      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
++      reportAdminError("announcements:load", err);
++      setLoadError(LOAD_ERROR_MESSAGE);
++    } finally {
++      setLoading(false);
++    }
+   }, [festival]);
+ 
+   useEffect(() => {
+@@ -446,6 +474,9 @@ export default function AnnouncementAdminPage() {
+   if (loading) {
+     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+   }
++  if (loadError && !loaded) {
++    return <AdminLoadError message={loadError} onRetry={() => void load()} />;
++  }
+ 
+   if (editing) {
+     return (
+@@ -467,8 +498,17 @@ export default function AnnouncementAdminPage() {
+ 
+   async function handleDelete(a: Announcement) {
+     if (!window.confirm(`「${a.title}」を削除しますか?`)) return;
+-    await deleteAnnouncement(a.id);
+-    await load();
++    setActionError(null);
++    setDeletingId(a.id);
++    try {
++      await deleteAnnouncement(a.id);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("announcements:delete", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   const now = new Date();
+@@ -489,6 +529,11 @@ export default function AnnouncementAdminPage() {
+     <div className="space-y-4">
+       <h1 className="text-lg font-bold text-slate-800">お知らせ管理</h1>
+ 
++      {loadError && loaded && (
++        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
++      )}
++      {actionError && <AdminActionError message={actionError} />}
++
+       {flash && (
+         <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
+           {flash}
+@@ -549,9 +594,10 @@ export default function AnnouncementAdminPage() {
+                 <button
+                   type="button"
+                   onClick={() => void handleDelete(a)}
+-                  className="text-sm font-bold text-red-600"
++                  disabled={deletingId === a.id}
++                  className="text-sm font-bold text-red-600 disabled:text-slate-400"
+                 >
+-                  削除
++                  {deletingId === a.id ? "削除中…" : "削除"}
+                 </button>
+               </div>
+             </div>
+diff --git a/src/pages/admin/LocationAdminPage.tsx b/src/pages/admin/LocationAdminPage.tsx
+index 81a9bd1..3382c61 100644
+--- a/src/pages/admin/LocationAdminPage.tsx
++++ b/src/pages/admin/LocationAdminPage.tsx
+@@ -8,6 +8,16 @@ import {
+ } from "react-leaflet";
+ import "leaflet/dist/leaflet.css";
+ import { useAdminFestival } from "../../context/AdminFestivalContext";
++import {
++  AdminActionError,
++  AdminLoadError,
++  AdminStaleNotice,
++} from "../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../lib/adminError";
+ import type { Location, VenueRoute } from "../../types/domain";
+ import {
+   createVenueRoute,
+@@ -218,6 +228,11 @@ export default function LocationAdminPage() {
+   >(null);
+   const [loading, setLoading] = useState(true);
+ 
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [loaded, setLoaded] = useState(false);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [deletingId, setDeletingId] = useState<string | null>(null);
++
+   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+   const hydratedForRef = useRef<string | null>(null);
+ 
+@@ -230,26 +245,40 @@ export default function LocationAdminPage() {
+     // 初回は前回取得分を即表示し、裏で最新を取得する
+     if (hydratedForRef.current !== festival.id) {
+       hydratedForRef.current = festival.id;
++      // 前の祭りの結果を新しい祭りの画面に残さない
++      setLoadError(null);
++      setActionError(null);
+       const cached = loadAdminCache<Cache>(festival.id, "locations");
+       if (cached) {
+         setLocations(cached.locations);
+         setRoutes(cached.routes);
++        setLoaded(true);
+         setLoading(false);
+       } else {
++        setLoaded(false);
+         setLoading(true);
+       }
+     }
+-    const [locationList, routeList] = await Promise.all([
+-      listLocations(festival.id),
+-      listVenueRoutes(festival.id),
+-    ]);
+-    setLocations(locationList);
+-    setRoutes(routeList);
+-    saveAdminCache<Cache>(festival.id, "locations", {
+-      locations: locationList,
+-      routes: routeList,
+-    });
+-    setLoading(false);
++    try {
++      const [locationList, routeList] = await Promise.all([
++        listLocations(festival.id),
++        listVenueRoutes(festival.id),
++      ]);
++      setLocations(locationList);
++      setRoutes(routeList);
++      saveAdminCache<Cache>(festival.id, "locations", {
++        locations: locationList,
++        routes: routeList,
++      });
++      setLoaded(true);
++      setLoadError(null);
++    } catch (err) {
++      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
++      reportAdminError("locations:load", err);
++      setLoadError(LOAD_ERROR_MESSAGE);
++    } finally {
++      setLoading(false);
++    }
+   }, [festival]);
+ 
+   useEffect(() => {
+@@ -260,6 +289,9 @@ export default function LocationAdminPage() {
+   if (loading) {
+     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+   }
++  if (loadError && !loaded) {
++    return <AdminLoadError message={loadError} onRetry={() => void load()} />;
++  }
+ 
+   // 新規追加時の地図初期位置は祭りの基準地点(天気予報地点→登録済み場所の重心)
+   const defaultCenter = festivalCenter(festival, locations);
+@@ -301,8 +333,17 @@ export default function LocationAdminPage() {
+       )
+     )
+       return;
+-    await deleteLocation(location.id);
+-    await load();
++    setActionError(null);
++    setDeletingId(location.id);
++    try {
++      await deleteLocation(location.id);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("locations:deleteLocation", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   async function handleDeleteRoute(route: VenueRoute) {
+@@ -312,8 +353,17 @@ export default function LocationAdminPage() {
+       )
+     )
+       return;
+-    await deleteVenueRoute(route.id);
+-    await load();
++    setActionError(null);
++    setDeletingId(route.id);
++    try {
++      await deleteVenueRoute(route.id);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("locations:deleteRoute", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   const meetingPoints = locations.filter((l) => l.kind === "meeting_point");
+@@ -324,6 +374,11 @@ export default function LocationAdminPage() {
+     <div className="space-y-4">
+       <h1 className="text-lg font-bold text-slate-800">場所管理</h1>
+ 
++      {loadError && loaded && (
++        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
++      )}
++      {actionError && <AdminActionError message={actionError} />}
++
+       <button
+         type="button"
+         onClick={() => setEditing({ mode: "new" })}
+@@ -366,9 +421,10 @@ export default function LocationAdminPage() {
+                   <button
+                     type="button"
+                     onClick={() => void handleDelete(location)}
+-                    className="text-sm font-bold text-red-600"
++                    disabled={deletingId === location.id}
++                    className="text-sm font-bold text-red-600 disabled:text-slate-400"
+                   >
+-                    削除
++                    {deletingId === location.id ? "削除中…" : "削除"}
+                   </button>
+                 </div>
+               </div>
+@@ -412,9 +468,10 @@ export default function LocationAdminPage() {
+                 <button
+                   type="button"
+                   onClick={() => void handleDeleteRoute(route)}
+-                  className="text-sm font-bold text-red-600"
++                  disabled={deletingId === route.id}
++                  className="text-sm font-bold text-red-600 disabled:text-slate-400"
+                 >
+-                  削除
++                  {deletingId === route.id ? "削除中…" : "削除"}
+                 </button>
+               </div>
+             </div>
+diff --git a/src/pages/admin/ParticipantAdminPage.tsx b/src/pages/admin/ParticipantAdminPage.tsx
+index 5f3070c..957096f 100644
+--- a/src/pages/admin/ParticipantAdminPage.tsx
++++ b/src/pages/admin/ParticipantAdminPage.tsx
+@@ -25,6 +25,16 @@ import {
+   type ParseResult,
+ } from "../../lib/participantImport";
+ import { compareSerial } from "../../lib/audience";
++import {
++  AdminActionError,
++  AdminLoadError,
++  AdminStaleNotice,
++} from "../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../lib/adminError";
+ 
+ const inputClass =
+   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
+@@ -441,6 +451,10 @@ export default function ParticipantAdminPage() {
+   const [newRoleName, setNewRoleName] = useState("");
+   const [addingRole, setAddingRole] = useState(false);
+   const [loading, setLoading] = useState(true);
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [loaded, setLoaded] = useState(false);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [deletingAll, setDeletingAll] = useState(false);
+   const [flash, setFlash] = useState<string | null>(null);
+ 
+   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+@@ -455,29 +469,43 @@ export default function ParticipantAdminPage() {
+     // 初回は前回取得分を即表示し、裏で最新を取得する
+     if (hydratedForRef.current !== festival.id) {
+       hydratedForRef.current = festival.id;
++      // 前の祭りの結果を新しい祭りの画面に残さない
++      setLoadError(null);
++      setActionError(null);
+       const cached = loadAdminCache<Cache>(festival.id, "participants");
+       if (cached) {
+         setParticipants(cached.participants);
+         setRoles(cached.roles);
++        setLoaded(true);
+         setLoading(false);
+       } else {
++        setLoaded(false);
+         setLoading(true);
+       }
+     }
+-    const [participantList, roleList] = await Promise.all([
+-      listParticipants(festival.id),
+-      listRoles(festival.id),
+-    ]);
+-    const sorted = [...participantList].sort((a, b) =>
+-      compareSerial(a.serial, b.serial),
+-    );
+-    setParticipants(sorted);
+-    setRoles(roleList);
+-    saveAdminCache<Cache>(festival.id, "participants", {
+-      participants: sorted,
+-      roles: roleList,
+-    });
+-    setLoading(false);
++    try {
++      const [participantList, roleList] = await Promise.all([
++        listParticipants(festival.id),
++        listRoles(festival.id),
++      ]);
++      const sorted = [...participantList].sort((a, b) =>
++        compareSerial(a.serial, b.serial),
++      );
++      setParticipants(sorted);
++      setRoles(roleList);
++      saveAdminCache<Cache>(festival.id, "participants", {
++        participants: sorted,
++        roles: roleList,
++      });
++      setLoaded(true);
++      setLoadError(null);
++    } catch (err) {
++      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
++      reportAdminError("participants:load", err);
++      setLoadError(LOAD_ERROR_MESSAGE);
++    } finally {
++      setLoading(false);
++    }
+   }, [festival]);
+ 
+   useEffect(() => {
+@@ -513,6 +541,9 @@ export default function ParticipantAdminPage() {
+   if (loading) {
+     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+   }
++  if (loadError && !loaded) {
++    return <AdminLoadError message={loadError} onRetry={() => void load()} />;
++  }
+ 
+   if (editing?.mode === "edit") {
+     return (
+@@ -575,15 +606,29 @@ export default function ParticipantAdminPage() {
+       "この祭りに登録されている参加者をすべて削除します。\n\n個人宛てのお知らせも同時に削除されます。\n\nこの操作は元に戻せません。",
+     );
+     if (!ok) return;
+-    await deleteAllParticipants(festival!.id);
+-    setFlash("参加者をすべて削除しました。再登録は一括登録から行えます。");
+-    await load();
++    setActionError(null);
++    setDeletingAll(true);
++    try {
++      await deleteAllParticipants(festival!.id);
++      setFlash("参加者をすべて削除しました。再登録は一括登録から行えます。");
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("participants:deleteAll", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingAll(false);
++    }
+   }
+ 
+   return (
+     <div className="space-y-4">
+       <h1 className="text-lg font-bold text-slate-800">参加者管理</h1>
+ 
++      {loadError && loaded && (
++        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
++      )}
++      {actionError && <AdminActionError message={actionError} />}
++
+       {flash && (
+         <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
+           {flash}
+@@ -741,9 +786,10 @@ export default function ParticipantAdminPage() {
+         <button
+           type="button"
+           onClick={() => void handleDeleteAll()}
+-          className="w-full rounded-xl border-2 border-red-300 py-3 font-bold text-red-600"
++          disabled={deletingAll}
++          className="w-full rounded-xl border-2 border-red-300 py-3 font-bold text-red-600 disabled:opacity-50"
+         >
+-          参加者を一括削除
++          {deletingAll ? "削除中…" : "参加者を一括削除"}
+         </button>
+       )}
+     </div>
+diff --git a/src/pages/admin/ScheduleAdminPage.tsx b/src/pages/admin/ScheduleAdminPage.tsx
+index a3fce07..e652953 100644
+--- a/src/pages/admin/ScheduleAdminPage.tsx
++++ b/src/pages/admin/ScheduleAdminPage.tsx
+@@ -1,6 +1,16 @@
+ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+ import { useAdminFestival } from "../../context/AdminFestivalContext";
+ import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
++import {
++  AdminActionError,
++  AdminLoadError,
++  AdminStaleNotice,
++} from "../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../lib/adminError";
+ import type {
+   FestivalDay,
+   FestivalRole,
+@@ -486,6 +496,10 @@ export default function ScheduleAdminPage() {
+   const [pendingCounts, setPendingCounts] = useState<
+     Record<string, { rejoice: number; sakaseya: number }>
+   >({});
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [loaded, setLoaded] = useState(false);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [deletingId, setDeletingId] = useState<string | null>(null);
+ 
+   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
+   const hydratedForRef = useRef<string | null>(null);
+@@ -502,6 +516,9 @@ export default function ScheduleAdminPage() {
+     // 初回(または祭り切替時)は前回取得分を即表示し、裏で最新を取得する
+     if (hydratedForRef.current !== festival.id) {
+       hydratedForRef.current = festival.id;
++      // 前の祭りの結果を新しい祭りの画面に残さない
++      setLoadError(null);
++      setActionError(null);
+       const cached = loadAdminCache<Cache>(festival.id, "schedule");
+       if (cached) {
+         setDays(cached.days);
+@@ -509,31 +526,42 @@ export default function ScheduleAdminPage() {
+         setVenueRoutes(cached.venueRoutes);
+         setRoles(cached.roles);
+         setItems(cached.items);
++        setLoaded(true);
+         setLoading(false);
+       } else {
++        setLoaded(false);
+         setLoading(true);
+       }
+     }
+-    const [dayList, locationList, routeList, roleList] = await Promise.all([
+-      listDays(festival.id),
+-      listLocations(festival.id),
+-      listVenueRoutes(festival.id),
+-      listRoles(festival.id),
+-    ]);
+-    const itemList = await listScheduleItems(dayList.map((d) => d.id));
+-    setDays(dayList);
+-    setLocations(locationList);
+-    setVenueRoutes(routeList);
+-    setRoles(roleList);
+-    setItems(itemList);
+-    saveAdminCache<Cache>(festival.id, "schedule", {
+-      days: dayList,
+-      locations: locationList,
+-      venueRoutes: routeList,
+-      roles: roleList,
+-      items: itemList,
+-    });
+-    setLoading(false);
++    try {
++      const [dayList, locationList, routeList, roleList] = await Promise.all([
++        listDays(festival.id),
++        listLocations(festival.id),
++        listVenueRoutes(festival.id),
++        listRoles(festival.id),
++      ]);
++      const itemList = await listScheduleItems(dayList.map((d) => d.id));
++      setDays(dayList);
++      setLocations(locationList);
++      setVenueRoutes(routeList);
++      setRoles(roleList);
++      setItems(itemList);
++      saveAdminCache<Cache>(festival.id, "schedule", {
++        days: dayList,
++        locations: locationList,
++        venueRoutes: routeList,
++        roles: roleList,
++        items: itemList,
++      });
++      setLoaded(true);
++      setLoadError(null);
++    } catch (err) {
++      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
++      reportAdminError("schedule:load", err);
++      setLoadError(LOAD_ERROR_MESSAGE);
++    } finally {
++      setLoading(false);
++    }
+   }, [festival]);
+ 
+   useEffect(() => {
+@@ -544,6 +572,11 @@ export default function ScheduleAdminPage() {
+   if (loading) {
+     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+   }
++  if (loadError && !loaded) {
++    return (
++      <AdminLoadError message={loadError} onRetry={() => void load()} />
++    );
++  }
+ 
+   const currentDay =
+     days.find((d) => d.id === currentDayId) ??
+@@ -559,8 +592,17 @@ export default function ScheduleAdminPage() {
+ 
+   async function handleDelete(item: ScheduleItem) {
+     if (!window.confirm(`「${item.title}」を削除しますか?`)) return;
+-    await deleteScheduleItem(item.id);
+-    await load();
++    setActionError(null);
++    setDeletingId(item.id);
++    try {
++      await deleteScheduleItem(item.id);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("schedule:deleteItem", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   /** この予定で回数入力を出す演目(旧データで両方未設定の演舞は両方出す) */
+@@ -649,9 +691,18 @@ export default function ScheduleAdminPage() {
+       )
+     )
+       return;
+-    await deleteDay(day.id);
+-    setCurrentDayId(null);
+-    await load();
++    setActionError(null);
++    setDeletingId(day.id);
++    try {
++      await deleteDay(day.id);
++      setCurrentDayId(null);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("schedule:deleteDay", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   if (editing && currentDay) {
+@@ -691,6 +742,11 @@ export default function ScheduleAdminPage() {
+         </button>
+       </div>
+ 
++      {loadError && loaded && (
++        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
++      )}
++      {actionError && <AdminActionError message={actionError} />}
++
+       {showDayManager && (
+         <div className="space-y-2 rounded-2xl bg-white p-4 shadow-sm">
+           {days.map((day) => (
+@@ -701,9 +757,10 @@ export default function ScheduleAdminPage() {
+               <button
+                 type="button"
+                 onClick={() => void handleDeleteDay(day)}
+-                className="ml-auto text-sm font-bold text-red-600"
++                disabled={deletingId === day.id}
++                className="ml-auto text-sm font-bold text-red-600 disabled:text-slate-400"
+               >
+-                削除
++                {deletingId === day.id ? "削除中…" : "削除"}
+               </button>
+             </div>
+           ))}
+@@ -907,9 +964,10 @@ export default function ScheduleAdminPage() {
+                   <button
+                     type="button"
+                     onClick={() => void handleDelete(item)}
+-                    className="text-sm font-bold text-red-600"
++                    disabled={deletingId === item.id}
++                    className="text-sm font-bold text-red-600 disabled:text-slate-400"
+                   >
+-                    削除
++                    {deletingId === item.id ? "削除中…" : "削除"}
+                   </button>
+                 </div>
+               </div>
+diff --git a/src/pages/admin/festival/FestivalSettingsPage.tsx b/src/pages/admin/festival/FestivalSettingsPage.tsx
+index eceae7b..11c6074 100644
+--- a/src/pages/admin/festival/FestivalSettingsPage.tsx
++++ b/src/pages/admin/festival/FestivalSettingsPage.tsx
+@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
+ import { useAdminFestival } from "../../../context/AdminFestivalContext";
+ import { useAuth } from "../../../context/AuthContext";
+ import { setFestivalActive } from "../../../lib/adminApi";
++import {
++  reportAdminError,
++  SIGN_OUT_ERROR_MESSAGE,
++} from "../../../lib/adminError";
+ import FestivalForm from "./FestivalForm";
+ 
+ /** 祭りワークスペースの「設定」。名前・天気予報地点・演舞回数・開催状態 */
+@@ -13,6 +17,15 @@ export default function FestivalSettingsPage() {
+   const [editing, setEditing] = useState(false);
+   const [busy, setBusy] = useState(false);
+ 
++  // 失敗したときはログイン状態のままなので、そのことを伝える
++  async function handleSignOut() {
++    const { error } = await signOut();
++    if (error) {
++      reportAdminError("signOut", error);
++      window.alert(SIGN_OUT_ERROR_MESSAGE);
++    }
++  }
++
+   if (!festival) return null;
+ 
+   if (editing) {
+@@ -107,7 +120,7 @@ export default function FestivalSettingsPage() {
+         </button>
+         <button
+           type="button"
+-          onClick={() => void signOut()}
++          onClick={() => void handleSignOut()}
+           className="w-full py-2 text-center text-sm font-medium text-slate-500"
+         >
+           ログアウト
+diff --git a/src/pages/admin/props/PropEventsTab.tsx b/src/pages/admin/props/PropEventsTab.tsx
+index a5e12ad..1360d70 100644
+--- a/src/pages/admin/props/PropEventsTab.tsx
++++ b/src/pages/admin/props/PropEventsTab.tsx
+@@ -3,6 +3,12 @@ import type { PropsAdminData } from "./PropsAdminPage";
+ import type { PropAssignment, PropEvent, PropEventKind } from "../../../types/props";
+ import { PROP_EVENT_KINDS } from "../../../types/props";
+ import { listAssignments, serialLabel } from "../../../lib/props";
++import { AdminActionError } from "../../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../../lib/adminError";
+ import {
+   createPropEvent,
+   deletePropEvent,
+@@ -122,6 +128,8 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
+   const [festivals, setFestivals] = useState<Festival[]>([]);
+   const [error, setError] = useState<string | null>(null);
+   const [saving, setSaving] = useState(false);
++  const [deleteError, setDeleteError] = useState<string | null>(null);
++  const [deletingId, setDeletingId] = useState<string | null>(null);
+ 
+   useEffect(() => {
+     void listFestivals()
+@@ -160,12 +168,30 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
+       )
+     )
+       return;
+-    await deletePropEvent(event.id);
+-    await data.reload();
++    setDeleteError(null);
++    setDeletingId(event.id);
++    try {
++      await deletePropEvent(event.id);
++    } catch (err) {
++      reportAdminError("propEvents:delete", err);
++      setDeleteError(DELETE_ERROR_MESSAGE);
++      return;
++    } finally {
++      setDeletingId(null);
++    }
++    // ここから先は削除できている。読み直しの失敗を削除の失敗として出さない
++    try {
++      await data.reload();
++    } catch (err) {
++      reportAdminError("propEvents:reloadAfterDelete", err);
++      setDeleteError(LOAD_ERROR_MESSAGE);
++    }
+   }
+ 
+   return (
+     <div className="space-y-3">
++      {deleteError && <AdminActionError message={deleteError} />}
++
+       {adding ? (
+         <form
+           onSubmit={handleAdd}
+@@ -293,9 +319,10 @@ export default function PropEventsTab({ data }: { data: PropsAdminData }) {
+               <button
+                 type="button"
+                 onClick={() => void handleDelete(event)}
+-                className="mt-3 w-full rounded-lg border border-red-300 py-2 text-sm font-bold text-red-600"
++                disabled={deletingId === event.id}
++                className="mt-3 w-full rounded-lg border border-red-300 py-2 text-sm font-bold text-red-600 disabled:opacity-50"
+               >
+-                このイベントを削除
++                {deletingId === event.id ? "削除中…" : "このイベントを削除"}
+               </button>
+             </div>
+           )}
+diff --git a/src/pages/admin/props/PropsAdminPage.tsx b/src/pages/admin/props/PropsAdminPage.tsx
+index b06d04c..6d50afe 100644
+--- a/src/pages/admin/props/PropsAdminPage.tsx
++++ b/src/pages/admin/props/PropsAdminPage.tsx
+@@ -9,6 +9,8 @@ import {
+ import { listAllTransfers } from "../../../lib/propsAdminApi";
+ import { repository } from "../../../repositories";
+ import { compareSerial } from "../../../lib/audience";
++import { AdminLoadError } from "../../../components/admin/AdminErrorNotice";
++import { LOAD_ERROR_MESSAGE, reportAdminError } from "../../../lib/adminError";
+ import PropsDashboard from "./PropsDashboard";
+ import PropItemsTab from "./PropItemsTab";
+ import PropEventsTab from "./PropEventsTab";
+@@ -59,23 +61,28 @@ export default function PropsAdminPage() {
+     });
+   }, []);
+ 
+-  useEffect(() => {
++  // 再試行でも同じ流れを使う(エラーの詳細は画面に出さずログへ)
++  const runLoad = useCallback(() => {
+     setLoading(true);
++    setError(null);
+     void reload()
+-      .catch((err) =>
+-        setError(err instanceof Error ? err.message : "読み込みに失敗しました"),
+-      )
++      .catch((err) => {
++        reportAdminError("props:load", err);
++        setError(LOAD_ERROR_MESSAGE);
++      })
+       .finally(() => setLoading(false));
+   }, [reload]);
+ 
++  useEffect(() => {
++    runLoad();
++  }, [runLoad]);
++
+   if (loading) {
+     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+   }
+   if (error || !data) {
+     return (
+-      <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+-        {error ?? "読み込みに失敗しました"}
+-      </p>
++      <AdminLoadError message={error ?? LOAD_ERROR_MESSAGE} onRetry={runLoad} />
+     );
+   }
+ 
+diff --git a/src/pages/admin/rehearsal/RehearsalAdminPage.tsx b/src/pages/admin/rehearsal/RehearsalAdminPage.tsx
+index 1046a25..442e389 100644
+--- a/src/pages/admin/rehearsal/RehearsalAdminPage.tsx
++++ b/src/pages/admin/rehearsal/RehearsalAdminPage.tsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useEffect, useMemo, useState } from "react";
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+ import { useAdminFestival } from "../../../context/AdminFestivalContext";
+ import { listParticipants } from "../../../lib/adminApi";
+ import {
+@@ -20,6 +20,16 @@ import {
+ import type { FestivalParticipant } from "../../../types/domain";
+ import { formatDateLabel, formatTime, toDateString } from "../../../lib/time";
+ import { compareSerial } from "../../../lib/audience";
++import {
++  AdminActionError,
++  AdminLoadError,
++  AdminStaleNotice,
++} from "../../../components/admin/AdminErrorNotice";
++import {
++  DELETE_ERROR_MESSAGE,
++  LOAD_ERROR_MESSAGE,
++  reportAdminError,
++} from "../../../lib/adminError";
+ import RehearsalForm from "./RehearsalForm";
+ import AttendanceImport from "./AttendanceImport";
+ import RehearsalNoteImport from "./RehearsalNoteImport";
+@@ -31,6 +41,10 @@ export default function RehearsalAdminPage() {
+   const [attendances, setAttendances] = useState<Attendance[]>([]);
+   const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
+   const [loading, setLoading] = useState(true);
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [loaded, setLoaded] = useState(false);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [deletingId, setDeletingId] = useState<string | null>(null);
+   const [editing, setEditing] = useState<
+     { mode: "new" } | { mode: "edit"; rehearsal: Rehearsal } | null
+   >(null);
+@@ -40,17 +54,39 @@ export default function RehearsalAdminPage() {
+   const [openId, setOpenId] = useState<string | null>(null);
+ 
+   const festivalId = festival?.id ?? null;
++  // 表示中の祭り(切替時に前の祭りの一覧・エラーを残さないための目印)
++  const shownForRef = useRef<string | null>(null);
+ 
+   const load = useCallback(async () => {
+     if (!festivalId) return;
+-    const [list, people] = await Promise.all([
+-      listRehearsalsForAdmin(festivalId),
+-      listParticipants(festivalId),
+-    ]);
+-    setRehearsals(list);
+-    setParticipants(people);
+-    setAttendances(await listAttendances(list.map((r) => r.id)));
+-    setLoading(false);
++    if (shownForRef.current !== festivalId) {
++      // この画面はキャッシュを持たないので、取得できるまで前の祭りの内容を出さない
++      shownForRef.current = festivalId;
++      setRehearsals([]);
++      setAttendances([]);
++      setParticipants([]);
++      setLoadError(null);
++      setActionError(null);
++      setLoaded(false);
++      setLoading(true);
++    }
++    try {
++      const [list, people] = await Promise.all([
++        listRehearsalsForAdmin(festivalId),
++        listParticipants(festivalId),
++      ]);
++      setRehearsals(list);
++      setParticipants(people);
++      setAttendances(await listAttendances(list.map((r) => r.id)));
++      setLoaded(true);
++      setLoadError(null);
++    } catch (err) {
++      // この画面はキャッシュを持たないので、取得できないと一覧は空のまま
++      reportAdminError("rehearsals:load", err);
++      setLoadError(LOAD_ERROR_MESSAGE);
++    } finally {
++      setLoading(false);
++    }
+   }, [festivalId]);
+ 
+   useEffect(() => {
+@@ -89,8 +125,17 @@ export default function RehearsalAdminPage() {
+       )
+     )
+       return;
+-    await deleteRehearsal(rehearsal.id);
+-    await load();
++    setActionError(null);
++    setDeletingId(rehearsal.id);
++    try {
++      await deleteRehearsal(rehearsal.id);
++      await load(); // 消せたときだけ読み直す
++    } catch (err) {
++      reportAdminError("rehearsals:delete", err);
++      setActionError(DELETE_ERROR_MESSAGE);
++    } finally {
++      setDeletingId(null);
++    }
+   }
+ 
+   const now = new Date();
+@@ -157,7 +202,15 @@ export default function RehearsalAdminPage() {
+ 
+       {loading && <p className="py-8 text-center text-slate-500">読み込み中…</p>}
+ 
+-      {!loading && rehearsals.length === 0 && (
++      {loadError && !loaded && (
++        <AdminLoadError message={loadError} onRetry={() => void load()} />
++      )}
++      {loadError && loaded && (
++        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
++      )}
++      {actionError && <AdminActionError message={actionError} />}
++
++      {!loading && !loadError && rehearsals.length === 0 && (
+         <p className="rounded-xl bg-white p-4 text-slate-600">
+           リハがまだ登録されていません。
+         </p>
+@@ -294,9 +347,10 @@ export default function RehearsalAdminPage() {
+                 <button
+                   type="button"
+                   onClick={() => void handleDelete(r)}
+-                  className="text-sm font-bold text-red-600"
++                  disabled={deletingId === r.id}
++                  className="text-sm font-bold text-red-600 disabled:text-slate-400"
+                 >
+-                  削除
++                  {deletingId === r.id ? "削除中…" : "削除"}
+                 </button>
+               </div>
+             </div>
+diff --git a/vitest.config.ts b/vitest.config.ts
+new file mode 100644
+index 0000000..4dee261
+--- /dev/null
++++ b/vitest.config.ts
+@@ -0,0 +1,10 @@
++import { defineConfig } from "vitest/config";
++
++// 単体テスト用。アプリのビルド設定(vite.config.ts の base や PWA)は読み込まない。
++// DOM を使わない純粋な処理だけを対象にしている。
++export default defineConfig({
++  test: {
++    environment: "node",
++    include: ["src/**/*.test.ts"],
++  },
++});
