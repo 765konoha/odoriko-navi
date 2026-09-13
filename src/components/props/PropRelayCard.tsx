@@ -1,9 +1,24 @@
 import { Link } from "react-router-dom";
-import { usePropSummary } from "../../hooks/usePropSummary";
+import type { PropUserData } from "../../lib/props";
 
-/** ホームに置く小道具リレーの入口(通常モード・祭りモード共通) */
-export default function PropRelayCard({ to }: { to: string }) {
-  const summary = usePropSummary();
+/**
+ * ホームに置く小道具リレーの入口(通常モード・祭りモード共通)。
+ * 件数はホームで読んだものを受け取る(同じ内容を二度取りに行かないため)。
+ */
+export default function PropRelayCard({
+  to,
+  propData,
+}: {
+  to: string;
+  propData: PropUserData | null;
+}) {
+  const summary = propData
+    ? {
+        holding: propData.holding.length,
+        outgoing: propData.outgoing.length,
+        incoming: propData.incoming.length,
+      }
+    : null;
   const hasIncoming = (summary?.incoming ?? 0) > 0;
 
   return (

@@ -5,12 +5,15 @@ import { ToFestivalModeCard } from "../../components/layout/ModeSwitchCard";
 import PropRelayCard from "../../components/props/PropRelayCard";
 import NextRehearsalCard from "../../components/rehearsal/NextRehearsalCard";
 import { useUserSelect } from "../../hooks/useUserSelect";
+import { usePropUserData } from "../../hooks/usePropUserData";
 
 /** 通常モード(日常運用)のホーム。祭りには紐づかない */
 export default function NormalHomePage() {
   const { requestChange } = useUserSelect();
   const { selection } = useUser();
   const { names } = useDisplayNames();
+  // リレーカードと「次のリハ」の受け渡し案内で同じものを見る
+  const propData = usePropUserData();
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -32,9 +35,9 @@ export default function NormalHomePage() {
         </button>
       </div>
 
-      <PropRelayCard to="/props" />
+      <PropRelayCard to="/props" propData={propData} />
 
-      <NextRehearsalCard />
+      <NextRehearsalCard propData={propData} />
 
       <footer className="pt-6 pb-2 text-center">
         <Link to="/admin" className="text-xs text-slate-400 underline">

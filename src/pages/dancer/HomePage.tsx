@@ -20,6 +20,9 @@ import { useReadStatus } from "../../context/ReadStatusContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
 import { useItemDone } from "../../hooks/useItemDone";
 import { useViewer } from "../../hooks/useViewer";
+import { usePropUserData } from "../../hooks/usePropUserData";
+import PropHandoverNotice from "../../components/props/PropHandoverNotice";
+import { festivalHandoverPhase, handoversOn } from "../../lib/propHandover";
 import { activeAnnouncements } from "../../lib/announcements";
 import {
   viewerLabel,
@@ -34,6 +37,7 @@ export default function HomePage() {
   const { requestChange } = useUserSelect();
   const viewer = useViewer();
   const isDone = useItemDone();
+  const propData = usePropUserData();
 
   if (loading) {
     return <p className="px-4 py-8 text-center text-slate-500">読み込み中…</p>;
@@ -71,6 +75,23 @@ export default function HomePage() {
   const unreadCount = currentAnnouncements.filter(
     (a) => !readIds.has(a.id),
   ).length;
+
+  // 当日の小道具の受け渡し。
+  // 渡す側は持って来て最初に手渡すので最初の予定が終わるまで、
+  // 受け取る側は解散前に預かるので最後の予定が終わってから出す。
+  const phase = festivalHandoverPhase(todayItems, isDone);
+  const dayHandovers =
+    propData && today
+      ? {
+          names: propData.names,
+          outgoing: phase.showOutgoing
+            ? handoversOn(propData.outgoing, today.date)
+            : [],
+          incoming: phase.showIncoming
+            ? handoversOn(propData.incoming, today.date)
+            : [],
+        }
+      : null;
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -114,7 +135,10 @@ export default function HomePage() {
 
       <BaggageGroupCard data={data} viewer={viewer} />
 
-      <PropRelayCard to={`/f/${data.festival.slug}/props`} />
+      <PropRelayCard
+        to={`/f/${data.festival.slug}/props`}
+        propData={propData}
+      />
 
       {unreadCount > 0 && (
         <Link
@@ -148,6 +172,16 @@ export default function HomePage() {
         <p className="rounded-2xl bg-white p-5 text-lg font-medium text-slate-700">
           本日の予定はすべて終了しました。おつかれさまでした!
         </p>
+      )}
+
+      {dayHandovers && (
+        <PropHandoverNotice
+          tone="light"
+          to={`/f/${data.festival.slug}/props`}
+          names={dayHandovers.names}
+          outgoing={dayHandovers.outgoing}
+          incoming={dayHandovers.incoming}
+        />
       )}
 
       <WeatherStrip />
