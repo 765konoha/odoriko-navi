@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { mockDisplayNames } from "../data/mock/participants";
+import { mockPendingTransfers, mockPropItems } from "../data/mock/props";
 import { formatDateLabel, toDateString } from "./time";
 import type {
   PropAssignment,
@@ -99,7 +100,10 @@ export function requireOnline(): void {
 export async function listPropItems(
   includeArchived = false,
 ): Promise<PropItem[]> {
-  if (!supabase) return [];
+  if (!supabase) {
+    const items = mockPropItems();
+    return includeArchived ? items : items.filter((i) => !i.isArchived);
+  }
   let query = supabase.from("prop_items").select(PROP_ITEM_COLUMNS);
   if (!includeArchived) query = query.eq("is_archived", false);
   const { data, error } = await query.order("category").order("identifier");
@@ -109,7 +113,7 @@ export async function listPropItems(
 
 /** 受け渡し予定(pending)の一覧。件数が少ないため全件取得して画面側で絞る */
 export async function listPendingTransfers(): Promise<PropTransfer[]> {
-  if (!supabase) return [];
+  if (!supabase) return mockPendingTransfers();
   const { data, error } = await supabase
     .from("prop_transfers")
     .select(PROP_TRANSFER_COLUMNS)

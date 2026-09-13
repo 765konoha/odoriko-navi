@@ -7,13 +7,23 @@ import {
 } from "../../types/rehearsal";
 import { rehearsalCountdown, venueMapUrl } from "../../lib/rehearsals";
 import { formatDateLabel, formatTime, toDateString } from "../../lib/time";
+import { handoversOn } from "../../lib/propHandover";
+import type { PropUserData } from "../../lib/props";
+import PropHandoverNotice from "../props/PropHandoverNotice";
 
 /**
  * ホームに置く「次のリハ」。
  * 祭りモードの「次の予定」と同じ形にして、
  * いつ・どこ・自分の出欠が一目で分かるようにする。
+ *
+ * リハの日に小道具の受け渡しが重なっていれば、この箱の中で知らせる
+ * (小道具リレーの画面まで見に行かなくても気づけるように)。
  */
-export default function NextRehearsalCard() {
+export default function NextRehearsalCard({
+  propData,
+}: {
+  propData: PropUserData | null;
+}) {
   const { loading, next } = useNextRehearsal();
   const now = useNow(60_000);
 
@@ -39,6 +49,7 @@ export default function NextRehearsalCard() {
 
   const { rehearsal, attendance, festivalName } = next;
   const countdown = rehearsalCountdown(rehearsal, now);
+  const rehearsalDate = toDateString(rehearsal.startsAt);
 
   return (
     <section className="rounded-2xl bg-slate-900 p-5 text-white shadow-lg">
@@ -89,6 +100,16 @@ export default function NextRehearsalCard() {
 
       {countdown && (
         <p className="mt-4 text-xl font-bold text-amber-300">{countdown}</p>
+      )}
+
+      {propData && (
+        <PropHandoverNotice
+          tone="dark"
+          to="/props"
+          names={propData.names}
+          outgoing={handoversOn(propData.outgoing, rehearsalDate)}
+          incoming={handoversOn(propData.incoming, rehearsalDate)}
+        />
       )}
 
       <div className="mt-4 grid grid-cols-1 gap-2">
