@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAdminFestival } from "../../../context/AdminFestivalContext";
 import { listParticipants } from "../../../lib/adminApi";
 import {
@@ -20,6 +20,16 @@ import {
 import type { FestivalParticipant } from "../../../types/domain";
 import { formatDateLabel, formatTime, toDateString } from "../../../lib/time";
 import { compareSerial } from "../../../lib/audience";
+import {
+  AdminActionError,
+  AdminLoadError,
+  AdminStaleNotice,
+} from "../../../components/admin/AdminErrorNotice";
+import {
+  DELETE_ERROR_MESSAGE,
+  LOAD_ERROR_MESSAGE,
+  reportAdminError,
+} from "../../../lib/adminError";
 import RehearsalForm from "./RehearsalForm";
 import AttendanceImport from "./AttendanceImport";
 import RehearsalNoteImport from "./RehearsalNoteImport";
@@ -31,6 +41,10 @@ export default function RehearsalAdminPage() {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editing, setEditing] = useState<
     { mode: "new" } | { mode: "edit"; rehearsal: Rehearsal } | null
   >(null);
@@ -40,17 +54,39 @@ export default function RehearsalAdminPage() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const festivalId = festival?.id ?? null;
+  // 表示中の祭り(切替時に前の祭りの一覧・エラーを残さないための目印)
+  const shownForRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     if (!festivalId) return;
-    const [list, people] = await Promise.all([
-      listRehearsalsForAdmin(festivalId),
-      listParticipants(festivalId),
-    ]);
-    setRehearsals(list);
-    setParticipants(people);
-    setAttendances(await listAttendances(list.map((r) => r.id)));
-    setLoading(false);
+    if (shownForRef.current !== festivalId) {
+      // この画面はキャッシュを持たないので、取得できるまで前の祭りの内容を出さない
+      shownForRef.current = festivalId;
+      setRehearsals([]);
+      setAttendances([]);
+      setParticipants([]);
+      setLoadError(null);
+      setActionError(null);
+      setLoaded(false);
+      setLoading(true);
+    }
+    try {
+      const [list, people] = await Promise.all([
+        listRehearsalsForAdmin(festivalId),
+        listParticipants(festivalId),
+      ]);
+      setRehearsals(list);
+      setParticipants(people);
+      setAttendances(await listAttendances(list.map((r) => r.id)));
+      setLoaded(true);
+      setLoadError(null);
+    } catch (err) {
+      // この画面はキャッシュを持たないので、取得できないと一覧は空のまま
+      reportAdminError("rehearsals:load", err);
+      setLoadError(LOAD_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
   }, [festivalId]);
 
   useEffect(() => {
@@ -89,8 +125,17 @@ export default function RehearsalAdminPage() {
       )
     )
       return;
-    await deleteRehearsal(rehearsal.id);
-    await load();
+    setActionError(null);
+    setDeletingId(rehearsal.id);
+    try {
+      await deleteRehearsal(rehearsal.id);
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("rehearsals:delete", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const now = new Date();
@@ -157,7 +202,15 @@ export default function RehearsalAdminPage() {
 
       {loading && <p className="py-8 text-center text-slate-500">読み込み中…</p>}
 
-      {!loading && rehearsals.length === 0 && (
+      {loadError && !loaded && (
+        <AdminLoadError message={loadError} onRetry={() => void load()} />
+      )}
+      {loadError && loaded && (
+        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
+      )}
+      {actionError && <AdminActionError message={actionError} />}
+
+      {!loading && !loadError && rehearsals.length === 0 && (
         <p className="rounded-xl bg-white p-4 text-slate-600">
           リハがまだ登録されていません。
         </p>
@@ -294,9 +347,10 @@ export default function RehearsalAdminPage() {
                 <button
                   type="button"
                   onClick={() => void handleDelete(r)}
-                  className="text-sm font-bold text-red-600"
+                  disabled={deletingId === r.id}
+                  className="text-sm font-bold text-red-600 disabled:text-slate-400"
                 >
-                  削除
+                  {deletingId === r.id ? "削除中…" : "削除"}
                 </button>
               </div>
             </div>

@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAdminFestival } from "../../../context/AdminFestivalContext";
 import { useAuth } from "../../../context/AuthContext";
 import { setFestivalActive } from "../../../lib/adminApi";
+import {
+  reportAdminError,
+  SIGN_OUT_ERROR_MESSAGE,
+} from "../../../lib/adminError";
 import FestivalForm from "./FestivalForm";
 
 /** 祭りワークスペースの「設定」。名前・天気予報地点・演舞回数・開催状態 */
@@ -12,6 +16,15 @@ export default function FestivalSettingsPage() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // 失敗したときはログイン状態のままなので、そのことを伝える
+  async function handleSignOut() {
+    const { error } = await signOut();
+    if (error) {
+      reportAdminError("signOut", error);
+      window.alert(SIGN_OUT_ERROR_MESSAGE);
+    }
+  }
 
   if (!festival) return null;
 
@@ -107,7 +120,7 @@ export default function FestivalSettingsPage() {
         </button>
         <button
           type="button"
-          onClick={() => void signOut()}
+          onClick={() => void handleSignOut()}
           className="w-full py-2 text-center text-sm font-medium text-slate-500"
         >
           ログアウト

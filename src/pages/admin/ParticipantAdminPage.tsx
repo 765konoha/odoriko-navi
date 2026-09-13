@@ -25,6 +25,16 @@ import {
   type ParseResult,
 } from "../../lib/participantImport";
 import { compareSerial } from "../../lib/audience";
+import {
+  AdminActionError,
+  AdminLoadError,
+  AdminStaleNotice,
+} from "../../components/admin/AdminErrorNotice";
+import {
+  DELETE_ERROR_MESSAGE,
+  LOAD_ERROR_MESSAGE,
+  reportAdminError,
+} from "../../lib/adminError";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base";
@@ -441,6 +451,10 @@ export default function ParticipantAdminPage() {
   const [newRoleName, setNewRoleName] = useState("");
   const [addingRole, setAddingRole] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
 
   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
@@ -455,29 +469,43 @@ export default function ParticipantAdminPage() {
     // 初回は前回取得分を即表示し、裏で最新を取得する
     if (hydratedForRef.current !== festival.id) {
       hydratedForRef.current = festival.id;
+      // 前の祭りの結果を新しい祭りの画面に残さない
+      setLoadError(null);
+      setActionError(null);
       const cached = loadAdminCache<Cache>(festival.id, "participants");
       if (cached) {
         setParticipants(cached.participants);
         setRoles(cached.roles);
+        setLoaded(true);
         setLoading(false);
       } else {
+        setLoaded(false);
         setLoading(true);
       }
     }
-    const [participantList, roleList] = await Promise.all([
-      listParticipants(festival.id),
-      listRoles(festival.id),
-    ]);
-    const sorted = [...participantList].sort((a, b) =>
-      compareSerial(a.serial, b.serial),
-    );
-    setParticipants(sorted);
-    setRoles(roleList);
-    saveAdminCache<Cache>(festival.id, "participants", {
-      participants: sorted,
-      roles: roleList,
-    });
-    setLoading(false);
+    try {
+      const [participantList, roleList] = await Promise.all([
+        listParticipants(festival.id),
+        listRoles(festival.id),
+      ]);
+      const sorted = [...participantList].sort((a, b) =>
+        compareSerial(a.serial, b.serial),
+      );
+      setParticipants(sorted);
+      setRoles(roleList);
+      saveAdminCache<Cache>(festival.id, "participants", {
+        participants: sorted,
+        roles: roleList,
+      });
+      setLoaded(true);
+      setLoadError(null);
+    } catch (err) {
+      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
+      reportAdminError("participants:load", err);
+      setLoadError(LOAD_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
   }, [festival]);
 
   useEffect(() => {
@@ -512,6 +540,9 @@ export default function ParticipantAdminPage() {
   if (!festival) return null;
   if (loading) {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+  }
+  if (loadError && !loaded) {
+    return <AdminLoadError message={loadError} onRetry={() => void load()} />;
   }
 
   if (editing?.mode === "edit") {
@@ -575,14 +606,28 @@ export default function ParticipantAdminPage() {
       "この祭りに登録されている参加者をすべて削除します。\n\n個人宛てのお知らせも同時に削除されます。\n\nこの操作は元に戻せません。",
     );
     if (!ok) return;
-    await deleteAllParticipants(festival!.id);
-    setFlash("参加者をすべて削除しました。再登録は一括登録から行えます。");
-    await load();
+    setActionError(null);
+    setDeletingAll(true);
+    try {
+      await deleteAllParticipants(festival!.id);
+      setFlash("参加者をすべて削除しました。再登録は一括登録から行えます。");
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("participants:deleteAll", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingAll(false);
+    }
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-slate-800">参加者管理</h1>
+
+      {loadError && loaded && (
+        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
+      )}
+      {actionError && <AdminActionError message={actionError} />}
 
       {flash && (
         <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
@@ -741,9 +786,10 @@ export default function ParticipantAdminPage() {
         <button
           type="button"
           onClick={() => void handleDeleteAll()}
-          className="w-full rounded-xl border-2 border-red-300 py-3 font-bold text-red-600"
+          disabled={deletingAll}
+          className="w-full rounded-xl border-2 border-red-300 py-3 font-bold text-red-600 disabled:opacity-50"
         >
-          参加者を一括削除
+          {deletingAll ? "削除中…" : "参加者を一括削除"}
         </button>
       )}
     </div>

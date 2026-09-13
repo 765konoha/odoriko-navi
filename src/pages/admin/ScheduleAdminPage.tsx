@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
 import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
+import {
+  AdminActionError,
+  AdminLoadError,
+  AdminStaleNotice,
+} from "../../components/admin/AdminErrorNotice";
+import {
+  DELETE_ERROR_MESSAGE,
+  LOAD_ERROR_MESSAGE,
+  reportAdminError,
+} from "../../lib/adminError";
 import type {
   FestivalDay,
   FestivalRole,
@@ -486,6 +496,10 @@ export default function ScheduleAdminPage() {
   const [pendingCounts, setPendingCounts] = useState<
     Record<string, { rejoice: number; sakaseya: number }>
   >({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
   const hydratedForRef = useRef<string | null>(null);
@@ -502,6 +516,9 @@ export default function ScheduleAdminPage() {
     // 初回(または祭り切替時)は前回取得分を即表示し、裏で最新を取得する
     if (hydratedForRef.current !== festival.id) {
       hydratedForRef.current = festival.id;
+      // 前の祭りの結果を新しい祭りの画面に残さない
+      setLoadError(null);
+      setActionError(null);
       const cached = loadAdminCache<Cache>(festival.id, "schedule");
       if (cached) {
         setDays(cached.days);
@@ -509,31 +526,42 @@ export default function ScheduleAdminPage() {
         setVenueRoutes(cached.venueRoutes);
         setRoles(cached.roles);
         setItems(cached.items);
+        setLoaded(true);
         setLoading(false);
       } else {
+        setLoaded(false);
         setLoading(true);
       }
     }
-    const [dayList, locationList, routeList, roleList] = await Promise.all([
-      listDays(festival.id),
-      listLocations(festival.id),
-      listVenueRoutes(festival.id),
-      listRoles(festival.id),
-    ]);
-    const itemList = await listScheduleItems(dayList.map((d) => d.id));
-    setDays(dayList);
-    setLocations(locationList);
-    setVenueRoutes(routeList);
-    setRoles(roleList);
-    setItems(itemList);
-    saveAdminCache<Cache>(festival.id, "schedule", {
-      days: dayList,
-      locations: locationList,
-      venueRoutes: routeList,
-      roles: roleList,
-      items: itemList,
-    });
-    setLoading(false);
+    try {
+      const [dayList, locationList, routeList, roleList] = await Promise.all([
+        listDays(festival.id),
+        listLocations(festival.id),
+        listVenueRoutes(festival.id),
+        listRoles(festival.id),
+      ]);
+      const itemList = await listScheduleItems(dayList.map((d) => d.id));
+      setDays(dayList);
+      setLocations(locationList);
+      setVenueRoutes(routeList);
+      setRoles(roleList);
+      setItems(itemList);
+      saveAdminCache<Cache>(festival.id, "schedule", {
+        days: dayList,
+        locations: locationList,
+        venueRoutes: routeList,
+        roles: roleList,
+        items: itemList,
+      });
+      setLoaded(true);
+      setLoadError(null);
+    } catch (err) {
+      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
+      reportAdminError("schedule:load", err);
+      setLoadError(LOAD_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
   }, [festival]);
 
   useEffect(() => {
@@ -543,6 +571,11 @@ export default function ScheduleAdminPage() {
   if (!festival) return null;
   if (loading) {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+  }
+  if (loadError && !loaded) {
+    return (
+      <AdminLoadError message={loadError} onRetry={() => void load()} />
+    );
   }
 
   const currentDay =
@@ -559,8 +592,17 @@ export default function ScheduleAdminPage() {
 
   async function handleDelete(item: ScheduleItem) {
     if (!window.confirm(`「${item.title}」を削除しますか?`)) return;
-    await deleteScheduleItem(item.id);
-    await load();
+    setActionError(null);
+    setDeletingId(item.id);
+    try {
+      await deleteScheduleItem(item.id);
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("schedule:deleteItem", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   /** この予定で回数入力を出す演目(旧データで両方未設定の演舞は両方出す) */
@@ -649,9 +691,18 @@ export default function ScheduleAdminPage() {
       )
     )
       return;
-    await deleteDay(day.id);
-    setCurrentDayId(null);
-    await load();
+    setActionError(null);
+    setDeletingId(day.id);
+    try {
+      await deleteDay(day.id);
+      setCurrentDayId(null);
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("schedule:deleteDay", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   if (editing && currentDay) {
@@ -691,6 +742,11 @@ export default function ScheduleAdminPage() {
         </button>
       </div>
 
+      {loadError && loaded && (
+        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
+      )}
+      {actionError && <AdminActionError message={actionError} />}
+
       {showDayManager && (
         <div className="space-y-2 rounded-2xl bg-white p-4 shadow-sm">
           {days.map((day) => (
@@ -701,9 +757,10 @@ export default function ScheduleAdminPage() {
               <button
                 type="button"
                 onClick={() => void handleDeleteDay(day)}
-                className="ml-auto text-sm font-bold text-red-600"
+                disabled={deletingId === day.id}
+                className="ml-auto text-sm font-bold text-red-600 disabled:text-slate-400"
               >
-                削除
+                {deletingId === day.id ? "削除中…" : "削除"}
               </button>
             </div>
           ))}
@@ -907,9 +964,10 @@ export default function ScheduleAdminPage() {
                   <button
                     type="button"
                     onClick={() => void handleDelete(item)}
-                    className="text-sm font-bold text-red-600"
+                    disabled={deletingId === item.id}
+                    className="text-sm font-bold text-red-600 disabled:text-slate-400"
                   >
-                    削除
+                    {deletingId === item.id ? "削除中…" : "削除"}
                   </button>
                 </div>
               </div>

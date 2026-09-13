@@ -1,6 +1,10 @@
 import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AdminShellFrame, { type AdminTab } from "./AdminShellFrame";
+import {
+  reportAdminError,
+  SIGN_OUT_ERROR_MESSAGE,
+} from "../../lib/adminError";
 
 // 祭りを選ばずに使う画面(祭り一覧・小道具)
 const TABS: AdminTab[] = [
@@ -10,6 +14,16 @@ const TABS: AdminTab[] = [
 
 export default function CrossFestivalShell() {
   const { signOut } = useAuth();
+
+  // 失敗したときはログイン状態のままなので、そのことを伝える
+  async function handleSignOut() {
+    const { error } = await signOut();
+    if (error) {
+      reportAdminError("signOut", error);
+      window.alert(SIGN_OUT_ERROR_MESSAGE);
+    }
+  }
+
   return (
     <AdminShellFrame
       tabs={TABS}
@@ -26,7 +40,7 @@ export default function CrossFestivalShell() {
             </Link>
             <button
               type="button"
-              onClick={() => void signOut()}
+              onClick={() => void handleSignOut()}
               className="rounded-lg bg-slate-700 px-3 py-1 text-sm"
             >
               ログアウト

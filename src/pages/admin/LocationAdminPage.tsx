@@ -8,6 +8,16 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAdminFestival } from "../../context/AdminFestivalContext";
+import {
+  AdminActionError,
+  AdminLoadError,
+  AdminStaleNotice,
+} from "../../components/admin/AdminErrorNotice";
+import {
+  DELETE_ERROR_MESSAGE,
+  LOAD_ERROR_MESSAGE,
+  reportAdminError,
+} from "../../lib/adminError";
 import type { Location, VenueRoute } from "../../types/domain";
 import {
   createVenueRoute,
@@ -218,6 +228,11 @@ export default function LocationAdminPage() {
   >(null);
   const [loading, setLoading] = useState(true);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   // キャッシュ即時表示済みの祭りID(祭り切替時はキャッシュから読み直す)
   const hydratedForRef = useRef<string | null>(null);
 
@@ -230,26 +245,40 @@ export default function LocationAdminPage() {
     // 初回は前回取得分を即表示し、裏で最新を取得する
     if (hydratedForRef.current !== festival.id) {
       hydratedForRef.current = festival.id;
+      // 前の祭りの結果を新しい祭りの画面に残さない
+      setLoadError(null);
+      setActionError(null);
       const cached = loadAdminCache<Cache>(festival.id, "locations");
       if (cached) {
         setLocations(cached.locations);
         setRoutes(cached.routes);
+        setLoaded(true);
         setLoading(false);
       } else {
+        setLoaded(false);
         setLoading(true);
       }
     }
-    const [locationList, routeList] = await Promise.all([
-      listLocations(festival.id),
-      listVenueRoutes(festival.id),
-    ]);
-    setLocations(locationList);
-    setRoutes(routeList);
-    saveAdminCache<Cache>(festival.id, "locations", {
-      locations: locationList,
-      routes: routeList,
-    });
-    setLoading(false);
+    try {
+      const [locationList, routeList] = await Promise.all([
+        listLocations(festival.id),
+        listVenueRoutes(festival.id),
+      ]);
+      setLocations(locationList);
+      setRoutes(routeList);
+      saveAdminCache<Cache>(festival.id, "locations", {
+        locations: locationList,
+        routes: routeList,
+      });
+      setLoaded(true);
+      setLoadError(null);
+    } catch (err) {
+      // 取得できてもキャッシュは残す。何も無いときだけ画面を止める
+      reportAdminError("locations:load", err);
+      setLoadError(LOAD_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
   }, [festival]);
 
   useEffect(() => {
@@ -259,6 +288,9 @@ export default function LocationAdminPage() {
   if (!festival) return null;
   if (loading) {
     return <p className="py-8 text-center text-slate-500">読み込み中…</p>;
+  }
+  if (loadError && !loaded) {
+    return <AdminLoadError message={loadError} onRetry={() => void load()} />;
   }
 
   // 新規追加時の地図初期位置は祭りの基準地点(天気予報地点→登録済み場所の重心)
@@ -301,8 +333,17 @@ export default function LocationAdminPage() {
       )
     )
       return;
-    await deleteLocation(location.id);
-    await load();
+    setActionError(null);
+    setDeletingId(location.id);
+    try {
+      await deleteLocation(location.id);
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("locations:deleteLocation", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function handleDeleteRoute(route: VenueRoute) {
@@ -312,8 +353,17 @@ export default function LocationAdminPage() {
       )
     )
       return;
-    await deleteVenueRoute(route.id);
-    await load();
+    setActionError(null);
+    setDeletingId(route.id);
+    try {
+      await deleteVenueRoute(route.id);
+      await load(); // 消せたときだけ読み直す
+    } catch (err) {
+      reportAdminError("locations:deleteRoute", err);
+      setActionError(DELETE_ERROR_MESSAGE);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const meetingPoints = locations.filter((l) => l.kind === "meeting_point");
@@ -323,6 +373,11 @@ export default function LocationAdminPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-slate-800">場所管理</h1>
+
+      {loadError && loaded && (
+        <AdminStaleNotice message={loadError} onRetry={() => void load()} />
+      )}
+      {actionError && <AdminActionError message={actionError} />}
 
       <button
         type="button"
@@ -366,9 +421,10 @@ export default function LocationAdminPage() {
                   <button
                     type="button"
                     onClick={() => void handleDelete(location)}
-                    className="text-sm font-bold text-red-600"
+                    disabled={deletingId === location.id}
+                    className="text-sm font-bold text-red-600 disabled:text-slate-400"
                   >
-                    削除
+                    {deletingId === location.id ? "削除中…" : "削除"}
                   </button>
                 </div>
               </div>
@@ -412,9 +468,10 @@ export default function LocationAdminPage() {
                 <button
                   type="button"
                   onClick={() => void handleDeleteRoute(route)}
-                  className="text-sm font-bold text-red-600"
+                  disabled={deletingId === route.id}
+                  className="text-sm font-bold text-red-600 disabled:text-slate-400"
                 >
-                  削除
+                  {deletingId === route.id ? "削除中…" : "削除"}
                 </button>
               </div>
             </div>
