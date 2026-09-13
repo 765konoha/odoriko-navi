@@ -1,7 +1,5 @@
-import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FestivalSelect, useFestivalList } from "./FestivalPicker";
-import { loadLastFestivalSlug } from "../../lib/storage";
 
 const cardClass = "space-y-2 rounded-xl bg-white px-4 py-2.5";
 const rowClass = "flex items-center gap-2";
@@ -10,22 +8,12 @@ const buttonClass =
 
 /**
  * 通常モードのホームに置く切替。
- * 祭りモードはどの祭りの当日運用かで中身が変わるため、
- * 切り替える祭りをここで選ぶ。
+ *
+ * どの祭りに入るかは、切り替えを押したあとの祭り選び(/festivals)で決める。
+ * 通常モードは祭りに紐づかないため、ここに祭りを出しておく意味がないため。
+ * 開催中が1つだけのときは選ばせずにそのまま入る(選ぶ画面は素通しする)。
  */
 export function ToFestivalModeCard() {
-  const navigate = useNavigate();
-  const festivals = useFestivalList();
-  const [picked, setPicked] = useState("");
-
-  // 前に見ていた祭り → 開催中の祭り、の順に既定を決める
-  const defaultSlug = useMemo(() => {
-    const last = loadLastFestivalSlug();
-    if (last && festivals.some((f) => f.slug === last)) return last;
-    return festivals.find((f) => f.isActive)?.slug ?? festivals[0]?.slug ?? "";
-  }, [festivals]);
-  const slug = picked || defaultSlug;
-
   return (
     <div className={cardClass}>
       <div className={rowClass}>
@@ -33,21 +21,9 @@ export function ToFestivalModeCard() {
         <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
           通常モード
         </span>
-      </div>
-      <div className={rowClass}>
-        <FestivalSelect
-          festivals={festivals}
-          value={slug}
-          onChange={setPicked}
-        />
-        <button
-          type="button"
-          disabled={slug === ""}
-          onClick={() => navigate(`/f/${slug}`)}
-          className={`${buttonClass} disabled:opacity-40`}
-        >
+        <Link to="/festivals" className={buttonClass}>
           祭りモードに切替
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -60,7 +36,7 @@ export function ToFestivalModeCard() {
 export function ToNormalModeCard({ festivalName }: { festivalName: string }) {
   const { festivalSlug } = useParams();
   const navigate = useNavigate();
-  const festivals = useFestivalList();
+  const { festivals } = useFestivalList();
 
   return (
     <div className={cardClass}>

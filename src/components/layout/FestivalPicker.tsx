@@ -19,11 +19,19 @@ function fetchList(): Promise<Festival[]> {
   return inFlight;
 }
 
-/** 祭りの一覧。まずキャッシュを返し、裏で最新を取りに行く(オフラインでも選べる) */
-export function useFestivalList(): Festival[] {
+/**
+ * 祭りの一覧。まずキャッシュを返し、裏で最新を取りに行く(オフラインでも選べる)。
+ * loading は「キャッシュが空で、まだ取得が終わっていない」ことの目印。
+ * 一覧が空なのが読み込み中のせいか、本当に0件なのかを区別するために使う。
+ */
+export function useFestivalList(): {
+  festivals: Festival[];
+  loading: boolean;
+} {
   const [festivals, setFestivals] = useState<Festival[]>(() =>
     loadFestivalListCache(),
   );
+  const [loading, setLoading] = useState(() => festivals.length === 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,13 +43,16 @@ export function useFestivalList(): Festival[] {
       })
       .catch(() => {
         // 取得失敗(オフライン等)はキャッシュのまま
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return festivals;
+  return { festivals, loading };
 }
 
 /**
@@ -123,7 +134,7 @@ export function FestivalSelect({
 export function FestivalHeaderName() {
   const { festivalSlug } = useParams();
   const { data } = useFestivalData();
-  const festivals = useFestivalList();
+  const { festivals } = useFestivalList();
   const name =
     data?.festival.name ??
     festivals.find((f) => f.slug === festivalSlug)?.name ??
