@@ -25,7 +25,6 @@ import NormalHomePage from "./pages/normal/NormalHomePage";
 import RehearsalPage from "./pages/normal/RehearsalPage";
 import PropsPage from "./pages/props/PropsPage";
 import LegacyDancerRedirect from "./pages/LegacyDancerRedirect";
-import FestivalSelectPage from "./pages/FestivalSelectPage";
 
 export const router = createHashRouter([
   // 通常モード(日常運用)。祭りには紐づかない
@@ -38,9 +37,6 @@ export const router = createHashRouter([
       { path: "props", element: <PropsPage /> },
     ],
   },
-  // 祭りモードに入るときの祭り選び(「祭りモードに切替」の行き先)。
-  // 旧URL引き取りの /:festivalSlug より先に置く
-  { path: "/festivals", element: <FestivalSelectPage /> },
   { path: "/admin/login", element: <AdminLoginPage /> },
   {
     path: "/admin",

@@ -1,5 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FestivalSelect, useFestivalList } from "./FestivalPicker";
+import FestivalSelectSheet from "./FestivalSelectSheet";
+import { useHistoryOverlay } from "../../hooks/useHistoryOverlay";
 
 const cardClass = "space-y-2 rounded-xl bg-white px-4 py-2.5";
 const rowClass = "flex items-center gap-2";
@@ -9,11 +11,18 @@ const buttonClass =
 /**
  * 通常モードのホームに置く切替。
  *
- * どの祭りに入るかは、切り替えを押したあとの祭り選び(/festivals)で決める。
- * 通常モードは祭りに紐づかないため、ここに祭りを出しておく意味がないため。
- * 開催中が1つだけのときは選ばせずにそのまま入る(選ぶ画面は素通しする)。
+ * どの祭りに入るかは、切り替えを押したあとに重ねて出す祭り選びで決める。
+ * 通常モードは祭りに紐づかないため、押す前に祭りを出しておく意味がない。
+ * 選ぶ先が1つしか無いときは、重ねずにそのまま入る。
  */
 export function ToFestivalModeCard() {
+  const navigate = useNavigate();
+  const { festivals, loading } = useFestivalList();
+  const { open, requestOpen, close } = useHistoryOverlay("festivalSelect");
+
+  const active = festivals.filter((f) => f.isActive);
+  const onlyOne = festivals.length === 1 && active.length === 1;
+
   return (
     <div className={cardClass}>
       <div className={rowClass}>
@@ -21,10 +30,24 @@ export function ToFestivalModeCard() {
         <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
           通常モード
         </span>
-        <Link to="/festivals" className={buttonClass}>
+        <button
+          type="button"
+          onClick={() =>
+            onlyOne ? navigate(`/f/${active[0].slug}`) : requestOpen()
+          }
+          className={buttonClass}
+        >
           祭りモードに切替
-        </Link>
+        </button>
       </div>
+
+      {open && (
+        <FestivalSelectSheet
+          festivals={festivals}
+          loading={loading}
+          onClose={close}
+        />
+      )}
     </div>
   );
 }
