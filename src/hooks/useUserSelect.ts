@@ -1,13 +1,8 @@
-import { useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useHistoryOverlay } from "./useHistoryOverlay";
 
-// 利用者(シリアル)選択画面の開閉を「履歴」で管理する。
-// React の state だけで開閉すると、戻るボタン(ヘッダー・OS・ブラウザいずれも)を
-// 押しても選択画面が閉じず、裏のページだけが動いてしまうため。
-
-interface UserSelectState {
-  userSelect?: boolean;
-}
+// 利用者(シリアル)選択画面の開閉。
+// 開閉の仕組みは useHistoryOverlay に置いてある(祭り選択と共通)。
 
 export interface UserSelectRoute {
   /** 「変更」で選択画面を開いている最中か */
@@ -19,24 +14,12 @@ export interface UserSelectRoute {
 }
 
 export function useUserSelect(): UserSelectRoute {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const changeRequested =
-    (location.state as UserSelectState | null)?.userSelect === true;
-  const here = `${location.pathname}${location.search}${location.hash}`;
-
-  const requestChange = useCallback(() => {
-    if (changeRequested) return;
-    navigate(here, { state: { userSelect: true } satisfies UserSelectState });
-  }, [changeRequested, here, navigate]);
-
-  // replace で閉じることで、閉じたあとの「戻る」は開く前の画面に戻る
-  const closeChange = useCallback(() => {
-    if (!changeRequested) return;
-    navigate(here, { replace: true, state: null });
-  }, [changeRequested, here, navigate]);
-
-  return { changeRequested, requestChange, closeChange };
+  const { open, requestOpen, close } = useHistoryOverlay("userSelect");
+  return {
+    changeRequested: open,
+    requestChange: requestOpen,
+    closeChange: close,
+  };
 }
 
 /**
