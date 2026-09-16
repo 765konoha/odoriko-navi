@@ -15,11 +15,14 @@ import {
   createRole,
   deleteAllParticipants,
   deleteParticipant,
+  listKnownParticipants,
   listParticipants,
   listRoles,
   setParticipantRoles,
   updateParticipant,
+  type ParticipantImportRow,
 } from "../../lib/adminApi";
+import { cohortLabelOf, groupByCohort } from "../../lib/cohort";
 import {
   parseParticipantPaste,
   type ParseResult,
@@ -41,6 +44,32 @@ const inputClass =
 const labelClass = "text-sm font-medium text-slate-600";
 
 const PAGE_SIZE = 10;
+
+/** 期での絞り込みボタン */
+function CohortChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+        active
+          ? "bg-slate-900 text-white"
+          : "border border-slate-300 bg-white text-slate-600"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 /** 役職チェックボックス(編集・追加フォーム共通) */
 function RoleChecks({
@@ -200,17 +229,63 @@ function ParticipantForm({
 function AddParticipantForm({
   festivalId,
   roles,
+  registeredSerials,
   onSaved,
   onCancel,
 }: {
   festivalId: string;
   roles: FestivalRole[];
+  /** この祭りに登録済みのシリアル(候補から外す) */
+  registeredSerials: Set<string>;
   onSaved: () => void;
   onCancel: () => void;
 }) {
   const [serial, setSerial] = useState("");
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
+  // 過去に登録されたことのある人。選ぶと3つの欄が埋まる
+  const [known, setKnown] = useState<ParticipantImportRow[]>([]);
+  const [knownFailed, setKnownFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listKnownParticipants()
+      .then((list) => {
+        if (!cancelled) setKnown(list);
+      })
+      .catch((err) => {
+        // 候補が出せなくても手入力で登録できるので、画面は止めない
+        reportAdminError("participants:known", err);
+        if (!cancelled) setKnownFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // この祭りに未登録の人だけを、期ごとにまとめて出す
+  const candidates = useMemo(() => {
+    const rest = known
+      .filter((k) => !registeredSerials.has(k.serial))
+      .sort((a, b) => compareSerial(a.serial, b.serial));
+    return groupByCohort(rest, (k) => k.serial);
+  }, [known, registeredSerials]);
+  const candidateCount = candidates.reduce((n, g) => n + g.items.length, 0);
+
+  // 候補に無いシリアル(手入力・登録済み)なら選択なしに見せる
+  const pickedSerial = candidates.some((g) =>
+    g.items.some((k) => k.serial === serial),
+  )
+    ? serial
+    : "";
+
+  function pick(picked: string) {
+    const row = known.find((k) => k.serial === picked);
+    if (!row) return;
+    setSerial(row.serial);
+    setName(row.name);
+    setNickname(row.nickname);
+  }
   // 既定は踊り子一般(初期登録と同じ)
   const [roleIds, setRoleIds] = useState<string[]>(() =>
     roles.filter((r) => r.isDefault).map((r) => r.id),
@@ -250,6 +325,39 @@ function AddParticipantForm({
       className="space-y-3 rounded-2xl bg-white p-4 shadow-sm"
     >
       <h2 className="text-base font-bold text-slate-800">参加者を1人追加</h2>
+
+      {candidateCount > 0 && (
+        <label className="block">
+          <span className={labelClass}>登録したことのある人から選ぶ</span>
+          {/* シリアル欄を手で直したら選択は外れる(実際の値と食い違わせない) */}
+          <select
+            value={pickedSerial}
+            onChange={(e) => pick(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">選択してください({candidateCount}人)</option>
+            {candidates.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.items.map((k) => (
+                  <option key={k.serial} value={k.serial}>
+                    {k.serial} / {k.name}({k.nickname})
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-slate-500">
+            選ぶと下の3つが埋まります。直してから追加できます。
+            この祭りに登録済みの人は出ません。
+          </span>
+        </label>
+      )}
+
+      {knownFailed && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          登録したことのある人の一覧を取得できませんでした。下の欄に直接入力して追加できます。
+        </p>
+      )}
 
       <label className="block">
         <span className={labelClass}>シリアル *</span>
@@ -444,6 +552,8 @@ export default function ParticipantAdminPage() {
   const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
   const [roles, setRoles] = useState<FestivalRole[]>([]);
   const [query, setQuery] = useState("");
+  /** 期での絞り込み("" は全員。"その他" は期を判定できないシリアル) */
+  const [cohortFilter, setCohortFilter] = useState("");
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<
     { mode: "add" } | { mode: "edit"; participant: FestivalParticipant } | null
@@ -518,16 +628,35 @@ export default function ParticipantAdminPage() {
     return map;
   }, [roles]);
 
+  const registeredSerials = useMemo(
+    () => new Set(participants.map((p) => p.serial)),
+    [participants],
+  );
+
+  // 期の選択肢は、実際に登録されている人から作る(空の期は出さない)
+  const cohortOptions = useMemo(
+    () =>
+      groupByCohort(participants, (p) => p.serial).map((g) => ({
+        label: g.label,
+        count: g.items.length,
+      })),
+    [participants],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return participants;
-    return participants.filter(
-      (p) =>
+    return participants.filter((p) => {
+      if (cohortFilter && cohortLabelOf(p.serial) !== cohortFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
         p.serial.toLowerCase().includes(q) ||
         p.name.toLowerCase().includes(q) ||
-        p.nickname.toLowerCase().includes(q),
-    );
-  }, [participants, query]);
+        p.nickname.toLowerCase().includes(q)
+      );
+    });
+  }, [participants, query, cohortFilter]);
 
   // 10人ごとのページング(検索やデータ変更でページが範囲外になったら丸める)
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -569,6 +698,7 @@ export default function ParticipantAdminPage() {
       <AddParticipantForm
         festivalId={festival.id}
         roles={roles}
+        registeredSerials={registeredSerials}
         onSaved={() => {
           setEditing(null);
           setFlash("参加者を追加しました。");
@@ -669,12 +799,37 @@ export default function ParticipantAdminPage() {
             placeholder="🔍 シリアル・名前・ニックネームで検索"
           />
 
+          {cohortOptions.length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              <CohortChip
+                label={`全員(${participants.length})`}
+                active={cohortFilter === ""}
+                onClick={() => {
+                  setCohortFilter("");
+                  setPage(1);
+                }}
+              />
+              {cohortOptions.map((c) => (
+                <CohortChip
+                  key={c.label}
+                  label={`${c.label}(${c.count})`}
+                  active={cohortFilter === c.label}
+                  onClick={() => {
+                    setCohortFilter(c.label);
+                    setPage(1);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs text-slate-500">
                     <th className="px-3 py-2 font-bold">シリアル</th>
+                    <th className="px-3 py-2 font-bold">期</th>
                     <th className="px-3 py-2 font-bold">名前</th>
                     <th className="px-3 py-2 font-bold">ニックネーム</th>
                     <th className="px-3 py-2 font-bold">役職</th>
@@ -690,6 +845,9 @@ export default function ParticipantAdminPage() {
                     >
                       <td className="px-3 py-2.5 font-mono font-bold text-slate-900">
                         {p.serial}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-slate-500">
+                        {cohortLabelOf(p.serial)}
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap text-slate-900">
                         {p.name}
@@ -712,7 +870,7 @@ export default function ParticipantAdminPage() {
                   {pageRows.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-3 py-4 text-center text-slate-500"
                       >
                         該当する参加者がいません。

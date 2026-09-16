@@ -44,6 +44,8 @@ export const kochi2026: FestivalData = {
     { id: "k-p-115", festivalId, serial: "115", name: "大塚さやか", nickname: "さやか", roleIds: ["k-role-dancer"] },
     { id: "k-p-001", festivalId, serial: "001", name: "全 太郎", nickname: "ZEN", roleIds: ["k-role-singer", "k-role-dancer"] },
     { id: "k-p-k010", festivalId, serial: "K-010", name: "亀井亮介", nickname: "りょうすけ", roleIds: ["k-role-manager"] },
+    // 4桁シリアル(上2桁が期)の確認用
+    { id: "k-p-1103", festivalId, serial: "1103", name: "新井美咲", nickname: "みさき", roleIds: ["k-role-dancer"] },
   ],
   // 高知は荷物グループ未使用(全員未配属の表示テスト用)
   baggageGroups: [],
