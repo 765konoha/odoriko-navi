@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { mockRepository } from "../repositories/mockRepository";
+import { mockKnownParticipants } from "../data/mock/participants";
 import type {
   Announcement,
   AnnouncementAudience,
@@ -565,9 +566,18 @@ export async function deleteAnnouncement(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** mock モード用に、祭りIDからダミーの祭りデータを引く */
+async function mockFestivalData(festivalId: string) {
+  const list = await mockRepository.listFestivals();
+  const slug = list.find((f) => f.id === festivalId)?.slug;
+  return slug ? await mockRepository.loadFestivalData(slug) : null;
+}
+
 // ---------- 役職 ----------
 
 export async function listRoles(festivalId: string): Promise<FestivalRole[]> {
+  // mock モード(Supabase 未設定)。参加者管理を開発時に確認するために使う。
+  if (!supabase) return (await mockFestivalData(festivalId))?.roles ?? [];
   const { data, error } = await client()
     .from("festival_roles")
     .select(FESTIVAL_ROLE_COLUMNS)
@@ -596,12 +606,7 @@ export async function listParticipants(
   festivalId: string,
 ): Promise<FestivalParticipant[]> {
   // mock モード(Supabase 未設定)。リハの出欠集計を開発時に確認するために使う。
-  if (!supabase) {
-    const list = await mockRepository.listFestivals();
-    const slug = list.find((f) => f.id === festivalId)?.slug;
-    const data = slug ? await mockRepository.loadFestivalData(slug) : null;
-    return data?.participants ?? [];
-  }
+  if (!supabase) return (await mockFestivalData(festivalId))?.participants ?? [];
   const { data, error } = await client()
     .from("festival_participants")
     .select(FESTIVAL_PARTICIPANT_COLUMNS)
@@ -609,6 +614,26 @@ export async function listParticipants(
     .order("serial");
   if (error) throw error;
   return ((data ?? []) as FestivalParticipantRow[]).map(toFestivalParticipant);
+}
+
+/**
+ * これまでに登録されたことのある人の一覧(シリアル・本名・呼び名)。
+ *
+ * 参加者マスター(participants)はシリアルしか持たないため、
+ * 名前は祭りごとの名簿から引く。participant_display は
+ * シリアルごとに最後に登録された名前を返すビュー。
+ * 追加フォームで選ばせて、同じ人の登録を毎回打ち直さずに済ませる。
+ */
+export async function listKnownParticipants(): Promise<
+  ParticipantImportRow[]
+> {
+  if (!supabase) return mockKnownParticipants();
+  const { data, error } = await client()
+    .from("participant_display")
+    .select("serial, name, nickname")
+    .order("serial");
+  if (error) throw error;
+  return (data ?? []) as ParticipantImportRow[];
 }
 
 export async function updateParticipant(

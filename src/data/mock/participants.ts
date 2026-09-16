@@ -15,6 +15,28 @@ export function mockDisplayNames(): Map<string, string> {
   return map;
 }
 
+/**
+ * これまでに登録されたことのある人(シリアル・本名・呼び名)。
+ * 本番では participant_display ビューを読む。
+ */
+export function mockKnownParticipants(): {
+  serial: string;
+  name: string;
+  nickname: string;
+}[] {
+  const map = new Map<string, { serial: string; name: string; nickname: string }>();
+  for (const f of FESTIVALS) {
+    for (const p of f.participants) {
+      map.set(p.serial, {
+        serial: p.serial,
+        name: p.name,
+        nickname: p.nickname,
+      });
+    }
+  }
+  return [...map.values()];
+}
+
 /** 祭りごとの名簿(シリアル → 表示名)。未回答を数えるのに使う */
 export function mockRosters(
   festivalIds: string[],
