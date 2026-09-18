@@ -23,6 +23,7 @@ import {
   type ParticipantImportRow,
 } from "../../lib/adminApi";
 import { cohortLabelOf, groupByCohort } from "../../lib/cohort";
+import ParticipantSheetSyncPanel from "./ParticipantSheetSyncPanel";
 import {
   parseParticipantPaste,
   type ParseResult,
@@ -560,6 +561,7 @@ export default function ParticipantAdminPage() {
   >(null);
   const [newRoleName, setNewRoleName] = useState("");
   const [addingRole, setAddingRole] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -786,6 +788,25 @@ export default function ParticipantAdminPage() {
       >
         + 参加者を1人追加
       </button>
+
+      <button
+        type="button"
+        onClick={() => setSheetOpen((v) => !v)}
+        aria-expanded={sheetOpen}
+        className="w-full rounded-xl border-2 border-slate-300 py-3 font-bold text-slate-600"
+      >
+        {sheetOpen ? "名簿シートとの同期を閉じる" : "名簿シートと同期する"}
+      </button>
+
+      {sheetOpen && (
+        <ParticipantSheetSyncPanel
+          festivalId={festival.id}
+          onSynced={() => {
+            setFlash("名簿シートと同期しました。");
+            void load();
+          }}
+        />
+      )}
 
       {participants.length > 0 && (
         <>
