@@ -1,7 +1,9 @@
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FestivalSelect, useFestivalList } from "./FestivalPicker";
 import FestivalSelectSheet from "./FestivalSelectSheet";
 import { useHistoryOverlay } from "../../hooks/useHistoryOverlay";
+import { saveStayNormalDate } from "../../lib/storage";
+import { todayString } from "../../lib/time";
 
 const cardClass = "space-y-2 rounded-xl bg-white px-4 py-2.5";
 const rowClass = "flex items-center gap-2";
@@ -61,6 +63,13 @@ export function ToNormalModeCard({ festivalName }: { festivalName: string }) {
   const navigate = useNavigate();
   const { festivals } = useFestivalList();
 
+  // 祭り当日は通常モードのホームが祭りモードへ引き戻すので、
+  // 自分で戻したことを残しておく(その日のあいだは引き戻さない)
+  function toNormal() {
+    saveStayNormalDate(todayString());
+    navigate("/");
+  }
+
   return (
     <div className={cardClass}>
       <div className={rowClass}>
@@ -68,9 +77,9 @@ export function ToNormalModeCard({ festivalName }: { festivalName: string }) {
         <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
           祭りモード
         </span>
-        <Link to="/" className={buttonClass}>
+        <button type="button" onClick={toNormal} className={buttonClass}>
           通常モードに切替
-        </Link>
+        </button>
       </div>
       <div className={rowClass}>
         <FestivalSelect
