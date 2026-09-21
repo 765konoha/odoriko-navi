@@ -141,6 +141,34 @@ export function saveLastFestivalSlug(slug: string): void {
   }
 }
 
+// ---------- 祭り当日の自動切替 ----------
+
+const STAY_NORMAL_KEY = "odoriko:stayNormalOn";
+
+/**
+ * 「今日は通常モードのままにする」の記録。
+ *
+ * 祭り当日はホームを開いたら祭りモードへ自動で入るが、
+ * 自分で通常モードへ戻した日はそのままにする。
+ * 戻した直後にまた祭りモードへ引き戻されると操作できないため。
+ * 日付を持たせるので、翌日には自然に効かなくなる。
+ */
+export function loadStayNormalDate(): string | null {
+  try {
+    return localStorage.getItem(STAY_NORMAL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveStayNormalDate(date: string): void {
+  try {
+    localStorage.setItem(STAY_NORMAL_KEY, date);
+  } catch {
+    // ストレージ不可でも動作継続(自動切替が効くだけ)
+  }
+}
+
 // ---------- 利用者(シリアル)選択 ----------
 
 const USER_SELECTION_KEY = "odoriko:userSelection";
