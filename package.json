@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:mock": "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= vite",
-    "build:function": "esbuild supabase/functions/sync-rehearsal-attendance/index.ts --bundle --format=esm --target=esnext --external:npm:* --outfile=dist/functions/sync-rehearsal-attendance.ts",
+    "build:function": "esbuild supabase/functions/sync-rehearsal-attendance/index.ts --bundle --format=esm --target=esnext --external:npm:* --external:jsr:* --outfile=dist/functions/sync-rehearsal-attendance.ts && esbuild supabase/functions/notify-rehearsal-eve/index.ts --bundle --format=esm --target=esnext --external:npm:* --external:jsr:* --outfile=dist/functions/notify-rehearsal-eve.ts && esbuild supabase/functions/send-push/index.ts --bundle --format=esm --target=esnext --external:npm:* --external:jsr:* --outfile=dist/functions/send-push.ts",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "preview": "vite preview"
