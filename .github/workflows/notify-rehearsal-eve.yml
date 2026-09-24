@@ -10,9 +10,12 @@ name: Notify rehearsal eve
 # 定時実行が失敗した夜に force で送り直したりするのに使う。
 #
 # 必要な Secrets:
-#   VITE_SUPABASE_URL       … デプロイでも使っているもの
-#   VITE_SUPABASE_ANON_KEY  … 同上(Edge Function の入口を通るため)
-#   CRON_SECRET             … 関数側の Secrets と同じ文字列
+#   VITE_SUPABASE_URL         … デプロイでも使っているもの
+#   SUPABASE_PUBLISHABLE_KEY  … sb_publishable_... の公開キー
+#                               (Edge Function の入口は新しい形式のキーしか
+#                                通さない。アプリの VITE_SUPABASE_ANON_KEY は
+#                                旧形式の eyJ... なので使えない)
+#   CRON_SECRET               … 関数側の Secrets と同じ文字列
 on:
   workflow_dispatch:
     inputs:
@@ -32,15 +35,22 @@ jobs:
       - name: Call notify-rehearsal-eve
         env:
           URL: ${{ secrets.VITE_SUPABASE_URL }}
-          ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           DRY_RUN: ${{ inputs.dryRun }}
           FORCE: ${{ inputs.force }}
         run: |
-          if [ -z "$URL" ] || [ -z "$ANON" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / CRON_SECRET を設定してください"
+          if [ -z "$URL" ] || [ -z "$KEY" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::VITE_SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY / CRON_SECRET を設定してください"
             exit 1
           fi
+          case "$KEY" in
+            sb_publishable_*) ;;
+            *)
+              echo "::error::SUPABASE_PUBLISHABLE_KEY には sb_publishable_ で始まるキーを入れてください"
+              exit 1
+              ;;
+          esac
           body='{}'
           if [ "$DRY_RUN" = "true" ]; then body='{"dryRun":true}'
           elif [ "$FORCE" = "true" ]; then body='{"force":true}'; fi
@@ -49,8 +59,8 @@ jobs:
           out=$(mktemp)
           code=$(curl -sS -o "$out" -w '%{http_code}' \
             -X POST "$URL/functions/v1/notify-rehearsal-eve" \
-            -H "apikey: $ANON" \
-            -H "Authorization: Bearer $ANON" \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY" \
             -H "x-cron-secret: $CRON_SECRET" \
             -H 'Content-Type: application/json' \
             -d "$body")
