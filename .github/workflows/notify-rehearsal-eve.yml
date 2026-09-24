@@ -1,19 +1,19 @@
 name: Notify rehearsal eve
 
-# リハの前日21時(JST)に「明日はリハです」を送る。
-# 21:00 JST = 12:00 UTC。cron は UTC で書く。
+# リハ前日の案内(notify-rehearsal-eve)を手で起動する。
 #
-# Supabase のダッシュボードで pg_cron を仕掛ける代わりに、
-# 既に使っている GitHub Actions から Edge Function を叩く。
+# 毎晩21時の定時実行は Supabase の pg_cron が行う(migration 0022)。
+# Actions の定期実行は数時間遅れることがあり、日付をまたぐと
+# 関数が送らずに見送ってしまうため、定時実行はここから外した。
+#
+# ここは手動実行用に残す。dryRun で送らずに対象件数を確認したり、
+# 定時実行が失敗した夜に force で送り直したりするのに使う。
 #
 # 必要な Secrets:
 #   VITE_SUPABASE_URL       … デプロイでも使っているもの
 #   VITE_SUPABASE_ANON_KEY  … 同上(Edge Function の入口を通るため)
-#   CRON_SECRET             … 新規。関数側の Secrets と同じ文字列にする
-#                             (service_role キーを置かずに済ませるため)
+#   CRON_SECRET             … 関数側の Secrets と同じ文字列
 on:
-  schedule:
-    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       dryRun:
@@ -49,6 +49,7 @@ jobs:
           out=$(mktemp)
           code=$(curl -sS -o "$out" -w '%{http_code}' \
             -X POST "$URL/functions/v1/notify-rehearsal-eve" \
+            -H "apikey: $ANON" \
             -H "Authorization: Bearer $ANON" \
             -H "x-cron-secret: $CRON_SECRET" \
             -H 'Content-Type: application/json' \
