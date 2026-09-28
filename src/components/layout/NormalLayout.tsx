@@ -5,7 +5,6 @@ import OfflineBanner from "./OfflineBanner";
 import UserSelectScreen from "../user/UserSelectScreen";
 import { useUser } from "../../context/UserContext";
 import { useCanGoBack, useUserSelect } from "../../hooks/useUserSelect";
-import { useDisplayNames } from "../../hooks/useDisplayNames";
 import { recordSerialAccess } from "../../lib/access";
 
 /**
@@ -18,7 +17,6 @@ export default function NormalLayout() {
   const { selection } = useUser();
   const { changeRequested } = useUserSelect();
   const canGoBack = useCanGoBack();
-  const { names, loading } = useDisplayNames();
 
   // 利用状況を記録する(運営がインストール状況を確認するための緩い記録)
   useEffect(() => {
@@ -56,7 +54,7 @@ export default function NormalLayout() {
         )}
       </div>
       {showUserSelect ? (
-        <UserSelectScreen nicknameBySerial={names} loadingNames={loading} />
+        <UserSelectScreen />
       ) : (
         <>
           {/* 下部ナビ(4rem+セーフエリア)に隠れないよう余白を確保 */}

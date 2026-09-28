@@ -6,33 +6,26 @@ import {
 } from "../../lib/storage";
 import { useUser } from "../../context/UserContext";
 import { useUserSelect } from "../../hooks/useUserSelect";
+import { useSerialNicknames } from "../../hooks/useSerialNicknames";
 import { compareSerial } from "../../lib/audience";
-
-/** 祭りモードで表示するときに渡す、その祭りの名簿 */
-export interface UserSelectFestival {
-  name: string;
-  /** 名簿を読み込めているか(読めていないと参加の判定ができない) */
-  ready: boolean;
-  isParticipant: (serial: string) => boolean;
-}
+import { serialOptionLabel } from "../../lib/serialNames";
 
 /**
  * 利用者(シリアル)選択画面。
  * 初回アクセス時と「変更」タップ時に表示する。
  * 参加者マスターのシリアルから選択する。
- * 祭りモードでは、その祭りに不参加のシリアルは保存しない(festival を渡す)。
- * 通常モードは祭りに紐づかないため、参加の判定は行わない。
+ *
+ * 祭りモードでも通常モードと同じく、その祭りへの参加・不参加は確かめずに
+ * 選んだシリアルを保存する。呼び名は祭りごとの名簿のニックネームを並記する。
  */
 export default function UserSelectScreen({
-  nicknameBySerial,
-  loadingNames = false,
-  festival = null,
+  festivalName = null,
 }: {
-  /** シリアル → 呼び名(選びやすさのために一覧に添える) */
-  nicknameBySerial: Map<string, string>;
-  loadingNames?: boolean;
-  festival?: UserSelectFestival | null;
+  /** 祭りモードで開いたときの祭りの名前(案内に出すだけ) */
+  festivalName?: string | null;
 }) {
+  const { names: nicknamesBySerial, loading: loadingNames } =
+    useSerialNicknames();
   const { selection, selectUser } = useUser();
   const { changeRequested, closeChange } = useUserSelect();
   const isChange = changeRequested; // 選択済み→「変更」で開いた場合
@@ -42,7 +35,6 @@ export default function UserSelectScreen({
   );
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<string>(selection?.serial ?? "");
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,24 +60,14 @@ export default function UserSelectScreen({
     return serials.filter(
       (s) =>
         s.toLowerCase().includes(q) ||
-        (nicknameBySerial.get(s) ?? "").toLowerCase().includes(q),
+        (nicknamesBySerial.get(s) ?? []).some((n) =>
+          n.toLowerCase().includes(q),
+        ),
     );
-  }, [serials, query, nicknameBySerial]);
+  }, [serials, query, nicknamesBySerial]);
 
   function handleConfirm() {
     if (!picked) return;
-    if (festival) {
-      if (!festival.ready) {
-        setNotice(
-          "祭りの参加者情報を読み込めませんでした。通信環境を確認してください。",
-        );
-        return;
-      }
-      if (!festival.isParticipant(picked)) {
-        setNotice("今回のお祭りには不参加です");
-        return; // 保存しない
-      }
-    }
     selectUser(picked);
     closeChange();
   }
@@ -96,13 +78,13 @@ export default function UserSelectScreen({
         あなたのシリアルを選択してください
       </h1>
       <p className="mt-2 text-center text-sm text-slate-500">
-        {festival
+        {festivalName != null
           ? "選択すると、あなたの役職に合わせた予定とお知らせが表示されます。"
           : "選択すると、あなたのリハの出欠や小道具の受け渡しが表示されます。"}
       </p>
-      {festival && (
+      {festivalName && (
         <p className="mt-1 text-center text-sm font-bold text-slate-600">
-          対象のお祭り: {festival.name}
+          対象のお祭り: {festivalName}
         </p>
       )}
 
@@ -120,21 +102,15 @@ export default function UserSelectScreen({
 
         <select
           value={picked}
-          onChange={(e) => {
-            setPicked(e.target.value);
-            setNotice(null);
-          }}
+          onChange={(e) => setPicked(e.target.value)}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg font-bold"
         >
           <option value="">選択してください</option>
-          {filtered.map((s) => {
-            const nickname = nicknameBySerial.get(s);
-            return (
-              <option key={s} value={s}>
-                {nickname ? `${s} / ${nickname}` : s}
-              </option>
-            );
-          })}
+          {filtered.map((s) => (
+            <option key={s} value={s}>
+              {serialOptionLabel(s, nicknamesBySerial)}
+            </option>
+          ))}
         </select>
 
         {serials.length === 0 && (
@@ -143,17 +119,6 @@ export default function UserSelectScreen({
               ? "参加者情報を読み込み中…"
               : "参加者が登録されていません。「番号指定なし」でご利用ください。"}
           </p>
-        )}
-
-        {notice && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
-            <p className="text-base font-bold text-amber-900">{notice}</p>
-            {notice === "今回のお祭りには不参加です" && (
-              <p className="mt-1 text-sm text-amber-800">
-                別のシリアルを選択するか、「番号指定なし」でご利用ください。
-              </p>
-            )}
-          </div>
         )}
 
         <button
