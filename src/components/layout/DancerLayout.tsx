@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import { FestivalOfflineBanner } from "./OfflineBanner";
@@ -38,26 +38,11 @@ function NotParticipatingBanner() {
 
 /**
  * 祭りモードの利用者選択。
- * その祭りの名簿で呼び名を出し、不参加のシリアルは保存しない。
+ * 通常モードと同じく参加・不参加は確かめない。祭りの名前は案内に出すだけ。
  */
 function FestivalUserSelect() {
   const { data } = useFestivalData();
-  const nicknameBySerial = useMemo(
-    () =>
-      new Map((data?.participants ?? []).map((p) => [p.serial, p.nickname])),
-    [data],
-  );
-  return (
-    <UserSelectScreen
-      nicknameBySerial={nicknameBySerial}
-      festival={{
-        name: data?.festival.name ?? "",
-        ready: data != null,
-        isParticipant: (serial) =>
-          (data?.participants ?? []).some((p) => p.serial === serial),
-      }}
-    />
-  );
+  return <UserSelectScreen festivalName={data?.festival.name ?? ""} />;
 }
 
 export default function DancerLayout() {

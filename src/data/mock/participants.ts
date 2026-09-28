@@ -16,6 +16,22 @@ export function mockDisplayNames(): Map<string, string> {
 }
 
 /**
+ * シリアル → 祭りごとの名簿の呼び名(新しい祭りから順、重複なし)。
+ * 本番では festival_participants を登録の新しい順に読む。
+ */
+export function mockNicknamesBySerial(): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const f of [...FESTIVALS].reverse()) {
+    for (const p of f.participants) {
+      const list = map.get(p.serial) ?? [];
+      if (p.nickname && !list.includes(p.nickname)) list.push(p.nickname);
+      map.set(p.serial, list);
+    }
+  }
+  return map;
+}
+
+/**
  * これまでに登録されたことのある人(シリアル・本名・呼び名)。
  * 本番では participant_display ビューを読む。
  */
