@@ -128,3 +128,24 @@ describe("diffParticipants", () => {
     expect(d.missing).toEqual([]);
   });
 });
+
+describe("diffParticipants(全角のシリアル)", () => {
+  it("名簿に全角で登録されている人は、半角のシートでも同じ人とみなす", () => {
+    const full = [p("k", "Ｋ－０１５", "木村", "きむ")];
+    const d = diffParticipants(full, [row("K-015", "木村", "きむ")]);
+    expect(d.added).toEqual([]);
+    expect(d.unchanged).toBe(1);
+    expect(d.normalized).toEqual([{ sheet: "K-015", roster: "Ｋ－０１５" }]);
+  });
+
+  it("名簿に全角と半角の両方がいれば、半角の方と照合し、全角の方をシートにいない人に出す", () => {
+    const both = [
+      p("h", "K-015", "木村", "きむ"),
+      p("f", "Ｋ－０１５", "木村", "きむ"),
+    ];
+    const d = diffParticipants(both, [row("K-015", "木村", "きむ")]);
+    expect(d.added).toEqual([]);
+    expect(d.unchanged).toBe(1);
+    expect(d.missing.map((m) => m.id)).toEqual(["f"]);
+  });
+});

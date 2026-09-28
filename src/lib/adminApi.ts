@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { mockRepository } from "../repositories/mockRepository";
 import { mockKnownParticipants } from "../data/mock/participants";
+import { normalizeSerial } from "./serial";
 import type {
   Announcement,
   AnnouncementAudience,
@@ -688,6 +689,11 @@ async function defaultRoleId(festivalId: string): Promise<string | null> {
   return (data?.[0] as { id: string } | undefined)?.id ?? null;
 }
 
+/** 登録する行のシリアルの表記をそろえる */
+function normalizeRow(row: ParticipantImportRow): ParticipantImportRow {
+  return { ...row, serial: normalizeSerial(row.serial) };
+}
+
 /** マスターに無いシリアルをマスターへ追加する(名前は持たせない) */
 async function ensureMasterSerials(serials: string[]): Promise<void> {
   const { error } = await client()
@@ -705,9 +711,10 @@ async function ensureMasterSerials(serials: string[]): Promise<void> {
  */
 export async function bulkRegisterParticipants(
   festivalId: string,
-  rows: ParticipantImportRow[],
+  input: ParticipantImportRow[],
 ): Promise<void> {
-  if (rows.length === 0) return;
+  if (input.length === 0) return;
+  const rows = input.map(normalizeRow);
   await ensureMasterSerials(rows.map((r) => r.serial));
 
   const { data, error } = await client()
@@ -757,9 +764,10 @@ export async function applyParticipantSheet(
 /** 参加者を1人追加する(役職未指定なら踊り子一般を付与) */
 export async function createParticipant(
   festivalId: string,
-  row: ParticipantImportRow,
+  input: ParticipantImportRow,
   roleIds: string[],
 ): Promise<void> {
+  const row = normalizeRow(input);
   await ensureMasterSerials([row.serial]);
   const { data, error } = await client()
     .from("festival_participants")

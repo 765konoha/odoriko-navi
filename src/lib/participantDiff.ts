@@ -1,5 +1,6 @@
 import type { FestivalParticipant } from "../types/domain";
 import type { ParticipantImportRow } from "./adminApi";
+import { normalizeSerial } from "./serial";
 
 // Spreadsheet の貼り付けと、今の名簿との差分。
 //
@@ -25,17 +26,18 @@ export interface ParticipantDiff {
   /** 名簿にいるがシートにいない人(削除はしない) */
   missing: FestivalParticipant[];
   /**
-   * 先頭の0が落ちていたシリアルを、名簿の人に読み替えたもの。
-   * スプレッドシートが "012" を数値の 12 として扱うことがあるため
+   * 表記の違うシリアルを、名簿の人に読み替えたもの。
+   * スプレッドシートが "012" を数値の 12 として扱うことがあるほか、
+   * 名簿に全角のまま(Ｋ－０１５)登録されている人がいるため
    */
   normalized: { sheet: string; roster: string }[];
   /** 反映できない行(1件でもあれば反映しない) */
   errors: string[];
 }
 
-/** 先頭の0と大文字小文字を無視した照合用のキー */
+/** 全角半角・先頭の0・大文字小文字を無視した照合用のキー */
 function looseKey(serial: string): string {
-  return serial.trim().toLowerCase().replace(/^0+(?=\d)/, "");
+  return normalizeSerial(serial).toLowerCase().replace(/^0+(?=\d)/, "");
 }
 
 export function diffParticipants(

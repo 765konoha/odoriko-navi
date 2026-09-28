@@ -12,6 +12,7 @@ import {
   type UserKey,
   type UserSelection,
 } from "../lib/storage";
+import { normalizeSerial } from "../lib/serial";
 
 // 利用者(シリアル)の選択状態。
 // 本人認証ではなく表示切替のための識別。パスワード等は使わない。
@@ -29,23 +30,32 @@ interface UserState {
 const UserContext = createContext<UserState | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [selection, setSelection] = useState<UserSelection | null>(() =>
+  /** 端末に保存されている選択(選んだときの表記のまま) */
+  const [stored, setStored] = useState<UserSelection | null>(() =>
     loadUserSelection(),
   );
 
   const selectUser = useCallback((serial: string | null) => {
     const next: UserSelection = { serial };
     saveUserSelection(next);
-    setSelection(next);
+    setStored(next);
   }, []);
 
   const value = useMemo<UserState>(
     () => ({
-      selection,
-      userKey: selection?.serial ?? "anonymous",
+      // 名簿との照合には表記をそろえたシリアルを使う。
+      // 名簿に全角(Ｋ－０１５)で登録されていた頃に選んだ端末は、
+      // 全角のまま保存されているため
+      selection:
+        stored && {
+          serial: stored.serial == null ? null : normalizeSerial(stored.serial),
+        },
+      // 既読・確認済みの保存先は、選んだときの表記のままにする
+      // (キーが変わると、その端末の既読が消えたように見えるため)
+      userKey: stored?.serial ?? "anonymous",
       selectUser,
     }),
-    [selection, selectUser],
+    [stored, selectUser],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
