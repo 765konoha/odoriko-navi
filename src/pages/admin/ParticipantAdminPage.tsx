@@ -26,6 +26,7 @@ import {
 } from "../../lib/adminApi";
 import { cohortLabelOf, groupByCohort } from "../../lib/cohort";
 import { parseParticipantPaste } from "../../lib/participantImport";
+import { normalizeSerial } from "../../lib/serial";
 import {
   diffParticipants,
   hasParticipantChanges,
@@ -305,7 +306,7 @@ function AddParticipantForm({
       await createParticipant(
         festivalId,
         {
-          serial: serial.trim(),
+          serial: normalizeSerial(serial),
           name: name.trim(),
           nickname: nickname.trim(),
         },
@@ -316,7 +317,7 @@ function AddParticipantForm({
       const message = err instanceof Error ? err.message : "追加に失敗しました";
       setError(
         message.includes("duplicate")
-          ? `シリアル「${serial.trim()}」は既にこの祭りに登録されています`
+          ? `シリアル「${normalizeSerial(serial)}」は既にこの祭りに登録されています`
           : message,
       );
       setSaving(false);

@@ -1,5 +1,8 @@
+import { normalizeSerial } from "./serial.ts";
+
 // 出欠の種別。src/types/rehearsal.ts の AttendanceStatus と同じもの
-// (この解析はブラウザと Edge Function の両方から読むため、依存を持たせない)
+// (この解析はブラウザと Edge Function の両方から読むため、_shared の外には
+//  依存を持たせない)
 export type AttendanceStatus =
   | "present"
   | "late"
@@ -197,7 +200,7 @@ export function buildImportRows(
   let blankCount = 0;
 
   sheet.rows.forEach((cells, i) => {
-    const serial = (cells[serialColumn] ?? "").trim();
+    const serial = normalizeSerial(cells[serialColumn] ?? "");
     const raw = (cells[statusColumn] ?? "").trim();
     if (serial === "" && raw === "") return; // 完全な空行
     if (serial === "") {

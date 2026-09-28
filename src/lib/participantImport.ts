@@ -1,4 +1,5 @@
 import type { ParticipantImportRow } from "./adminApi";
+import { normalizeSerial } from "./serial";
 
 // Spreadsheet からコピーしたタブ区切りテキスト(シリアル/名前/ニックネーム)の解析。
 
@@ -19,6 +20,7 @@ function isHeaderRow(cells: string[]): boolean {
  * - 空行は無視
  * - ヘッダー行が含まれていてもスキップ
  * - 各セルの前後の空白は除去(シリアルの文字列自体は "001" のまま維持)
+ * - シリアルの全角英数字・記号は半角にそろえる(Ｋ－０１５ → K-015)
  */
 export function parseParticipantPaste(text: string): ParseResult {
   const rows: ParticipantImportRow[] = [];
@@ -33,7 +35,8 @@ export function parseParticipantPaste(text: string): ParseResult {
     if (rows.length === 0 && errors.length === 0 && isHeaderRow(cells)) {
       return; // ヘッダー行はスキップ
     }
-    const [serial = "", name = "", nickname = ""] = cells;
+    const [rawSerial = "", name = "", nickname = ""] = cells;
+    const serial = normalizeSerial(rawSerial);
     if (!serial || !name || !nickname) {
       errors.push(
         `${lineNo}行目: シリアル・名前・ニックネームの3列(タブ区切り)が必要です`,
