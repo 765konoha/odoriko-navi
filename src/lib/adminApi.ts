@@ -700,7 +700,7 @@ async function ensureMasterSerials(serials: string[]): Promise<void> {
 }
 
 /**
- * 参加者の一括登録(初期登録専用)。
+ * 参加者の一括登録(名簿にまだいない人だけを渡すこと)。
  * 全員に既定役職(踊り子一般)を付与する。
  */
 export async function bulkRegisterParticipants(
@@ -734,6 +734,24 @@ export async function bulkRegisterParticipants(
       })),
     );
   if (roleError) throw roleError;
+}
+
+/**
+ * Spreadsheet の貼り直しを名簿へ反映する。
+ * 追加(踊り子一般を付与)と、名前・ニックネームの変更だけを行う。
+ * 役職や荷物グループには触れず、名簿から人を消すこともしない。
+ *
+ * 途中で失敗しても、読み直して貼り直せば残りだけが差分に出る。
+ */
+export async function applyParticipantSheet(
+  festivalId: string,
+  added: ParticipantImportRow[],
+  changed: { id: string; name: string; nickname: string }[],
+): Promise<void> {
+  await bulkRegisterParticipants(festivalId, added);
+  for (const c of changed) {
+    await updateParticipant(c.id, c.name, c.nickname);
+  }
 }
 
 /** 参加者を1人追加する(役職未指定なら踊り子一般を付与) */
