@@ -10,8 +10,7 @@
 -- このファイルを流しただけでは、データは変わらない。
 -- SQL Editor で次の順に実行する。
 --   1. select * from normalize_participant_serials();      -- 確認だけ
---   2. 「要対応」があれば、参加者管理で重複している方を削除する
---   3. select * from normalize_participant_serials(true);  -- 反映
+--   2. select * from normalize_participant_serials(true);  -- 反映
 -- 何度実行しても、直すものが無くなれば何もしない。
 -- =========================================================
 
@@ -48,8 +47,17 @@ comment on function normalize_serial(text) is
 -- (どれも ON UPDATE CASCADE ではない)。そのため新しい表記をマスターに
 -- 足し、参照している行をすべて付け替えてから、古い表記を消す。
 --
--- 次の場合は付け替えずに「要対応」として返す(どちらを残すかは人が決める)。
---   - 同じ祭りに、両方の表記で登録されている(同じ人が2人いる)
+-- 同じ祭りに両方の表記で登録されている(同じ人が2人いる)ときは、
+-- 半角の方を残し、全角の方の設定をそこへまとめてから全角の方を消す。
+--   - 役職 … 両方の役職を合わせる
+--   - 個人宛てのお知らせ … 両方の宛先を合わせる
+--   - 荷物グループ … 半角の方が未配属なら、全角の方のグループを引き継ぐ
+--   - 荷物リーダー … 全角の方がリーダーなら、半角の方をリーダーにする
+--   - 名前・ニックネーム … 半角の方を残す(違えば結果に出す)
+--
+-- 次の場合はまとめずに「要対応」として返す(どちらを残すかは人が決める)。
+--   - 両方が別々の荷物グループに入っている
+--   - 両方が別々の荷物グループのリーダーになっている
 --   - 両方の表記の間で小道具の受け渡しの記録がある(付け替えると自分から自分への
 --     受け渡しになり、制約に反する。取り消し済みの記録も行としては残るので同じ)
 --
@@ -61,7 +69,11 @@ language plpgsql
 as $$
 declare
   r record;
-  clash text;
+  m record;
+  blocked text;
+  notes text[];
+  add_roles int;
+  add_ann int;
 begin
   for r in
     select p.serial as old, normalize_serial(p.serial) as new
@@ -71,36 +83,116 @@ begin
   loop
     old_serial := r.old;
     new_serial := r.new;
+    blocked := null;
+    notes := array[]::text[];
 
-    select string_agg(f.name, '、' order by f.name) into clash
-    from festival_participants a
-    join festival_participants b
-      on b.festival_id = a.festival_id and b.serial = r.new
-    join festivals f on f.id = a.festival_id
-    where a.serial = r.old;
-    if clash is not null then
-      result := '要対応: 「' || clash || '」に ' || r.old || ' と ' || r.new
-        || ' の両方が登録されています。参加者管理でどちらかを削除してから、もう一度実行してください';
-      return next;
-      continue;
-    end if;
+    -- 同じ祭りに両方の表記がいる組を調べる(src=全角 / dst=半角)
+    for m in
+      select f.name as festival,
+             a.id as src, a.name as src_name, a.nickname as src_nick,
+             a.baggage_group_id as src_bg,
+             b.id as dst, b.name as dst_name, b.nickname as dst_nick,
+             b.baggage_group_id as dst_bg,
+             (select g.id from baggage_groups g
+               where g.leader_participant_id = a.id limit 1) as src_leads,
+             (select g.id from baggage_groups g
+               where g.leader_participant_id = b.id limit 1) as dst_leads
+      from festival_participants a
+      join festival_participants b
+        on b.festival_id = a.festival_id and b.serial = r.new
+      join festivals f on f.id = a.festival_id
+      where a.serial = r.old
+      order by f.name
+    loop
+      if m.src_bg is not null and m.dst_bg is not null and m.src_bg <> m.dst_bg then
+        blocked := '「' || m.festival || '」で ' || r.old || ' と ' || r.new
+          || ' が別々の荷物グループに入っています。参加者管理でどちらかに合わせてから、もう一度実行してください';
+        exit;
+      end if;
+      if m.src_leads is not null and m.dst_leads is not null
+         and m.src_leads <> m.dst_leads then
+        blocked := '「' || m.festival || '」で ' || r.old || ' と ' || r.new
+          || ' が別々の荷物グループのリーダーです。荷物グループの画面でどちらかを外してから、もう一度実行してください';
+        exit;
+      end if;
 
-    if exists (
+      select count(*) into add_roles
+        from festival_participant_roles x
+       where x.festival_participant_id = m.src
+         and not exists (
+           select 1 from festival_participant_roles y
+            where y.festival_participant_id = m.dst and y.role_id = x.role_id);
+      select count(*) into add_ann
+        from announcement_participants x
+       where x.festival_participant_id = m.src
+         and not exists (
+           select 1 from announcement_participants y
+            where y.festival_participant_id = m.dst
+              and y.announcement_id = x.announcement_id);
+
+      notes := notes || (
+        '「' || m.festival || '」で2人を1人にまとめます(役職 +' || add_roles
+        || '・個人宛てのお知らせ +' || add_ann
+        || case when m.dst_bg is null and m.src_bg is not null
+                then '・荷物グループを引き継ぐ' else '' end
+        || case when m.src_leads is not null and m.dst_leads is null
+                then '・荷物リーダーを引き継ぐ' else '' end
+        || ')'
+        || case when (m.src_name, m.src_nick) is distinct from (m.dst_name, m.dst_nick)
+                then '。名前は ' || m.dst_name || '/' || m.dst_nick || ' を残します('
+                     || r.old || ' 側: ' || m.src_name || '/' || m.src_nick || ')'
+                else '' end
+      );
+    end loop;
+
+    if blocked is null and exists (
       select 1 from prop_transfers t
       where (t.from_serial = r.old and t.to_serial = r.new)
          or (t.from_serial = r.new and t.to_serial = r.old)
     ) then
-      result := '要対応: ' || r.old || ' と ' || r.new
+      blocked := r.old || ' と ' || r.new
         || ' の間に小道具の受け渡し記録があるため、自動では付け替えません(記録の扱いを決める必要があります)';
+    end if;
+
+    -- 要対応なら、この人には何も書き込まない(調べ終わるまで書き込んでいない)
+    if blocked is not null then
+      result := '要対応: ' || blocked;
       return next;
       continue;
     end if;
 
     if not p_apply then
-      result := '変更予定';
+      result := case when cardinality(notes) = 0 then '変更予定'
+                     else '変更予定: ' || array_to_string(notes, ' / ') end;
       return next;
       continue;
     end if;
+
+    -- 同じ祭りに2人いる組を1人にまとめる(全角の方の設定を半角の方へ写してから消す)
+    for m in
+      select a.id as src, a.baggage_group_id as src_bg,
+             b.id as dst, b.baggage_group_id as dst_bg
+      from festival_participants a
+      join festival_participants b
+        on b.festival_id = a.festival_id and b.serial = r.new
+      where a.serial = r.old
+    loop
+      insert into festival_participant_roles (festival_participant_id, role_id)
+        select m.dst, x.role_id from festival_participant_roles x
+         where x.festival_participant_id = m.src
+        on conflict do nothing;
+      insert into announcement_participants (announcement_id, festival_participant_id)
+        select x.announcement_id, m.dst from announcement_participants x
+         where x.festival_participant_id = m.src
+        on conflict do nothing;
+      if m.dst_bg is null and m.src_bg is not null then
+        update festival_participants set baggage_group_id = m.src_bg where id = m.dst;
+      end if;
+      update baggage_groups set leader_participant_id = m.dst
+        where leader_participant_id = m.src;
+      -- 役職・お知らせの宛先は ON DELETE CASCADE で一緒に消える(写し済み)
+      delete from festival_participants where id = m.src;
+    end loop;
 
     insert into participants (serial) values (r.new)
       on conflict (serial) do nothing;
@@ -135,7 +227,8 @@ begin
 
     delete from participants where serial = r.old;
 
-    result := '変更済み';
+    result := case when cardinality(notes) = 0 then '変更済み'
+                   else '変更済み: ' || array_to_string(notes, ' / ') end;
     return next;
   end loop;
 end $$;
