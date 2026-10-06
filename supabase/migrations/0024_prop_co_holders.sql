@@ -1,20 +1,24 @@
 -- =========================================================
--- 小道具を複数人で持てるようにする
+-- 小道具を複数人で持つ・複数人で受け渡す
 --
 -- 1つの小道具を2人以上で持つ(家族で預かる・2人で使う大きな道具など)
 -- ことがある。持っている人どうしに「どちらが主」という区別はない。
 --
---   * 持っている人は 0人以上。既存の小道具は今の保有者1人のまま
---   * 設定するのは小道具担当(管理画面)。履歴に残す
---   * 持っている人は全員、その小道具を「保管中」として見られ、
---     次の受け渡しを「渡す予定」で見られ、受け渡し先も変えられる
---   * 受け渡しが完了したら、受け取った人だけが持っている状態になる
+-- 受け渡しは「渡す側(その時点で持っている人)」から「受け取る人(1人以上)」
+-- への移動として扱う。受け取る人には、今持っている人を含めてよい。
+--   402・615 → 402        … 615 が抜けて 402 だけが持つ
+--   706 → 108・216        … 2人で受け取って一緒に持つ
+--   706 → 706・108        … 706 はそのまま、108 が加わる
+-- 受け取る人のうち誰か1人が「受け取りました」を押せば完了し、
+-- 受け取る人全員が持っている状態になる(受け取る人に入っていない人は外れる)。
 --
--- 受け渡しの記録(prop_transfers.from_serial)は1人しか持てないため、
--- DB の中では持っている人のうち1人を prop_items.current_holder_serial に、
--- 残りを prop_item_co_holders に置く。どちらに置かれているかで扱いを
--- 変えることはしない(画面にも出さない)。
+-- 受け渡しの記録(prop_transfers)は出し手・受け手を1人ずつしか持てない
+-- ため、DB の中では代表を1人ずつ置き、残りを別の表に置く。
+--   持っている人  = prop_items.current_holder_serial + prop_item_co_holders
+--   受け取る人    = prop_transfers.to_serial + prop_transfer_receivers
+-- どちらが代表かで扱いを変えることはしない(画面にも出さない)。
 --
+-- 既存の小道具は今の保有者1人のまま、既存の受け渡しは受け取る人1人のまま。
 -- 既存の RPC は引数を変えずに置き換える(古い版のアプリもそのまま動く)。
 -- =========================================================
 
@@ -24,17 +28,36 @@ create table prop_item_co_holders (
   created_at   timestamptz not null default now(),
   primary key (prop_item_id, serial)
 );
-
 create index idx_prop_item_co_holders_serial on prop_item_co_holders (serial);
-
 comment on table prop_item_co_holders is
-  '小道具を一緒に持っている人(prop_items.current_holder_serial 以外)。受け渡しの完了で外れる';
+  '小道具を一緒に持っている人(prop_items.current_holder_serial 以外)';
+
+create table prop_transfer_receivers (
+  transfer_id uuid not null references prop_transfers(id) on delete cascade,
+  serial      text not null references participants(serial) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (transfer_id, serial)
+);
+create index idx_prop_transfer_receivers_serial on prop_transfer_receivers (serial);
+comment on table prop_transfer_receivers is
+  '受け渡しで一緒に受け取る人(prop_transfers.to_serial 以外)';
 
 alter table prop_item_co_holders enable row level security;
 create policy "anon read prop_item_co_holders"
   on prop_item_co_holders for select to anon using (true);
 create policy "admin all prop_item_co_holders"
   on prop_item_co_holders for all to authenticated using (true) with check (true);
+
+alter table prop_transfer_receivers enable row level security;
+create policy "anon read prop_transfer_receivers"
+  on prop_transfer_receivers for select to anon using (true);
+create policy "admin all prop_transfer_receivers"
+  on prop_transfer_receivers for all to authenticated using (true) with check (true);
+
+-- 402・615 → 402 のように、渡す側の代表と受け取る側の代表が同じ人になる
+-- ことがあるため、代表どうしの「自分自身への受け渡し禁止」を外す。
+-- 何も変わらない受け渡し(渡す側と受け取る人が同じ顔ぶれ)は RPC で弾く
+alter table prop_transfers drop constraint prop_transfers_not_self;
 
 -- 履歴に「一緒に持つ人の変更」を足す
 alter table prop_history drop constraint prop_history_action_check;
@@ -45,7 +68,11 @@ alter table prop_history add constraint prop_history_action_check
     'condition_changed','assignment_changed','transfer_schedule_changed',
     'co_holders_changed'));
 
--- 内部用: 持っている人全員(並びは記録用にシリアル順)
+-- =========================================================
+-- 内部用: 顔ぶれを読む(並びは記録用にシリアル順)
+-- =========================================================
+
+-- 小道具を今持っている人全員
 create or replace function prop_holders(p_item_id uuid)
 returns text[] language sql stable security definer set search_path = public as $$
   select coalesce(array_agg(s order by s), '{}') from (
@@ -56,7 +83,59 @@ returns text[] language sql stable security definer set search_path = public as 
   ) h;
 $$;
 
+-- 受け渡しで受け取る人全員
+create or replace function prop_transfer_receivers_of(p_transfer_id uuid)
+returns text[] language sql stable security definer set search_path = public as $$
+  select coalesce(array_agg(s order by s), '{}') from (
+    select to_serial as s from prop_transfers where id = p_transfer_id
+    union
+    select serial from prop_transfer_receivers where transfer_id = p_transfer_id
+  ) r;
+$$;
+
+-- 受け渡しの渡す側(その受け渡しの直前に持っている人)。
+-- 鎖の先頭なら今持っている人全員、そうでなければひとつ前の予定の受け取る人全員
+create or replace function prop_transfer_givers(p_transfer_id uuid)
+returns text[] language plpgsql stable security definer set search_path = public as $$
+declare
+  v_t    prop_transfers;
+  v_prev uuid;
+begin
+  select * into v_t from prop_transfers where id = p_transfer_id;
+  select t.id into v_prev from prop_transfers t
+   where t.prop_item_id = v_t.prop_item_id and t.status = 'pending'
+     and t.created_at < v_t.created_at
+   order by t.created_at desc limit 1;
+  if v_prev is not null then
+    return prop_transfer_receivers_of(v_prev);
+  end if;
+  return prop_holders(v_t.prop_item_id);
+end $$;
+
+-- 次に作る受け渡しの渡す側(予定の末尾の受け取る人全員。予定が無ければ今の持ち主全員)
+create or replace function prop_next_givers(p_item_id uuid)
+returns text[] language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select prop_transfer_receivers_of(t.id) from prop_transfers t
+      where t.prop_item_id = p_item_id and t.status = 'pending'
+      order by t.created_at desc limit 1),
+    prop_holders(p_item_id)
+  );
+$$;
+
+-- 空・重複を除いてシリアル順にそろえる
+create or replace function prop_clean_serials(p_serials text[])
+returns text[] language sql immutable as $$
+  select coalesce(array_agg(distinct btrim(s) order by btrim(s)), '{}')
+    from unnest(coalesce(p_serials, '{}')) as s
+   where s is not null and btrim(s) <> '';
+$$;
+
 revoke all on function prop_holders(uuid) from public, anon, authenticated;
+revoke all on function prop_transfer_receivers_of(uuid) from public, anon, authenticated;
+revoke all on function prop_transfer_givers(uuid) from public, anon, authenticated;
+revoke all on function prop_next_givers(uuid) from public, anon, authenticated;
+revoke all on function prop_clean_serials(text[]) from public, anon, authenticated;
 
 -- =========================================================
 -- 内部用: 一緒に持っている人を外して履歴に残す(外す人がいなければ何もしない)
@@ -107,6 +186,8 @@ revoke all on function prop_drop_co_holders(uuid, text, text, boolean, text)
 --   * 一覧に今の持ち主が1人でも残る → 小道具はまだその人の手元にあるので
 --     予定は残す(DB 上の出し手が外れたなら、残った人に付け替える)
 --   * 全員入れ替わる・空にする → 予定は前提が崩れるのでキャンセルする
+--   * 次の受け渡しの受け取る人と同じ顔ぶれにした → その予定は意味を
+--     失うのでキャンセルする
 -- =========================================================
 
 create or replace function prop_admin_set_holders(
@@ -121,7 +202,7 @@ declare
   v_old   text[];
   v_rep   text;
   v_bad   text;
-  v_head  prop_transfers;
+  v_head  uuid;
   v_t     prop_transfers;
   v_keep  boolean;
 begin
@@ -133,10 +214,7 @@ begin
     raise exception '小道具が見つかりません。最新情報を取得してください。';
   end if;
 
-  -- 空・重複を除き、シリアル順にそろえる
-  select coalesce(array_agg(distinct btrim(s) order by btrim(s)), '{}') into v_new
-    from unnest(coalesce(p_serials, '{}')) as s
-   where s is not null and btrim(s) <> '';
+  v_new := prop_clean_serials(p_serials);
   select s into v_bad from unnest(v_new) as s
    where not exists (select 1 from participants p where p.serial = s)
    limit 1;
@@ -149,24 +227,19 @@ begin
     return;
   end if;
 
-  -- DB 上の出し手は、今の人が残るならそのまま。外れたら一覧の先頭
+  -- DB 上の代表は、今の人が残るならそのまま。外れたら一覧の先頭
   v_rep := case
     when v_item.current_holder_serial = any (v_new) then v_item.current_holder_serial
     else v_new[1]
   end;
 
-  -- 今の持ち主が1人でも残るなら、受け渡し予定は残す
   v_keep := cardinality(v_new) > 0 and v_old && v_new;
-  if v_keep and v_rep is distinct from v_item.current_holder_serial then
-    select * into v_head from prop_transfers
-     where id = prop_head_transfer(p_item_id) for update;
-    if found then
-      if v_head.to_serial = any (v_new) then
-        -- 受け取る予定の人がすでに持っている側に入った → 予定は意味を失う
-        v_keep := false;
-      else
-        update prop_transfers set from_serial = v_rep where id = v_head.id;
-      end if;
+  v_head := prop_head_transfer(p_item_id);
+  if v_keep and v_head is not null then
+    if prop_transfer_receivers_of(v_head) = v_new then
+      v_keep := false;
+    elsif v_rep is distinct from v_item.current_holder_serial then
+      update prop_transfers set from_serial = v_rep where id = v_head;
     end if;
   end if;
 
@@ -182,7 +255,9 @@ begin
       insert into prop_history
         (prop_item_id, transfer_id, action, actor_is_admin, from_value, to_value, note)
         values (p_item_id, v_t.id, 'transfer_cancelled', true,
-                v_t.from_serial, v_t.to_serial, '管理者による保有者変更のためキャンセル');
+                array_to_string(prop_transfer_givers(v_t.id), ','),
+                array_to_string(prop_transfer_receivers_of(v_t.id), ','),
+                '管理者による保有者変更のためキャンセル');
     end loop;
   end if;
 
@@ -205,13 +280,15 @@ revoke all on function prop_admin_set_holders(uuid, text[], text) from public;
 grant execute on function prop_admin_set_holders(uuid, text[], text) to authenticated;
 
 -- =========================================================
--- RPC: 受け渡し予定の作成(0015 と同じ。一緒に持っている人へは作らない)
+-- RPC: 受け渡し予定の作成(受け取る人は1人以上。鎖の末尾に足す)
+-- 呼び出しは小道具担当(管理画面)。p_actor_serial は次の渡す側の代表
+-- (prop_expected_holder)で、順番が変わっていないかの確認に使う
 -- =========================================================
 
-create or replace function prop_create_transfer(
+create or replace function prop_create_handover(
   p_item_id      uuid,
   p_actor_serial text,
-  p_to_serial    text,
+  p_receivers    text[],
   p_scheduled_at timestamptz default null,
   p_note         text default null
 ) returns uuid
@@ -219,6 +296,10 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_item     prop_items;
   v_expected text;
+  v_givers   text[];
+  v_recv     text[];
+  v_to       text;
+  v_bad      text;
   v_id       uuid;
 begin
   select * into v_item from prop_items where id = p_item_id for update;
@@ -236,37 +317,64 @@ begin
   if v_expected is null then
     raise exception '保有者が未設定のため受け渡しを開始できません。';
   end if;
-  -- 鎖の末尾の受取者だけが次の受け渡しを作れる
+  -- 鎖の末尾の受け取る人(の代表)だけが次の受け渡しを作れる
   if v_expected is distinct from p_actor_serial then
     raise exception '受け渡しの順番が変わっています。最新情報を取得してください。';
   end if;
-  if p_to_serial = p_actor_serial then
-    raise exception '自分自身への受け渡しはできません。';
+
+  v_recv := prop_clean_serials(p_receivers);
+  if cardinality(v_recv) = 0 then
+    raise exception '受け渡し先を選んでください。';
   end if;
-  -- 今の持ち主からの受け渡しなら、一緒に持っている人へは渡せない
-  if v_expected = v_item.current_holder_serial
-     and p_to_serial = any (prop_holders(p_item_id)) then
-    raise exception '一緒に持っている人には受け渡せません。';
+  select s into v_bad from unnest(v_recv) as s
+   where not exists (select 1 from participants p where p.serial = s)
+   limit 1;
+  if v_bad is not null then
+    raise exception '受け渡し先のシリアル「%」が見つかりません。', v_bad;
   end if;
-  if not exists (select 1 from participants where serial = p_to_serial) then
-    raise exception '受け渡し先のシリアルが見つかりません。';
+  v_givers := prop_next_givers(p_item_id);
+  if v_recv = v_givers then
+    raise exception '受け渡しの前後で持っている人が変わりません。';
   end if;
+
+  -- 受け取る側の代表は、渡す側の代表が残るならその人(代表が無駄に動かないように)
+  v_to := case when v_expected = any (v_recv) then v_expected else v_recv[1] end;
 
   insert into prop_transfers
     (prop_item_id, from_serial, to_serial, scheduled_at, note, created_by_serial)
-    values (p_item_id, p_actor_serial, p_to_serial, p_scheduled_at, p_note, p_actor_serial)
+    values (p_item_id, v_expected, v_to, p_scheduled_at, p_note, p_actor_serial)
     returning id into v_id;
+  insert into prop_transfer_receivers (transfer_id, serial)
+    select v_id, s from unnest(v_recv) as s where s <> v_to;
 
   insert into prop_history
     (prop_item_id, transfer_id, action, actor_serial, from_value, to_value, note)
     values (p_item_id, v_id, 'transfer_created', p_actor_serial,
-            p_actor_serial, p_to_serial, p_note);
+            array_to_string(v_givers, ','), array_to_string(v_recv, ','), p_note);
   return v_id;
 end $$;
 
+revoke all on function prop_create_handover(uuid, text, text[], timestamptz, text) from public;
+grant execute on function prop_create_handover(uuid, text, text[], timestamptz, text)
+  to authenticated;
+
+-- 0015 の1人宛ての作成は、上に任せる(古い版の管理画面用)
+create or replace function prop_create_transfer(
+  p_item_id      uuid,
+  p_actor_serial text,
+  p_to_serial    text,
+  p_scheduled_at timestamptz default null,
+  p_note         text default null
+) returns uuid
+language plpgsql security definer set search_path = public as $$
+begin
+  return prop_create_handover(p_item_id, p_actor_serial, array[p_to_serial],
+                              p_scheduled_at, p_note);
+end $$;
+
 -- =========================================================
--- RPC: 受け渡し先の変更(0015 と同じ。今の持ち主からの受け渡しなら、
--- 一緒に持っている人の誰でも変えられる)
+-- RPC: 受け渡し先の変更(渡す側の誰でも。鎖の末尾のみ)
+-- 踊り子が変えられるのは受け取る人が1人の予定だけ。新しい受け取る人も1人
 -- =========================================================
 
 create or replace function prop_change_transfer_target(
@@ -276,25 +384,18 @@ create or replace function prop_change_transfer_target(
 ) returns void
 language plpgsql security definer set search_path = public as $$
 declare
-  v_t    prop_transfers;
-  v_item prop_items;
-  v_from_holders boolean;
+  v_t prop_transfers;
 begin
   select * into v_t from prop_transfers where id = p_transfer_id for update;
   if not found or v_t.status <> 'pending' then
     raise exception '受け渡し情報が変更されています。最新情報を取得してください。';
   end if;
-  select * into v_item from prop_items where id = v_t.prop_item_id for update;
-  -- 今の持ち主(全員)からの受け渡しか
-  v_from_holders := v_t.from_serial is not distinct from v_item.current_holder_serial;
+  perform 1 from prop_items where id = v_t.prop_item_id for update;
   -- 変えられるのは、その受け渡しの渡す側の人
-  if not (
-    v_t.from_serial is not distinct from p_actor_serial
-    or (v_from_holders and p_actor_serial = any (prop_holders(v_item.id)))
-  ) then
+  if not (p_actor_serial = any (prop_transfer_givers(v_t.id))) then
     raise exception '小道具の状態が変更されています。最新情報を取得してください。';
   end if;
-  -- 後続の予定があると、その出し手が食い違うため変更させない
+  -- 後続の予定があると、その渡す側が食い違うため変更させない
   if exists (
     select 1 from prop_transfers t
      where t.prop_item_id = v_t.prop_item_id and t.status = 'pending'
@@ -302,14 +403,14 @@ begin
   ) then
     raise exception 'この後に別の受け渡し予定があるため変更できません。小道具担当にご連絡ください。';
   end if;
-  if p_new_to_serial = p_actor_serial then
-    raise exception '自分自身への受け渡しはできません。';
-  end if;
-  if v_from_holders and p_new_to_serial = any (prop_holders(v_item.id)) then
-    raise exception '一緒に持っている人には受け渡せません。';
+  if exists (select 1 from prop_transfer_receivers where transfer_id = v_t.id) then
+    raise exception '受け取る人が複数の予定は、小道具担当にご連絡ください。';
   end if;
   if p_new_to_serial = v_t.to_serial then
     raise exception 'すでに同じ受け渡し先が設定されています。';
+  end if;
+  if array[p_new_to_serial] = prop_transfer_givers(v_t.id) then
+    raise exception '受け渡しの前後で持っている人が変わりません。';
   end if;
   if not exists (select 1 from participants where serial = p_new_to_serial) then
     raise exception '受け渡し先のシリアルが見つかりません。';
@@ -324,7 +425,49 @@ begin
 end $$;
 
 -- =========================================================
--- RPC: 受取完了(0015 と同じ。完了したら受け取った人だけが持つ)
+-- 内部用: 受け渡しを完了にして、受け取る人全員を持っている人にする
+-- =========================================================
+
+create or replace function prop_finish_transfer(
+  p_transfer_id    uuid,
+  p_actor_serial   text,
+  p_actor_is_admin boolean,
+  p_note           text
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_t      prop_transfers;
+  v_item   prop_items;
+  v_givers text[];
+  v_recv   text[];
+begin
+  select * into v_t from prop_transfers where id = p_transfer_id for update;
+  select * into v_item from prop_items where id = v_t.prop_item_id for update;
+  v_givers := prop_holders(v_item.id);
+  v_recv := prop_transfer_receivers_of(v_t.id);
+
+  update prop_transfers
+    set status = 'completed', completed_at = now()
+    where id = v_t.id;
+  update prop_items
+    set current_holder_serial = v_t.to_serial, updated_at = now()
+    where id = v_item.id;
+  delete from prop_item_co_holders where prop_item_id = v_item.id;
+  insert into prop_item_co_holders (prop_item_id, serial)
+    select v_item.id, s from unnest(v_recv) as s where s <> v_t.to_serial;
+
+  insert into prop_history
+    (prop_item_id, transfer_id, action, actor_serial, actor_is_admin,
+     from_value, to_value, note)
+    values (v_item.id, v_t.id, 'transfer_completed', p_actor_serial, p_actor_is_admin,
+            array_to_string(v_givers, ','), array_to_string(v_recv, ','), p_note);
+end $$;
+
+revoke all on function prop_finish_transfer(uuid, text, boolean, text)
+  from public, anon, authenticated;
+
+-- =========================================================
+-- RPC: 受取完了(受け取る人のうち誰か1人が押せば完了。鎖の先頭のみ)
 -- =========================================================
 
 create or replace function prop_complete_transfer(
@@ -337,7 +480,8 @@ declare
   v_item prop_items;
 begin
   select * into v_t from prop_transfers where id = p_transfer_id for update;
-  if not found or v_t.status <> 'pending' or v_t.to_serial is distinct from p_actor_serial then
+  if not found or v_t.status <> 'pending'
+     or not (p_actor_serial = any (prop_transfer_receivers_of(v_t.id))) then
     raise exception '受け渡し情報が変更されています。最新情報を取得してください。';
   end if;
   select * into v_item from prop_items where id = v_t.prop_item_id for update;
@@ -350,23 +494,11 @@ begin
     raise exception '小道具の状態が変更されています。最新情報を取得してください。';
   end if;
 
-  update prop_transfers
-    set status = 'completed', completed_at = now()
-    where id = p_transfer_id;
-  update prop_items
-    set current_holder_serial = v_t.to_serial, updated_at = now()
-    where id = v_item.id;
-  insert into prop_history
-    (prop_item_id, transfer_id, action, actor_serial, from_value, to_value)
-    values (v_item.id, v_t.id, 'transfer_completed', p_actor_serial,
-            v_t.from_serial, v_t.to_serial);
-
-  perform prop_drop_co_holders(v_item.id, '受け渡しの完了により解除',
-                               p_actor_serial, false);
+  perform prop_finish_transfer(v_t.id, p_actor_serial, false, null);
 end $$;
 
 -- =========================================================
--- RPC: 運営による受取完了の代理報告(0016 と同じ。完了したら受け取った人だけが持つ)
+-- RPC: 運営による受取完了の代理報告(0016 と同じ条件で、受け取る人全員が持つ)
 -- =========================================================
 
 create or replace function prop_admin_complete_transfer(
@@ -397,20 +529,8 @@ begin
     raise exception '小道具の状態が変更されています。保有者の変更から修正してください。';
   end if;
 
-  update prop_transfers
-    set status = 'completed', completed_at = now()
-    where id = p_transfer_id;
-  update prop_items
-    set current_holder_serial = v_t.to_serial, updated_at = now()
-    where id = v_item.id;
-  insert into prop_history
-    (prop_item_id, transfer_id, action, actor_is_admin, from_value, to_value, note)
-    values (v_item.id, v_t.id, 'transfer_completed', true,
-            v_t.from_serial, v_t.to_serial,
-            coalesce(p_note, '運営による代理報告'));
-
-  perform prop_drop_co_holders(v_item.id, '受け渡しの完了により解除',
-                               null, true);
+  perform prop_finish_transfer(v_t.id, null, true,
+                               coalesce(p_note, '運営による代理報告'));
 end $$;
 
 -- =========================================================
@@ -476,7 +596,7 @@ begin
 end $$;
 
 -- =========================================================
--- シリアルの表記をそろえる関数(0023)に、一緒に持っている人の表を足す
+-- シリアルの表記をそろえる関数(0023)に、一緒に持つ人・受け取る人の表を足す
 -- =========================================================
 
 create or replace function normalize_participant_serials(p_apply boolean default false)
@@ -557,7 +677,7 @@ begin
     update prop_history set from_value = r.new where from_value = r.old;
     update prop_history set to_value = r.new where to_value = r.old;
 
-    -- 一緒に持っている人(0024)。同じ小道具に両方の表記がいれば新しい表記の方を残す
+    -- 一緒に持つ人・受け取る人(0024)。同じ行に両方の表記がいれば新しい表記の方を残す
     delete from prop_item_co_holders c
       where c.serial = r.old
         and exists (
@@ -565,6 +685,13 @@ begin
           where d.prop_item_id = c.prop_item_id and d.serial = r.new
         );
     update prop_item_co_holders set serial = r.new where serial = r.old;
+    delete from prop_transfer_receivers c
+      where c.serial = r.old
+        and exists (
+          select 1 from prop_transfer_receivers d
+          where d.transfer_id = c.transfer_id and d.serial = r.new
+        );
+    update prop_transfer_receivers set serial = r.new where serial = r.old;
 
     delete from participants where serial = r.old;
 

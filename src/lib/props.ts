@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { mockDisplayNames } from "../data/mock/participants";
 import { mockPendingTransfers, mockPropItems } from "../data/mock/props";
 import { formatDateLabel, toDateString } from "./time";
-import { giversOf, holdsProp } from "../types/props";
+import { holdersOf, holdsProp, sortSerials } from "../types/props";
 import type {
   PropAssignment,
   PropEvent,
@@ -70,6 +70,7 @@ export function toPropTransfer(row: PropTransferRow): PropTransfer {
     propItemId: row.prop_item_id,
     fromSerial: row.from_serial ?? undefined,
     toSerial: row.to_serial,
+    receivers: [row.to_serial],
     status: row.status as PropTransfer["status"],
     scheduledAt: row.scheduled_at ?? undefined,
     note: row.note ?? undefined,
@@ -141,8 +142,35 @@ export async function listPendingTransfers(): Promise<PropTransfer[]> {
     .eq("status", "pending")
     .order("created_at");
   if (error) throw error;
-  return ((data ?? []) as PropTransferRow[]).map(toPropTransfer);
+  return withReceivers(((data ?? []) as PropTransferRow[]).map(toPropTransfer));
 }
+
+/**
+ * 受け取る人(代表以外)を足す。
+ * 表がまだ無い(migration 0024 の適用前)ときは、代表1人のままにする
+ */
+export async function withReceivers(
+  transfers: PropTransfer[],
+): Promise<PropTransfer[]> {
+  if (!supabase || transfers.length === 0) return transfers;
+  const { data, error } = await supabase
+    .from("prop_transfer_receivers")
+    .select("transfer_id, serial")
+    .in(
+      "transfer_id",
+      transfers.map((t) => t.id),
+    );
+  if (error) return transfers;
+  const extra = new Map<string, string[]>();
+  for (const row of (data ?? []) as { transfer_id: string; serial: string }[]) {
+    extra.set(row.transfer_id, [...(extra.get(row.transfer_id) ?? []), row.serial]);
+  }
+  return transfers.map((t) => ({
+    ...t,
+    receivers: sortSerials([t.toSerial, ...(extra.get(t.id) ?? [])]),
+  }));
+}
+
 
 export async function listTransfersOfItem(
   propItemId: string,
@@ -154,7 +182,7 @@ export async function listTransfersOfItem(
     .eq("prop_item_id", propItemId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return ((data ?? []) as PropTransferRow[]).map(toPropTransfer);
+  return withReceivers(((data ?? []) as PropTransferRow[]).map(toPropTransfer));
 }
 
 /** シリアル → 最新のニックネーム(取得できない場合はシリアルのみ表示する) */
@@ -182,14 +210,49 @@ export function serialsLabel(
 }
 
 /**
- * 次の受け渡しを渡す人。予定が無ければ今持っている人全員、
- * 予定があればその最後の受取者(DB側の prop_expected_holder と同じ考え方)
+ * 受け渡しの渡す側(その受け渡しの直前に持っている人全員)。
+ * 鎖の先頭なら今持っている人全員、そうでなければひとつ前の予定の受け取る人全員
+ * (DB側の prop_transfer_givers と同じ考え方)
+ */
+export function giversOf(
+  transfer: PropTransfer,
+  item: PropItem | undefined,
+  pending: PropTransfer[],
+): string[] {
+  const before = pending.filter(
+    (t) => t.propItemId === transfer.propItemId && t.createdAt < transfer.createdAt,
+  );
+  if (before.length > 0) {
+    return before.reduce((a, b) => (a.createdAt < b.createdAt ? b : a)).receivers;
+  }
+  if (transfer.status !== "pending" || !item) {
+    return transfer.fromSerial ? [transfer.fromSerial] : [];
+  }
+  return holdersOf(item);
+}
+
+/**
+ * 次に作る受け渡しの渡す側。予定が無ければ今持っている人全員、
+ * 予定があればその最後の受け取る人全員(DB側の prop_next_givers と同じ考え方)
  */
 export function nextGivers(item: PropItem, pending: PropTransfer[]): string[] {
   const chain = pending.filter((t) => t.propItemId === item.id);
-  if (chain.length === 0) return giversOf({ fromSerial: item.currentHolderSerial }, item);
-  const last = chain.reduce((a, b) => (a.createdAt < b.createdAt ? b : a));
-  return [last.toSerial];
+  if (chain.length === 0) return holdersOf(item);
+  return chain.reduce((a, b) => (a.createdAt < b.createdAt ? b : a)).receivers;
+}
+
+/** 渡す側のうち、受け取る人に入っていない人(受け渡しで外れる人) */
+export function leavingOf(givers: string[], receivers: string[]): string[] {
+  return givers.filter((s) => !receivers.includes(s));
+}
+
+/**
+ * 受け取る側から見た「どこから」。受け渡しで外れる人がいればその人、
+ * いなければ(1人加わるだけの受け渡し)持っている人全員
+ */
+export function fromSideOf(givers: string[], receivers: string[]): string[] {
+  const leaving = leavingOf(givers, receivers);
+  return leaving.length > 0 ? leaving : givers;
 }
 
 /** 「615 / みや」形式。ニックネーム不明ならシリアルのみ */
@@ -202,13 +265,26 @@ export function serialLabel(
   return nickname ? `${serial} / ${nickname}` : serial;
 }
 
+/** 受け渡し1件と、その渡す側(その時点で持っている人全員) */
+export interface HandoverView {
+  transfer: PropTransfer;
+  item: PropItem;
+  givers: string[];
+}
+
 export interface PropUserData {
   /** 自分が現在保管中(複数人で持っているものを含む) */
   holding: PropItem[];
-  /** 自分が渡す予定(pending)。複数人で持っているものは全員に出る */
-  outgoing: { transfer: PropTransfer; item: PropItem }[];
-  /** 自分が受け取る予定(pending)。ready=false は前の受け渡し待ち */
-  incoming: { transfer: PropTransfer; item: PropItem; ready: boolean }[];
+  /**
+   * 自分が渡す予定(pending)。渡す側のうち、受け取る人に入っていない人に出る
+   * (402・615 → 402 なら 615 だけ)
+   */
+  outgoing: HandoverView[];
+  /**
+   * 自分が受け取る予定(pending)。受け取る人全員に出る(誰か1人が押せば完了)。
+   * ready=false は前の受け渡し待ち
+   */
+  incoming: (HandoverView & { ready: boolean })[];
   names: Map<string, string>;
 }
 
@@ -229,13 +305,11 @@ export function buildPropUserData(
   names: Map<string, string>,
 ): PropUserData {
   const itemById = new Map(items.map((i) => [i.id, i]));
-  const withItem = (t: PropTransfer) => {
+  const withItem = (t: PropTransfer): HandoverView | null => {
     const item = itemById.get(t.propItemId);
-    return item ? { transfer: t, item } : null;
+    return item ? { transfer: t, item, givers: giversOf(t, item, pending) } : null;
   };
-  const isPair = (
-    v: { transfer: PropTransfer; item: PropItem } | null,
-  ): v is { transfer: PropTransfer; item: PropItem } => v != null;
+  const isPair = (v: HandoverView | null): v is HandoverView => v != null;
   // 予定日の早い順。未設定は末尾
   const bySchedule = (
     a: { transfer: PropTransfer },
@@ -254,18 +328,16 @@ export function buildPropUserData(
   ) =>
     bySchedule(a, b) ||
     (a.transfer.createdAt < b.transfer.createdAt ? -1 : 1);
+  const views = pending.map(withItem).filter(isPair);
   return {
     holding: items.filter((i) => holdsProp(i, serial)),
-    // 渡す側が複数人(一緒に持っている)なら、その全員の「渡す予定」に出す
-    outgoing: pending
-      .filter((t) => giversOf(t, itemById.get(t.propItemId)).includes(serial))
-      .map(withItem)
-      .filter(isPair)
+    outgoing: views
+      .filter(
+        (v) => v.givers.includes(serial) && !v.transfer.receivers.includes(serial),
+      )
       .sort(byScheduleThenChain),
-    incoming: pending
-      .filter((t) => t.toSerial === serial)
-      .map(withItem)
-      .filter(isPair)
+    incoming: views
+      .filter((v) => v.transfer.receivers.includes(serial))
       .sort(byScheduleThenChain)
       .map((v) => ({ ...v, ready: isHeadTransfer(v.transfer, pending) })),
     names,
@@ -371,19 +443,23 @@ async function callRpc(
   return data;
 }
 
-/** 受け渡し予定の作成(現在の保有者本人) */
-export async function createTransfer(
+/**
+ * 受け渡し予定の作成(小道具担当)。受け取る人は1人以上で、今持っている人を
+ * 含めてよい。actorSerial は次の渡す側の代表(expectedHolder)で、
+ * 順番が変わっていないかの確認に使う
+ */
+export async function createHandover(
   propItemId: string,
   actorSerial: string,
-  toSerial: string,
+  receivers: string[],
   /** 受け渡し予定日(ISO)。未指定なら null */
   scheduledAt: string | null,
   note?: string,
 ): Promise<void> {
-  await callRpc("prop_create_transfer", {
+  await callRpc("prop_create_handover", {
     p_item_id: propItemId,
     p_actor_serial: actorSerial,
-    p_to_serial: toSerial,
+    p_receivers: receivers,
     p_scheduled_at: scheduledAt,
     p_note: note ?? null,
   });

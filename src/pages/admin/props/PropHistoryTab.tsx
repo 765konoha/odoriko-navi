@@ -5,23 +5,21 @@ import { conditionLabel, historyActionLabel } from "../../../types/props";
 import { listHistory, serialLabel } from "../../../lib/props";
 import { formatTime, toDateString } from "../../../lib/time";
 
-/** 変更前後の値はシリアル・状態のいずれかなので、両方に対応した表示にする */
+/** 変更前後の値はシリアル(複数人は「,」区切り)・状態のいずれか。両方に対応した表示にする */
 function valueLabel(
   value: string | undefined,
   action: string,
   names: Map<string, string>,
 ): string {
-  if (action === "co_holders_changed" || action === "holder_changed_by_admin") {
-    // 複数人で持つ場合は、シリアルを「,」でつないで記録している
-    if (!value) return action === "co_holders_changed" ? "なし" : "未設定";
-    return value
-      .split(",")
-      .map((s) => serialLabel(s, names))
-      .join("・");
+  if (action === "condition_changed") {
+    return value ? conditionLabel(value) : "未設定";
   }
-  if (!value) return "未設定";
-  if (action === "condition_changed") return conditionLabel(value);
-  return serialLabel(value, names);
+  if (!value) return action === "co_holders_changed" ? "なし" : "未設定";
+  // 複数人のときは、シリアルを「,」でつないで記録している
+  return value
+    .split(",")
+    .map((s) => serialLabel(s, names))
+    .join("・");
 }
 
 export default function PropHistoryTab({ data }: { data: PropsAdminData }) {

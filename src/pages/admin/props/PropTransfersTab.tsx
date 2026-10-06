@@ -1,10 +1,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropTransfer } from "../../../types/props";
-import { BLOCKED_CONDITIONS, giversOf } from "../../../types/props";
+import { BLOCKED_CONDITIONS, sameSerials, sortSerials } from "../../../types/props";
 import {
-  createTransfer,
+  createHandover,
   expectedHolder,
+  giversOf,
+  leavingOf,
   nextGivers,
   serialsLabel,
   scheduledLabel,
@@ -29,7 +31,9 @@ const labelClass = "text-sm font-medium text-slate-600";
 
 export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
   const [itemId, setItemId] = useState("");
-  const [toSerial, setToSerial] = useState("");
+  // 受け取る人(1人以上。今持っている人を含めてよい)
+  const [receivers, setReceivers] = useState<string[]>([]);
+  const [receiverPick, setReceiverPick] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -54,27 +58,30 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
       !BLOCKED_CONDITIONS.includes(i.condition),
   );
   const selected = data.items.find((i) => i.id === itemId) ?? null;
-  // 次の受け渡しの出し手は、鎖の末尾の受取者(予定が無ければ現在の保有者)
+  // 次の受け渡しの渡す側は、鎖の末尾の受け取る人全員(予定が無ければ今持っている人全員)。
+  // fromSerial はその代表で、DB で順番が変わっていないかの確認に使う
   const fromSerial = selected ? expectedHolder(selected, pending) : null;
+  const givers = selected ? nextGivers(selected, pending) : [];
+  const unchanged = receivers.length > 0 && sameSerials(receivers, givers);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
-    if (!selected || !fromSerial) return;
+    if (!selected || !fromSerial || receivers.length === 0 || unchanged) return;
     setSaving(true);
     setError(null);
     setFlash(null);
     try {
-      // 受け渡しは常に現在の保有者からの移動として作成する
-      await createTransfer(
+      await createHandover(
         selected.id,
         fromSerial,
-        toSerial,
+        receivers,
         // 日付のみの指定。JSTの0時として保存する
         jstToIso(scheduledDate, "00:00"),
         note.trim() || undefined,
       );
       setItemId("");
-      setToSerial("");
+      setReceivers([]);
+      setReceiverPick("");
       setScheduledDate("");
       setNote("");
       setFlash("受け渡し予定を作成しました。");
@@ -105,7 +112,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
   // 現物は渡っているのに本人が押していない場合の代理報告
   async function handleAdminComplete(transfer: PropTransfer) {
     const item = data.items.find((i) => i.id === transfer.propItemId);
-    const to = serialLabel(transfer.toSerial, data.names);
+    const to = serialsLabel(transfer.receivers, data.names);
     if (
       !window.confirm(
         `${item?.displayName ?? "この小道具"}を ${to} が受け取ったことにします。\n\n` +
@@ -186,25 +193,93 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
           </p>
         )}
 
-        <label className="block">
-          <span className={labelClass}>受け渡し先</span>
-          <select
-            value={toSerial}
-            onChange={(e) => setToSerial(e.target.value)}
-            required
-            className={inputClass}
-          >
-            <option value="">選択してください</option>
-            {data.serials
-              // 渡す側の人(一緒に持っている人を含む)には渡せない
-              .filter((s) => !(selected ? nextGivers(selected, pending) : []).includes(s))
-              .map((s) => (
-                <option key={s} value={s}>
-                  {serialLabel(s, data.names)}
-                </option>
+        <div>
+          <span className={labelClass}>受け渡し先(複数可)</span>
+          {receivers.length > 0 && (
+            <ul className="mt-1 space-y-1">
+              {receivers.map((r) => (
+                <li
+                  key={r}
+                  className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 flex-1 truncate font-bold text-slate-800">
+                    {serialLabel(r, data.names)}
+                    {givers.includes(r) && (
+                      <span className="ml-1.5 text-xs font-normal text-slate-500">
+                        (今も持っている)
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReceivers((prev) => prev.filter((x) => x !== r))
+                    }
+                    className="shrink-0 rounded border border-slate-300 px-2 py-0.5 text-xs font-bold text-slate-600"
+                  >
+                    外す
+                  </button>
+                </li>
               ))}
-          </select>
-        </label>
+            </ul>
+          )}
+          <div className="mt-1 flex gap-2">
+            <select
+              value={receiverPick}
+              onChange={(e) => setReceiverPick(e.target.value)}
+              aria-label="受け渡し先に追加する人"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+            >
+              <option value="">追加する人を選択</option>
+              {data.serials
+                .filter((s) => !receivers.includes(s))
+                .map((s) => (
+                  <option key={s} value={s}>
+                    {serialLabel(s, data.names)}
+                    {givers.includes(s) ? "(今も持っている)" : ""}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                if (!receiverPick) return;
+                setReceivers((prev) => sortSerials([...prev, receiverPick]));
+                setReceiverPick("");
+              }}
+              disabled={!receiverPick}
+              className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40"
+            >
+              追加
+            </button>
+          </div>
+          <span className="mt-1 block text-xs text-slate-500">
+            複数人を選ぶと、受け渡し後は全員で持ちます。今持っている人を選ぶと、
+            その人が持ち続けます(例: 402・615 → 402 は 615 が抜けて 402 だけが持つ)。
+            受け取る人のうち誰か1人が「受け取りました」を押せば完了します。
+          </span>
+        </div>
+
+        {selected && receivers.length > 0 && !unchanged && (
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">
+            受け渡し後は{" "}
+            <span className="font-bold">
+              {serialsLabel(receivers, data.names)}
+            </span>{" "}
+            が持ちます
+            {leavingOf(givers, receivers).length > 0 && (
+              <>
+                ({serialsLabel(leavingOf(givers, receivers), data.names)}{" "}
+                は外れます)
+              </>
+            )}
+          </p>
+        )}
+        {unchanged && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            今持っている人と同じ顔ぶれのため、受け渡しになりません。
+          </p>
+        )}
 
         <label className="block">
           <span className={labelClass}>受け渡し予定日(任意)</span>
@@ -242,7 +317,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
 
         <button
           type="submit"
-          disabled={saving || !itemId || !toSerial}
+          disabled={saving || !itemId || receivers.length === 0 || unchanged}
           className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white disabled:opacity-40"
         >
           {saving ? "作成中…" : "受け渡し予定を作成"}
@@ -275,10 +350,8 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                 {item?.displayName ?? "(不明な小道具)"}
               </p>
               <p className="text-sm text-slate-600">
-                {t.status === "pending"
-                  ? serialsLabel(giversOf(t, item), data.names)
-                  : serialLabel(t.fromSerial, data.names)}{" "}
-                → {serialLabel(t.toSerial, data.names)}
+                {serialsLabel(giversOf(t, item, pending), data.names)} →{" "}
+                {serialsLabel(t.receivers, data.names)}
               </p>
               {t.status === "pending" ? (
                 editingId === t.id ? (
@@ -349,7 +422,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                   >
                     {busyId === t.id
                       ? "処理中…"
-                      : `受取完了にする(${serialLabel(t.toSerial, data.names)})`}
+                      : `受取完了にする(${serialsLabel(t.receivers, data.names)})`}
                   </button>
                   <button
                     type="button"

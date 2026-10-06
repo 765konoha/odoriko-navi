@@ -43,15 +43,19 @@ export interface PropItem {
   isArchived: boolean;
 }
 
-/** その小道具を持っている人全員(シリアル順。主・副の区別はない) */
-export function holdersOf(item: PropItem): string[] {
-  const all = [
-    ...(item.currentHolderSerial ? [item.currentHolderSerial] : []),
-    ...item.coHolderSerials,
-  ];
-  return [...new Set(all)].sort((a, b) =>
+/** シリアル順に並べる(重複は除く)。複数人を並べるときはこの順にそろえる */
+export function sortSerials(serials: string[]): string[] {
+  return [...new Set(serials)].sort((a, b) =>
     a.localeCompare(b, "ja", { numeric: true }),
   );
+}
+
+/** その小道具を持っている人全員(シリアル順。主・副の区別はない) */
+export function holdersOf(item: PropItem): string[] {
+  return sortSerials([
+    ...(item.currentHolderSerial ? [item.currentHolderSerial] : []),
+    ...item.coHolderSerials,
+  ]);
 }
 
 /** その人が持っている人の1人か */
@@ -59,18 +63,9 @@ export function holdsProp(item: PropItem, serial: string): boolean {
   return holdersOf(item).includes(serial);
 }
 
-/**
- * 受け渡しの渡す側。今の持ち主からの受け渡しなら持っている人全員、
- * その先の受け渡し(1日目 A→B のあとの B→C)ならその1人
- */
-export function giversOf(
-  transfer: { fromSerial?: string },
-  item: PropItem | undefined,
-): string[] {
-  if (item && item.currentHolderSerial && transfer.fromSerial === item.currentHolderSerial) {
-    return holdersOf(item);
-  }
-  return transfer.fromSerial ? [transfer.fromSerial] : [];
+/** 2つの顔ぶれが同じか(並びは問わない) */
+export function sameSerials(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((s) => b.includes(s));
 }
 
 export type PropTransferStatus = "pending" | "completed" | "cancelled";
@@ -79,7 +74,13 @@ export interface PropTransfer {
   id: string;
   propItemId: string;
   fromSerial?: string;
+  /** 受け取る人の代表(画面では区別しない。全員は receivers) */
   toSerial: string;
+  /**
+   * 受け取る人全員(1人以上。シリアル順)。今持っている人を含むことがある
+   * (402・615 → 402 は 615 が抜けて 402 だけが持つ)
+   */
+  receivers: string[];
   status: PropTransferStatus;
   scheduledAt?: string;
   note?: string;

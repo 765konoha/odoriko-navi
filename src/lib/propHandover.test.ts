@@ -18,6 +18,7 @@ function entry(id: string, scheduledAt?: string) {
     id,
     propItemId: "i1",
     toSerial: "615",
+    receivers: ["615"],
     status: "pending",
     scheduledAt,
     createdAt: "2026-09-01T00:00:00.000Z",

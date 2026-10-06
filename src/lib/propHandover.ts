@@ -8,13 +8,12 @@
 // 受け取る側は解散前に預かるので、全部終わったあとに要る情報。
 
 import type { ScheduleItem } from "../types/domain";
-import type { PropItem, PropTransfer } from "../types/props";
+import type { PropTransfer } from "../types/props";
+import type { HandoverView } from "./props";
 import { toDateString } from "./time";
 
-export interface HandoverEntry {
-  transfer: PropTransfer;
-  item: PropItem;
-}
+/** 案内に出す受け渡し1件(渡す側の全員を含む) */
+export type HandoverEntry = HandoverView;
 
 /** 受け渡し予定のうち、その日(YYYY-MM-DD, JST)に予定されているものだけ */
 export function handoversOn<T extends { transfer: PropTransfer }>(

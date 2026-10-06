@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { PropCondition, PropEvent, PropTransfer } from "../types/props";
-import { requireOnline, toPropTransfer } from "./props";
+import { requireOnline, toPropTransfer, withReceivers } from "./props";
 import { mockPendingTransfers } from "../data/mock/props";
 
 // 小道具管理(小道具担当用)。既存の管理者ログイン(authenticated)で操作する。
@@ -156,8 +156,10 @@ export async function listAllTransfers(limit = 100): Promise<PropTransfer[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map((row) =>
-    toPropTransfer(row as Parameters<typeof toPropTransfer>[0]),
+  return withReceivers(
+    (data ?? []).map((row) =>
+      toPropTransfer(row as Parameters<typeof toPropTransfer>[0]),
+    ),
   );
 }
 

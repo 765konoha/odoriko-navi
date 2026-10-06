@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropAssignment, PropCondition, PropItem } from "../../../types/props";
-import { PROP_CONDITIONS, conditionLabel, holdersOf } from "../../../types/props";
+import {
+  PROP_CONDITIONS,
+  conditionLabel,
+  holdersOf,
+  sortSerials,
+} from "../../../types/props";
 import { listAssignments, serialLabel } from "../../../lib/props";
 import {
   adminSetHolders,
@@ -293,7 +298,7 @@ function ItemForm({
               type="button"
               onClick={() => {
                 if (!holderPick) return;
-                setHolders((prev) => [...prev, holderPick]);
+                setHolders((prev) => sortSerials([...prev, holderPick]));
                 setHolderPick("");
               }}
               disabled={!holderPick}
