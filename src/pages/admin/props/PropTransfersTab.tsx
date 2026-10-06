@@ -1,10 +1,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropTransfer } from "../../../types/props";
-import { BLOCKED_CONDITIONS } from "../../../types/props";
+import { BLOCKED_CONDITIONS, giversOf } from "../../../types/props";
 import {
   createTransfer,
   expectedHolder,
+  nextGivers,
+  serialsLabel,
   scheduledLabel,
   serialLabel,
   updateTransferSchedule,
@@ -164,7 +166,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
             {transferable.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.displayName}(
-                {serialLabel(expectedHolder(i, pending), data.names)}から)
+                {serialsLabel(nextGivers(i, pending), data.names)}から)
               </option>
             ))}
           </select>
@@ -179,7 +181,7 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
           <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
             渡す人:{" "}
             <span className="font-bold text-slate-900">
-              {serialLabel(fromSerial, data.names)}
+              {serialsLabel(nextGivers(selected, pending), data.names)}
             </span>
           </p>
         )}
@@ -194,7 +196,8 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
           >
             <option value="">選択してください</option>
             {data.serials
-              .filter((s) => s !== fromSerial)
+              // 渡す側の人(一緒に持っている人を含む)には渡せない
+              .filter((s) => !(selected ? nextGivers(selected, pending) : []).includes(s))
               .map((s) => (
                 <option key={s} value={s}>
                   {serialLabel(s, data.names)}
@@ -272,8 +275,10 @@ export default function PropTransfersTab({ data }: { data: PropsAdminData }) {
                 {item?.displayName ?? "(不明な小道具)"}
               </p>
               <p className="text-sm text-slate-600">
-                {serialLabel(t.fromSerial, data.names)} →{" "}
-                {serialLabel(t.toSerial, data.names)}
+                {t.status === "pending"
+                  ? serialsLabel(giversOf(t, item), data.names)
+                  : serialLabel(t.fromSerial, data.names)}{" "}
+                → {serialLabel(t.toSerial, data.names)}
               </p>
               {t.status === "pending" ? (
                 editingId === t.id ? (

@@ -1,5 +1,6 @@
 import type { PropsAdminData } from "./PropsAdminPage";
-import { serialLabel } from "../../../lib/props";
+import { serialLabel, serialsLabel } from "../../../lib/props";
+import { giversOf } from "../../../types/props";
 
 export default function PropsDashboard({ data }: { data: PropsAdminData }) {
   const active = data.items.filter((i) => !i.isArchived);
@@ -76,7 +77,7 @@ export default function PropsDashboard({ data }: { data: PropsAdminData }) {
                     {item?.displayName ?? "(不明な小道具)"}
                   </p>
                   <p className="text-sm text-slate-600">
-                    {serialLabel(t.fromSerial, data.names)} →{" "}
+                    {serialsLabel(giversOf(t, item), data.names)} →{" "}
                     {serialLabel(t.toSerial, data.names)}
                   </p>
                 </div>

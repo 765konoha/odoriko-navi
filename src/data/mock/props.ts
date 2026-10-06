@@ -27,7 +27,7 @@ const items: PropItem[] = [
     displayName: "大旗A",
     condition: "normal",
     currentHolderSerial: "615",
-    // 402 は 615 と一緒に持っている(共同保有)
+    // 615 と 402 が一緒に持っている(主・副の区別はない)
     coHolderSerials: ["402"],
     isArchived: false,
   },

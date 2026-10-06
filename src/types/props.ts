@@ -30,21 +30,47 @@ export interface PropItem {
   condition: PropCondition;
   conditionNote?: string;
   note?: string;
-  /** 現在の保有者シリアル(未設定あり) */
+  /**
+   * 保有者のシリアル(未設定あり)。複数人で持つときは、そのうちの1人
+   * (受け渡しの記録に出し手を1人だけ持つための代表。画面では区別しない)
+   */
   currentHolderSerial?: string;
   /**
-   * 共同保有者のシリアル(0人以上)。現在の保有者とは別に、一緒に持っている人。
-   * 受け渡しが完了して保有者が替わると外れる
+   * 一緒に持っている残りの人。持っている人どうしに主・副の区別はない。
+   * 全員をまとめて扱うときは holdersOf を使う
    */
   coHolderSerials: string[];
   isArchived: boolean;
 }
 
-/** その人が保有者または共同保有者か */
-export function holdsProp(item: PropItem, serial: string): boolean {
-  return (
-    item.currentHolderSerial === serial || item.coHolderSerials.includes(serial)
+/** その小道具を持っている人全員(シリアル順。主・副の区別はない) */
+export function holdersOf(item: PropItem): string[] {
+  const all = [
+    ...(item.currentHolderSerial ? [item.currentHolderSerial] : []),
+    ...item.coHolderSerials,
+  ];
+  return [...new Set(all)].sort((a, b) =>
+    a.localeCompare(b, "ja", { numeric: true }),
   );
+}
+
+/** その人が持っている人の1人か */
+export function holdsProp(item: PropItem, serial: string): boolean {
+  return holdersOf(item).includes(serial);
+}
+
+/**
+ * 受け渡しの渡す側。今の持ち主からの受け渡しなら持っている人全員、
+ * その先の受け渡し(1日目 A→B のあとの B→C)ならその1人
+ */
+export function giversOf(
+  transfer: { fromSerial?: string },
+  item: PropItem | undefined,
+): string[] {
+  if (item && item.currentHolderSerial && transfer.fromSerial === item.currentHolderSerial) {
+    return holdersOf(item);
+  }
+  return transfer.fromSerial ? [transfer.fromSerial] : [];
 }
 
 export type PropTransferStatus = "pending" | "completed" | "cancelled";
@@ -122,7 +148,7 @@ const ACTION_LABELS: Record<PropHistoryAction, string> = {
   holder_changed_by_admin: "管理者による保有者変更",
   condition_changed: "状態を変更",
   assignment_changed: "使用予定者を変更",
-  co_holders_changed: "共同保有者を変更",
+  co_holders_changed: "一緒に持つ人を変更",
 };
 
 export function historyActionLabel(action: string): string {

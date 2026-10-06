@@ -12,19 +12,11 @@ import {
   loadPropUserData,
   scheduledLabel,
   serialLabel,
+  serialsLabel,
   type PropUserData,
 } from "../../lib/props";
-import { conditionLabel } from "../../types/props";
+import { conditionLabel, giversOf, holdersOf } from "../../types/props";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
-
-/** 共同保有の目印 */
-function CoHolderBadge() {
-  return (
-    <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 align-middle text-xs font-bold text-violet-700">
-      共同保有
-    </span>
-  );
-}
 
 /**
  * 小道具リレー(利用者画面)。通常モード・祭りモードの双方から使う。
@@ -85,7 +77,7 @@ export default function PropsPage() {
   }, [load]);
 
   const names = data?.names ?? new Map<string, string>();
-  const targetOptions = useMemo(
+  const otherSerials = useMemo(
     () => serials.filter((s) => s !== serial),
     [serials, serial],
   );
@@ -199,7 +191,7 @@ export default function PropsPage() {
                 {item.displayName}
               </p>
               <p className="text-sm text-slate-700">
-                {serialLabel(transfer.fromSerial, names)} から
+                {serialsLabel(giversOf(transfer, item), names)} から
               </p>
               {scheduledLabel(transfer.scheduledAt) && (
                 <p className="text-sm font-bold text-blue-900">
@@ -243,18 +235,21 @@ export default function PropsPage() {
           あなたが渡す予定
         </h2>
         <div className="space-y-2">
-          {(data?.outgoing ?? []).map(({ transfer, item, asCoHolder }) => (
+          {(data?.outgoing ?? []).map(({ transfer, item }) => {
+            // 一緒に持っている人がいれば、誰が持っていっても同じ受け渡し
+            const givers = giversOf(transfer, item);
+            const together = givers.filter((s) => s !== serial);
+            return (
             <div key={transfer.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-base font-bold text-slate-900">
                 {item.displayName}
-                {asCoHolder && <CoHolderBadge />}
               </p>
               <p className="text-sm text-slate-700">
                 → {serialLabel(transfer.toSerial, names)}
               </p>
-              {asCoHolder && (
+              {together.length > 0 && (
                 <p className="text-xs text-slate-500">
-                  保有者 {serialLabel(transfer.fromSerial, names)} と一緒に持っている小道具です
+                  一緒に持っている人: {serialsLabel(together, names)}
                 </p>
               )}
               {scheduledLabel(transfer.scheduledAt) && (
@@ -262,11 +257,7 @@ export default function PropsPage() {
                   受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
                 </p>
               )}
-              {asCoHolder ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  受け渡し先の変更は保有者が行います。
-                </p>
-              ) : changingId === transfer.id ? (
+              {changingId === transfer.id ? (
                 <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
                   <select
                     value={newTarget}
@@ -274,11 +265,13 @@ export default function PropsPage() {
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
                   >
                     <option value="">受け渡し先を選択</option>
-                    {targetOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {serialLabel(s, names)}
-                      </option>
-                    ))}
+                    {otherSerials
+                      .filter((s) => !givers.includes(s))
+                      .map((s) => (
+                        <option key={s} value={s}>
+                          {serialLabel(s, names)}
+                        </option>
+                      ))}
                   </select>
                   <div className="flex gap-2">
                     <button
@@ -314,7 +307,8 @@ export default function PropsPage() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
           {!loading && (data?.outgoing.length ?? 0) === 0 && (
             <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
               渡す予定はありません。
@@ -330,20 +324,13 @@ export default function PropsPage() {
         </h2>
         <div className="space-y-2">
           {(data?.holding ?? []).map((item) => {
-            const isCoHolder = item.currentHolderSerial !== serial;
-            // 自分以外に一緒に持っている人
-            const others = [
-              ...(isCoHolder && item.currentHolderSerial
-                ? [item.currentHolderSerial]
-                : []),
-              ...item.coHolderSerials.filter((s) => s !== serial),
-            ];
+            // 自分以外に一緒に持っている人(主・副の区別はしない)
+            const others = holdersOf(item).filter((s) => s !== serial);
             return (
               <div key={item.id} className="rounded-2xl bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2">
                   <p className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
                     {item.displayName}
-                    {isCoHolder && <CoHolderBadge />}
                   </p>
                   {item.condition !== "normal" && (
                     <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
@@ -353,8 +340,7 @@ export default function PropsPage() {
                 </div>
                 {others.length > 0 && (
                   <p className="mt-1 text-xs text-slate-500">
-                    一緒に持っている人:{" "}
-                    {others.map((s) => serialLabel(s, names)).join("、")}
+                    一緒に持っている人: {serialsLabel(others, names)}
                   </p>
                 )}
               </div>

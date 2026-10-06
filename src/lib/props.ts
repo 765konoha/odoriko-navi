@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { mockDisplayNames } from "../data/mock/participants";
 import { mockPendingTransfers, mockPropItems } from "../data/mock/props";
 import { formatDateLabel, toDateString } from "./time";
-import { holdsProp } from "../types/props";
+import { giversOf, holdsProp } from "../types/props";
 import type {
   PropAssignment,
   PropEvent,
@@ -116,7 +116,7 @@ export async function listPropItems(
       .order("created_at"),
   ]);
   if (items.error) throw items.error;
-  // 共同保有者の表が無い(migration 0024 の適用前)ときは、いないものとして扱う
+  // 一緒に持つ人の表が無い(migration 0024 の適用前)ときは、いないものとして扱う
   const coBy = new Map<string, string[]>();
   for (const row of (coHolders.error ? [] : (coHolders.data ?? [])) as {
     prop_item_id: string;
@@ -171,6 +171,27 @@ export async function loadDisplayNames(): Promise<Map<string, string>> {
   return map;
 }
 
+/** 複数人の表示(「615 / みや・402 / さき」)。いなければ「未設定」 */
+export function serialsLabel(
+  serials: string[],
+  names: Map<string, string>,
+): string {
+  return serials.length > 0
+    ? serials.map((s) => serialLabel(s, names)).join("・")
+    : "未設定";
+}
+
+/**
+ * 次の受け渡しを渡す人。予定が無ければ今持っている人全員、
+ * 予定があればその最後の受取者(DB側の prop_expected_holder と同じ考え方)
+ */
+export function nextGivers(item: PropItem, pending: PropTransfer[]): string[] {
+  const chain = pending.filter((t) => t.propItemId === item.id);
+  if (chain.length === 0) return giversOf({ fromSerial: item.currentHolderSerial }, item);
+  const last = chain.reduce((a, b) => (a.createdAt < b.createdAt ? b : a));
+  return [last.toSerial];
+}
+
 /** 「615 / みや」形式。ニックネーム不明ならシリアルのみ */
 export function serialLabel(
   serial: string | undefined | null,
@@ -182,13 +203,10 @@ export function serialLabel(
 }
 
 export interface PropUserData {
-  /** 自分が現在保管中(共同保有を含む) */
+  /** 自分が現在保管中(複数人で持っているものを含む) */
   holding: PropItem[];
-  /**
-   * 自分が渡す予定(pending)。asCoHolder=true は共同保有者として見ている
-   * (出し手は現在の保有者。受け渡し先の変更は保有者本人だけができる)
-   */
-  outgoing: { transfer: PropTransfer; item: PropItem; asCoHolder: boolean }[];
+  /** 自分が渡す予定(pending)。複数人で持っているものは全員に出る */
+  outgoing: { transfer: PropTransfer; item: PropItem }[];
   /** 自分が受け取る予定(pending)。ready=false は前の受け渡し待ち */
   incoming: { transfer: PropTransfer; item: PropItem; ready: boolean }[];
   names: Map<string, string>;
@@ -236,24 +254,13 @@ export function buildPropUserData(
   ) =>
     bySchedule(a, b) ||
     (a.transfer.createdAt < b.transfer.createdAt ? -1 : 1);
-  // 共同保有者が関わるのは、今の保有者からの受け渡し(鎖の先頭)だけ。
-  // その先の受け渡しは、保有者が替わって共同保有者が外れたあとの話になる
-  const asCoHolder = (t: PropTransfer) => {
-    const item = itemById.get(t.propItemId);
-    return (
-      item != null &&
-      item.coHolderSerials.includes(serial) &&
-      t.fromSerial === item.currentHolderSerial &&
-      t.fromSerial !== serial
-    );
-  };
   return {
     holding: items.filter((i) => holdsProp(i, serial)),
+    // 渡す側が複数人(一緒に持っている)なら、その全員の「渡す予定」に出す
     outgoing: pending
-      .filter((t) => t.fromSerial === serial || asCoHolder(t))
+      .filter((t) => giversOf(t, itemById.get(t.propItemId)).includes(serial))
       .map(withItem)
       .filter(isPair)
-      .map((v) => ({ ...v, asCoHolder: v.transfer.fromSerial !== serial }))
       .sort(byScheduleThenChain),
     incoming: pending
       .filter((t) => t.toSerial === serial)
