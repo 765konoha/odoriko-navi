@@ -27,6 +27,8 @@ const items: PropItem[] = [
     displayName: "大旗A",
     condition: "normal",
     currentHolderSerial: "615",
+    // 615 と 402 が一緒に持っている(主・副の区別はない)
+    coHolderSerials: ["402"],
     isArchived: false,
   },
   {
@@ -36,6 +38,7 @@ const items: PropItem[] = [
     displayName: "鳴子(予備)1式",
     condition: "normal",
     currentHolderSerial: "706",
+    coHolderSerials: [],
     isArchived: false,
   },
   {
@@ -45,6 +48,17 @@ const items: PropItem[] = [
     displayName: "スピーカーS1",
     condition: "normal",
     currentHolderSerial: "216",
+    coHolderSerials: [],
+    isArchived: false,
+  },
+  {
+    id: "mock-prop-happi",
+    category: "法被",
+    identifier: "予備",
+    displayName: "法被予備",
+    condition: "normal",
+    currentHolderSerial: "615",
+    coHolderSerials: ["402"],
     isArchived: false,
   },
 ];
@@ -53,12 +67,14 @@ const items: PropItem[] = [
 // - 大旗A は「今日(祭り当日)」に 706 へ渡す → 渡す側の案内
 // - スピーカーS1 は「今日」に 216 から受け取る → 受け取る側の案内
 // - 鳴子は「明日(次のリハの日)」に 706 から受け取る → リハの箱の中の案内
+// - 法被予備は 615・402 で持っていて、今日 615 が抜けて 402 だけが持つ
 const transfers: PropTransfer[] = [
   {
     id: "mock-tr-flag",
     propItemId: "mock-prop-flag",
     fromSerial: "615",
     toSerial: "706",
+    receivers: ["706"],
     status: "pending",
     scheduledAt: iso(0, 8, 30),
     createdAt: iso(-3, 12, 0),
@@ -68,6 +84,7 @@ const transfers: PropTransfer[] = [
     propItemId: "mock-prop-speaker",
     fromSerial: "216",
     toSerial: "615",
+    receivers: ["615"],
     status: "pending",
     scheduledAt: iso(0, 20, 0),
     createdAt: iso(-3, 12, 0),
@@ -77,16 +94,28 @@ const transfers: PropTransfer[] = [
     propItemId: "mock-prop-naruko",
     fromSerial: "706",
     toSerial: "615",
+    receivers: ["615"],
     status: "pending",
     scheduledAt: iso(1, 19, 0),
     createdAt: iso(-2, 12, 0),
   },
+  {
+    // 615・402 で持っている法被を、615 が抜けて 402 だけが持つ
+    id: "mock-tr-happi",
+    propItemId: "mock-prop-happi",
+    fromSerial: "615",
+    toSerial: "402",
+    receivers: ["402"],
+    status: "pending",
+    scheduledAt: iso(0, 21, 0),
+    createdAt: iso(-1, 12, 0),
+  },
 ];
 
 export function mockPropItems(): PropItem[] {
-  return items.map((i) => ({ ...i }));
+  return items.map((i) => ({ ...i, coHolderSerials: [...i.coHolderSerials] }));
 }
 
 export function mockPendingTransfers(): PropTransfer[] {
-  return transfers.map((t) => ({ ...t }));
+  return transfers.map((t) => ({ ...t, receivers: [...t.receivers] }));
 }

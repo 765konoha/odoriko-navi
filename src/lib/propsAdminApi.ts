@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type { PropCondition, PropEvent, PropTransfer } from "../types/props";
-import { requireOnline, toPropTransfer } from "./props";
+import { requireOnline, toPropTransfer, withReceivers } from "./props";
+import { mockPendingTransfers } from "../data/mock/props";
 
 // 小道具管理(小道具担当用)。既存の管理者ログイン(authenticated)で操作する。
 // 保有者の手動変更だけは競合・pending整合性のため RPC を使う。
@@ -16,7 +17,7 @@ export interface PropItemInput {
   condition: PropCondition;
   conditionNote: string | null;
   note: string | null;
-  /** 登録時のみ利用(更新時の保有者変更は adminSetHolder を使う) */
+  /** 登録時のみ利用(更新時の保有者変更は adminSetHolders を使う) */
   currentHolderSerial?: string | null;
 }
 
@@ -73,16 +74,20 @@ export async function setPropArchived(
   if (error) throw error;
 }
 
-/** 現在保有者の手動変更(pending があれば自動キャンセル・履歴も記録) */
-export async function adminSetHolder(
+/**
+ * 持っている人を設定する(渡した一覧で置き換える。空なら保有者なし)。
+ * 今の持ち主が1人でも残れば受け渡し予定は残り、全員入れ替えるとキャンセルされる。
+ * 履歴に残る
+ */
+export async function adminSetHolders(
   propItemId: string,
-  newHolderSerial: string | null,
+  serials: string[],
   note: string | null,
 ): Promise<void> {
   requireOnline();
-  const { error } = await client().rpc("prop_admin_set_holder", {
+  const { error } = await client().rpc("prop_admin_set_holders", {
     p_item_id: propItemId,
-    p_new_holder_serial: newHolderSerial,
+    p_serials: serials,
     p_note: note,
   });
   if (error) throw new Error(error.message);
@@ -141,6 +146,8 @@ export async function setAssignment(
 // ---------- 受け渡し ----------
 
 export async function listAllTransfers(limit = 100): Promise<PropTransfer[]> {
+  // mock モード(Supabase 未設定)。小道具の管理画面を開発時に確認するために使う
+  if (!supabase) return mockPendingTransfers();
   const { data, error } = await client()
     .from("prop_transfers")
     .select(
@@ -149,8 +156,10 @@ export async function listAllTransfers(limit = 100): Promise<PropTransfer[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map((row) =>
-    toPropTransfer(row as Parameters<typeof toPropTransfer>[0]),
+  return withReceivers(
+    (data ?? []).map((row) =>
+      toPropTransfer(row as Parameters<typeof toPropTransfer>[0]),
+    ),
   );
 }
 

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { HandoverEntry } from "../../lib/propHandover";
-import { serialLabel } from "../../lib/props";
+import { fromSideOf, serialsLabel } from "../../lib/props";
 import { formatTime } from "../../lib/time";
 
 /**
@@ -35,7 +35,7 @@ export default function PropHandoverNotice({
         >
           <span className="font-bold">渡す</span>
           {" — "}
-          {item.displayName} → {serialLabel(transfer.toSerial, names)}
+          {item.displayName} → {serialsLabel(transfer.receivers, names)}
           {transfer.scheduledAt && (
             <span className={dark ? "text-amber-200/80" : "text-amber-700"}>
               {" "}
@@ -44,14 +44,15 @@ export default function PropHandoverNotice({
           )}
         </p>
       ))}
-      {incoming.map(({ transfer, item }) => (
+      {incoming.map(({ transfer, item, givers }) => (
         <p
           key={transfer.id}
           className={`text-sm ${dark ? "text-amber-50" : "text-amber-900"}`}
         >
           <span className="font-bold">受け取る</span>
           {" — "}
-          {item.displayName} ← {serialLabel(transfer.fromSerial, names)}
+          {item.displayName} ←{" "}
+          {serialsLabel(fromSideOf(givers, transfer.receivers), names)}
           {transfer.scheduledAt && (
             <span className={dark ? "text-amber-200/80" : "text-amber-700"}>
               {" "}

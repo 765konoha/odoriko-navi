@@ -9,12 +9,14 @@ import { compareSerial } from "../../lib/audience";
 import {
   changeTransferTarget,
   completeTransfer,
+  fromSideOf,
   loadPropUserData,
   scheduledLabel,
   serialLabel,
+  serialsLabel,
   type PropUserData,
 } from "../../lib/props";
-import { conditionLabel } from "../../types/props";
+import { conditionLabel, holdersOf } from "../../types/props";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 /**
@@ -76,7 +78,7 @@ export default function PropsPage() {
   }, [load]);
 
   const names = data?.names ?? new Map<string, string>();
-  const targetOptions = useMemo(
+  const otherSerials = useMemo(
     () => serials.filter((s) => s !== serial),
     [serials, serial],
   );
@@ -114,7 +116,7 @@ export default function PropsPage() {
 
   async function handleComplete(transferId: string, itemName: string) {
     const ok = window.confirm(
-      `${itemName}を受け取りましたか?\n\n受取完了すると、現在の保有者があなたに変更されます。`,
+      `${itemName}を受け取りましたか?\n\n受取完了すると、受け取る人が持っている状態に変わります。`,
     );
     if (!ok) return;
     setBusyId(transferId);
@@ -181,7 +183,12 @@ export default function PropsPage() {
           あなたへの受け渡し
         </h2>
         <div className="space-y-2">
-          {(data?.incoming ?? []).map(({ transfer, item, ready }) => (
+          {(data?.incoming ?? []).map(({ transfer, item, givers, ready }) => {
+            // 自分のほかに受け取る人(一緒に持つようになる人)
+            const others = transfer.receivers.filter((s) => s !== serial);
+            // 複数人が関わる受け渡しだけ、受け渡し後の持ち方を添える
+            const multi = givers.length > 1 || transfer.receivers.length > 1;
+            return (
             <div
               key={transfer.id}
               className="rounded-2xl border border-blue-200 bg-blue-50 p-4"
@@ -190,8 +197,15 @@ export default function PropsPage() {
                 {item.displayName}
               </p>
               <p className="text-sm text-slate-700">
-                {serialLabel(transfer.fromSerial, names)} から
+                {serialsLabel(fromSideOf(givers, transfer.receivers), names)} から
               </p>
+              {multi && (
+                <p className="text-sm text-blue-900">
+                  {others.length === 0
+                    ? "受け取ると、あなたが1人で持つようになります"
+                    : `受け取ると、${serialsLabel(others, names)} と一緒に持つようになります`}
+                </p>
+              )}
               {scheduledLabel(transfer.scheduledAt) && (
                 <p className="text-sm font-bold text-blue-900">
                   受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
@@ -200,6 +214,16 @@ export default function PropsPage() {
               {transfer.note && (
                 <p className="mt-1 text-sm text-slate-600">
                   メモ: {transfer.note}
+                </p>
+              )}
+              {others.length > 0 && (
+                <p className="mt-1 text-xs text-slate-500">
+                  一緒に受け取る人のうち、誰か1人が押せば完了します。
+                </p>
+              )}
+              {givers.includes(serial) && (
+                <p className="mt-1 text-xs text-slate-500">
+                  実物がすでに手元にある場合も、受け渡しが済んだら押してください。
                 </p>
               )}
               {ready ? (
@@ -219,7 +243,8 @@ export default function PropsPage() {
                 </p>
               )}
             </div>
-          ))}
+            );
+          })}
           {!loading && (data?.incoming.length ?? 0) === 0 && (
             <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
               受け取る予定はありません。
@@ -234,20 +259,40 @@ export default function PropsPage() {
           あなたが渡す予定
         </h2>
         <div className="space-y-2">
-          {(data?.outgoing ?? []).map(({ transfer, item }) => (
+          {(data?.outgoing ?? []).map(({ transfer, item, givers }) => {
+            // 一緒に持っている人がいれば、誰が持っていっても同じ受け渡し
+            const together = givers.filter((s) => s !== serial);
+            const multi = givers.length > 1 || transfer.receivers.length > 1;
+            // 踊り子が変えられるのは、受け取る人が1人の予定だけ
+            const canChange = transfer.receivers.length === 1;
+            return (
             <div key={transfer.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-base font-bold text-slate-900">
                 {item.displayName}
               </p>
               <p className="text-sm text-slate-700">
-                → {serialLabel(transfer.toSerial, names)}
+                → {serialsLabel(transfer.receivers, names)}
               </p>
+              {together.length > 0 && (
+                <p className="text-xs text-slate-500">
+                  一緒に持っている人: {serialsLabel(together, names)}
+                </p>
+              )}
+              {multi && (
+                <p className="text-xs text-slate-500">
+                  受け渡し後は {serialsLabel(transfer.receivers, names)} が持ちます
+                </p>
+              )}
               {scheduledLabel(transfer.scheduledAt) && (
                 <p className="text-sm font-bold text-slate-700">
                   受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
                 </p>
               )}
-              {changingId === transfer.id ? (
+              {!canChange ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  受け取る人が複数の予定の変更は、小道具担当が行います。
+                </p>
+              ) : changingId === transfer.id ? (
                 <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
                   <select
                     value={newTarget}
@@ -255,11 +300,13 @@ export default function PropsPage() {
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
                   >
                     <option value="">受け渡し先を選択</option>
-                    {targetOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {serialLabel(s, names)}
-                      </option>
-                    ))}
+                    {otherSerials
+                      .filter((s) => s !== transfer.toSerial)
+                      .map((s) => (
+                        <option key={s} value={s}>
+                          {serialLabel(s, names)}
+                        </option>
+                      ))}
                   </select>
                   <div className="flex gap-2">
                     <button
@@ -295,7 +342,8 @@ export default function PropsPage() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
           {!loading && (data?.outgoing.length ?? 0) === 0 && (
             <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
               渡す予定はありません。
@@ -310,21 +358,29 @@ export default function PropsPage() {
           あなたが現在保管中
         </h2>
         <div className="space-y-2">
-          {(data?.holding ?? []).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-2 rounded-2xl bg-white p-4 shadow-sm"
-            >
-              <p className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
-                {item.displayName}
-              </p>
-              {item.condition !== "normal" && (
-                <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
-                  {conditionLabel(item.condition)}
-                </span>
-              )}
-            </div>
-          ))}
+          {(data?.holding ?? []).map((item) => {
+            // 自分以外に一緒に持っている人(主・副の区別はしない)
+            const others = holdersOf(item).filter((s) => s !== serial);
+            return (
+              <div key={item.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
+                    {item.displayName}
+                  </p>
+                  {item.condition !== "normal" && (
+                    <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                      {conditionLabel(item.condition)}
+                    </span>
+                  )}
+                </div>
+                {others.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    一緒に持っている人: {serialsLabel(others, names)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
           {!loading && (data?.holding.length ?? 0) === 0 && (
             <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
               現在保管中の小道具はありません。

@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropAssignment, PropCondition, PropItem } from "../../../types/props";
-import { PROP_CONDITIONS, conditionLabel } from "../../../types/props";
+import {
+  PROP_CONDITIONS,
+  conditionLabel,
+  holdersOf,
+  sortSerials,
+} from "../../../types/props";
 import { listAssignments, serialLabel } from "../../../lib/props";
 import {
-  adminSetHolder,
+  adminSetHolders,
   createPropItem,
   propDisplayName,
   setPropArchived,
@@ -51,6 +56,11 @@ function ItemForm({
       : emptyInput(),
   );
   const [holder, setHolder] = useState(item?.currentHolderSerial ?? "");
+  // 持っている人(主・副の区別はない)。編集時に一覧で置き換える
+  const [holders, setHolders] = useState<string[]>(() =>
+    item ? holdersOf(item) : [],
+  );
+  const [holderPick, setHolderPick] = useState("");
   const [holderNote, setHolderNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,23 +97,29 @@ function ItemForm({
     }
   }
 
-  /** 通常の受取フローを通さずに現在保有者を変更する */
-  async function handleHolderChange() {
+  /** 持っている人を、いま並べている一覧で置き換える(通常の受取フローを通さない) */
+  async function handleHoldersSave() {
     if (!item) return;
     setSaving(true);
     setError(null);
     setFlash(null);
     try {
-      await adminSetHolder(item.id, holder || null, holderNote.trim() || null);
+      await adminSetHolders(item.id, holders, holderNote.trim() || null);
       setHolderNote("");
-      setFlash("保有者を変更しました(受け渡し予定があればキャンセルしました)。");
+      setFlash("保有者を保存しました。");
       await data.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "変更に失敗しました");
+      setError(err instanceof Error ? err.message : "保存に失敗しました");
     } finally {
       setSaving(false);
     }
   }
+
+  // 足せる人(もう入っている人を除く)
+  const holderCandidates = data.serials.filter((s) => !holders.includes(s));
+  const holdersChanged =
+    [...holders].sort().join(",") !==
+    (item ? holdersOf(item) : []).sort().join(",");
 
   return (
     <form
@@ -184,7 +200,10 @@ function ItemForm({
 
       {!item && (
         <label className="block">
-          <span className={labelClass}>現在保有者</span>
+          <span className={labelClass}>保有者</span>
+          <span className="block text-xs text-slate-500">
+            複数人で持つときは、登録したあと編集から追加できます
+          </span>
           <select
             value={holder}
             onChange={(e) => setHolder(e.target.value)}
@@ -230,51 +249,98 @@ function ItemForm({
 
       {item && (
         <div className="space-y-2 rounded-xl bg-slate-50 p-3">
-          <p className="text-sm font-bold text-slate-700">現在保有者の手動変更</p>
+          <p className="text-sm font-bold text-slate-700">保有者(複数可)</p>
           <p className="text-xs text-slate-500">
-            現在: {serialLabel(item.currentHolderSerial, data.names)}
-            <br />
-            受け渡し予定がある場合は自動でキャンセルされ、履歴に残ります。
+            複数人で持つときは全員を並べてください。誰が主という区別はありません。
+            並べた全員の画面に「保管中」と表示され、次の受け渡しの案内も届きます。
+            受け渡しが完了すると、受け取った人だけが持っている状態になります。
           </p>
-          <select
-            value={holder}
-            onChange={(e) => setHolder(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
-          >
-            <option value="">未設定</option>
-            {data.serials.map((s) => (
-              <option key={s} value={s}>
-                {serialLabel(s, data.names)}
-              </option>
-            ))}
-          </select>
+          {holders.length > 0 ? (
+            <ul className="space-y-1">
+              {holders.map((s) => (
+                <li
+                  key={s}
+                  className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 flex-1 truncate font-bold text-slate-800">
+                    {serialLabel(s, data.names)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setHolders((prev) => prev.filter((x) => x !== s))
+                    }
+                    className="shrink-0 rounded border border-slate-300 px-2 py-0.5 text-xs font-bold text-slate-600"
+                  >
+                    外す
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-amber-700">保有者は未設定です。</p>
+          )}
+          <div className="flex gap-2">
+            <select
+              value={holderPick}
+              onChange={(e) => setHolderPick(e.target.value)}
+              aria-label="保有者に追加する人"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+            >
+              <option value="">追加する人を選択</option>
+              {holderCandidates.map((s) => (
+                <option key={s} value={s}>
+                  {serialLabel(s, data.names)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                if (!holderPick) return;
+                setHolders((prev) => sortSerials([...prev, holderPick]));
+                setHolderPick("");
+              }}
+              disabled={!holderPick}
+              className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40"
+            >
+              追加
+            </button>
+          </div>
           <input
             value={holderNote}
             onChange={(e) => setHolderNote(e.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
-            placeholder="理由・備考(任意) 例: 練習で直接回収"
+            placeholder="理由・備考(任意) 例: 練習で直接回収 / 姉妹で預かる"
           />
+          <p className="text-xs text-slate-500">
+            今持っている人が1人でも残れば、受け渡し予定はそのまま残ります。
+            全員を入れ替えたり空にしたりすると、受け渡し予定はキャンセルされます(履歴に残ります)。
+          </p>
           <button
             type="button"
-            onClick={() => void handleHolderChange()}
-            disabled={saving}
-            className="w-full rounded-lg bg-slate-700 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            onClick={() => void handleHoldersSave()}
+            disabled={saving || !holdersChanged}
+            className="w-full rounded-lg bg-slate-700 py-2.5 text-sm font-bold text-white disabled:opacity-40"
           >
-            保有者を変更
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              void setPropArchived(item.id, !item.isArchived).then(() => {
-                void data.reload();
-                onDone();
-              })
-            }
-            className="w-full rounded-lg border border-slate-300 py-2 text-sm font-bold text-slate-600"
-          >
-            {item.isArchived ? "利用を再開する" : "利用終了(アーカイブ)"}
+            保有者を保存
           </button>
         </div>
+      )}
+
+      {item && (
+        <button
+          type="button"
+          onClick={() =>
+            void setPropArchived(item.id, !item.isArchived).then(() => {
+              void data.reload();
+              onDone();
+            })
+          }
+          className="w-full rounded-lg border border-slate-300 py-2 text-sm font-bold text-slate-600"
+        >
+          {item.isArchived ? "利用を再開する" : "利用終了(アーカイブ)"}
+        </button>
       )}
     </form>
   );
@@ -329,13 +395,17 @@ export default function PropItemsTab({ data }: { data: PropsAdminData }) {
       if (!showArchived && i.isArchived) return false;
       if (conditionFilter && i.condition !== conditionFilter) return false;
       if (!q) return true;
-      const holder = i.currentHolderSerial ?? "";
+      // 持っている人全員のシリアルとニックネームで引ける
+      const holders = holdersOf(i);
       return (
         i.displayName.toLowerCase().includes(q) ||
         i.category.toLowerCase().includes(q) ||
         i.identifier.toLowerCase().includes(q) ||
-        holder.toLowerCase().includes(q) ||
-        (data.names.get(holder) ?? "").toLowerCase().includes(q)
+        holders.some(
+          (h) =>
+            h.toLowerCase().includes(q) ||
+            (data.names.get(h) ?? "").toLowerCase().includes(q),
+        )
       );
     });
   }, [data.items, data.names, query, conditionFilter, showArchived]);
@@ -401,7 +471,7 @@ export default function PropItemsTab({ data }: { data: PropsAdminData }) {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs text-slate-500">
                 <th className="px-3 py-2 font-bold">小道具</th>
-                <th className="px-3 py-2 font-bold">現在保有者</th>
+                <th className="px-3 py-2 font-bold">保有者</th>
                 <th className="px-3 py-2 font-bold">次回使用</th>
                 <th className="px-3 py-2 font-bold">状態</th>
               </tr>
@@ -436,8 +506,12 @@ export default function PropItemsTab({ data }: { data: PropsAdminData }) {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
-                      {item.currentHolderSerial ? (
-                        serialLabel(item.currentHolderSerial, data.names)
+                      {holdersOf(item).length > 0 ? (
+                        holdersOf(item).map((s) => (
+                          <span key={s} className="block">
+                            {serialLabel(s, data.names)}
+                          </span>
+                        ))
                       ) : (
                         <span className="text-amber-700">未設定</span>
                       )}
@@ -472,7 +546,7 @@ export default function PropItemsTab({ data }: { data: PropsAdminData }) {
       </div>
 
       <p className="text-xs text-slate-500">
-        行をタップすると編集・状態変更・保有者の手動変更ができます。
+        行をタップすると編集・状態変更・保有者の変更ができます。保有者は複数人にできます。
         {nextEvent && `「次回使用」は ${nextEvent.name} の使用予定者です。`}
       </p>
     </div>

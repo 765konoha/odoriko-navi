@@ -30,9 +30,42 @@ export interface PropItem {
   condition: PropCondition;
   conditionNote?: string;
   note?: string;
-  /** 現在の保有者シリアル(未設定あり) */
+  /**
+   * 保有者のシリアル(未設定あり)。複数人で持つときは、そのうちの1人
+   * (受け渡しの記録に出し手を1人だけ持つための代表。画面では区別しない)
+   */
   currentHolderSerial?: string;
+  /**
+   * 一緒に持っている残りの人。持っている人どうしに主・副の区別はない。
+   * 全員をまとめて扱うときは holdersOf を使う
+   */
+  coHolderSerials: string[];
   isArchived: boolean;
+}
+
+/** シリアル順に並べる(重複は除く)。複数人を並べるときはこの順にそろえる */
+export function sortSerials(serials: string[]): string[] {
+  return [...new Set(serials)].sort((a, b) =>
+    a.localeCompare(b, "ja", { numeric: true }),
+  );
+}
+
+/** その小道具を持っている人全員(シリアル順。主・副の区別はない) */
+export function holdersOf(item: PropItem): string[] {
+  return sortSerials([
+    ...(item.currentHolderSerial ? [item.currentHolderSerial] : []),
+    ...item.coHolderSerials,
+  ]);
+}
+
+/** その人が持っている人の1人か */
+export function holdsProp(item: PropItem, serial: string): boolean {
+  return holdersOf(item).includes(serial);
+}
+
+/** 2つの顔ぶれが同じか(並びは問わない) */
+export function sameSerials(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((s) => b.includes(s));
 }
 
 export type PropTransferStatus = "pending" | "completed" | "cancelled";
@@ -41,7 +74,13 @@ export interface PropTransfer {
   id: string;
   propItemId: string;
   fromSerial?: string;
+  /** 受け取る人の代表(画面では区別しない。全員は receivers) */
   toSerial: string;
+  /**
+   * 受け取る人全員(1人以上。シリアル順)。今持っている人を含むことがある
+   * (402・615 → 402 は 615 が抜けて 402 だけが持つ)
+   */
+  receivers: string[];
   status: PropTransferStatus;
   scheduledAt?: string;
   note?: string;
@@ -85,7 +124,8 @@ export type PropHistoryAction =
   | "transfer_cancelled"
   | "holder_changed_by_admin"
   | "condition_changed"
-  | "assignment_changed";
+  | "assignment_changed"
+  | "co_holders_changed";
 
 export interface PropHistoryEntry {
   id: string;
@@ -109,6 +149,7 @@ const ACTION_LABELS: Record<PropHistoryAction, string> = {
   holder_changed_by_admin: "管理者による保有者変更",
   condition_changed: "状態を変更",
   assignment_changed: "使用予定者を変更",
+  co_holders_changed: "一緒に持つ人を変更",
 };
 
 export function historyActionLabel(action: string): string {
