@@ -11,6 +11,14 @@ function valueLabel(
   action: string,
   names: Map<string, string>,
 ): string {
+  if (action === "co_holders_changed") {
+    // 共同保有者はシリアルを「,」でつないで記録している
+    if (!value) return "なし";
+    return value
+      .split(",")
+      .map((s) => serialLabel(s, names))
+      .join("、");
+  }
   if (!value) return "未設定";
   if (action === "condition_changed") return conditionLabel(value);
   return serialLabel(value, names);

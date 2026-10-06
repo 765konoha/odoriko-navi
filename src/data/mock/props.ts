@@ -27,6 +27,8 @@ const items: PropItem[] = [
     displayName: "大旗A",
     condition: "normal",
     currentHolderSerial: "615",
+    // 402 は 615 と一緒に持っている(共同保有)
+    coHolderSerials: ["402"],
     isArchived: false,
   },
   {
@@ -36,6 +38,7 @@ const items: PropItem[] = [
     displayName: "鳴子(予備)1式",
     condition: "normal",
     currentHolderSerial: "706",
+    coHolderSerials: [],
     isArchived: false,
   },
   {
@@ -45,6 +48,7 @@ const items: PropItem[] = [
     displayName: "スピーカーS1",
     condition: "normal",
     currentHolderSerial: "216",
+    coHolderSerials: [],
     isArchived: false,
   },
 ];
@@ -84,7 +88,7 @@ const transfers: PropTransfer[] = [
 ];
 
 export function mockPropItems(): PropItem[] {
-  return items.map((i) => ({ ...i }));
+  return items.map((i) => ({ ...i, coHolderSerials: [...i.coHolderSerials] }));
 }
 
 export function mockPendingTransfers(): PropTransfer[] {

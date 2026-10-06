@@ -17,6 +17,15 @@ import {
 import { conditionLabel } from "../../types/props";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
+/** 共同保有の目印 */
+function CoHolderBadge() {
+  return (
+    <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 align-middle text-xs font-bold text-violet-700">
+      共同保有
+    </span>
+  );
+}
+
 /**
  * 小道具リレー(利用者画面)。通常モード・祭りモードの双方から使う。
  * 祭りへの参加・不参加は判定せず、参加者マスターのシリアルだけで利用できる。
@@ -234,20 +243,30 @@ export default function PropsPage() {
           あなたが渡す予定
         </h2>
         <div className="space-y-2">
-          {(data?.outgoing ?? []).map(({ transfer, item }) => (
+          {(data?.outgoing ?? []).map(({ transfer, item, asCoHolder }) => (
             <div key={transfer.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-base font-bold text-slate-900">
                 {item.displayName}
+                {asCoHolder && <CoHolderBadge />}
               </p>
               <p className="text-sm text-slate-700">
                 → {serialLabel(transfer.toSerial, names)}
               </p>
+              {asCoHolder && (
+                <p className="text-xs text-slate-500">
+                  保有者 {serialLabel(transfer.fromSerial, names)} と一緒に持っている小道具です
+                </p>
+              )}
               {scheduledLabel(transfer.scheduledAt) && (
                 <p className="text-sm font-bold text-slate-700">
                   受け渡し予定日: {scheduledLabel(transfer.scheduledAt)}
                 </p>
               )}
-              {changingId === transfer.id ? (
+              {asCoHolder ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  受け渡し先の変更は保有者が行います。
+                </p>
+              ) : changingId === transfer.id ? (
                 <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
                   <select
                     value={newTarget}
@@ -310,21 +329,37 @@ export default function PropsPage() {
           あなたが現在保管中
         </h2>
         <div className="space-y-2">
-          {(data?.holding ?? []).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-2 rounded-2xl bg-white p-4 shadow-sm"
-            >
-              <p className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
-                {item.displayName}
-              </p>
-              {item.condition !== "normal" && (
-                <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
-                  {conditionLabel(item.condition)}
-                </span>
-              )}
-            </div>
-          ))}
+          {(data?.holding ?? []).map((item) => {
+            const isCoHolder = item.currentHolderSerial !== serial;
+            // 自分以外に一緒に持っている人
+            const others = [
+              ...(isCoHolder && item.currentHolderSerial
+                ? [item.currentHolderSerial]
+                : []),
+              ...item.coHolderSerials.filter((s) => s !== serial),
+            ];
+            return (
+              <div key={item.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
+                    {item.displayName}
+                    {isCoHolder && <CoHolderBadge />}
+                  </p>
+                  {item.condition !== "normal" && (
+                    <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                      {conditionLabel(item.condition)}
+                    </span>
+                  )}
+                </div>
+                {others.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    一緒に持っている人:{" "}
+                    {others.map((s) => serialLabel(s, names)).join("、")}
+                  </p>
+                )}
+              </div>
+            );
+          })}
           {!loading && (data?.holding.length ?? 0) === 0 && (
             <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
               現在保管中の小道具はありません。

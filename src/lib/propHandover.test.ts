@@ -9,6 +9,7 @@ const item: PropItem = {
   identifier: "A",
   displayName: "旗A",
   condition: "normal",
+  coHolderSerials: [],
   isArchived: false,
 };
 

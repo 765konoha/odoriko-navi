@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type { PropCondition, PropEvent, PropTransfer } from "../types/props";
 import { requireOnline, toPropTransfer } from "./props";
+import { mockPendingTransfers } from "../data/mock/props";
 
 // 小道具管理(小道具担当用)。既存の管理者ログイン(authenticated)で操作する。
 // 保有者の手動変更だけは競合・pending整合性のため RPC を使う。
@@ -88,6 +89,24 @@ export async function adminSetHolder(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * 共同保有者を設定する(渡した一覧で置き換える。空なら全員外す)。
+ * 現在の保有者・重複は DB 側で除かれ、履歴に残る
+ */
+export async function adminSetCoHolders(
+  propItemId: string,
+  serials: string[],
+  note: string | null,
+): Promise<void> {
+  requireOnline();
+  const { error } = await client().rpc("prop_admin_set_co_holders", {
+    p_item_id: propItemId,
+    p_serials: serials,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+}
+
 // ---------- イベント ----------
 
 export interface PropEventInput {
@@ -141,6 +160,8 @@ export async function setAssignment(
 // ---------- 受け渡し ----------
 
 export async function listAllTransfers(limit = 100): Promise<PropTransfer[]> {
+  // mock モード(Supabase 未設定)。小道具の管理画面を開発時に確認するために使う
+  if (!supabase) return mockPendingTransfers();
   const { data, error } = await client()
     .from("prop_transfers")
     .select(

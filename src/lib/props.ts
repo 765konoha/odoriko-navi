@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { mockDisplayNames } from "../data/mock/participants";
 import { mockPendingTransfers, mockPropItems } from "../data/mock/props";
 import { formatDateLabel, toDateString } from "./time";
+import { holdsProp } from "../types/props";
 import type {
   PropAssignment,
   PropEvent,
@@ -58,6 +59,7 @@ export function toPropItem(row: PropItemRow): PropItem {
     conditionNote: row.condition_note ?? undefined,
     note: row.note ?? undefined,
     currentHolderSerial: row.current_holder_serial ?? undefined,
+    coHolderSerials: [],
     isArchived: row.is_archived,
   };
 }
@@ -106,9 +108,28 @@ export async function listPropItems(
   }
   let query = supabase.from("prop_items").select(PROP_ITEM_COLUMNS);
   if (!includeArchived) query = query.eq("is_archived", false);
-  const { data, error } = await query.order("category").order("identifier");
-  if (error) throw error;
-  return ((data ?? []) as PropItemRow[]).map(toPropItem);
+  const [items, coHolders] = await Promise.all([
+    query.order("category").order("identifier"),
+    supabase
+      .from("prop_item_co_holders")
+      .select("prop_item_id, serial")
+      .order("created_at"),
+  ]);
+  if (items.error) throw items.error;
+  // 共同保有者の表が無い(migration 0024 の適用前)ときは、いないものとして扱う
+  const coBy = new Map<string, string[]>();
+  for (const row of (coHolders.error ? [] : (coHolders.data ?? [])) as {
+    prop_item_id: string;
+    serial: string;
+  }[]) {
+    const list = coBy.get(row.prop_item_id) ?? [];
+    list.push(row.serial);
+    coBy.set(row.prop_item_id, list);
+  }
+  return ((items.data ?? []) as PropItemRow[]).map((row) => ({
+    ...toPropItem(row),
+    coHolderSerials: coBy.get(row.id) ?? [],
+  }));
 }
 
 /** 受け渡し予定(pending)の一覧。件数が少ないため全件取得して画面側で絞る */
@@ -161,10 +182,13 @@ export function serialLabel(
 }
 
 export interface PropUserData {
-  /** 自分が現在保管中 */
+  /** 自分が現在保管中(共同保有を含む) */
   holding: PropItem[];
-  /** 自分が渡す予定(pending) */
-  outgoing: { transfer: PropTransfer; item: PropItem }[];
+  /**
+   * 自分が渡す予定(pending)。asCoHolder=true は共同保有者として見ている
+   * (出し手は現在の保有者。受け渡し先の変更は保有者本人だけができる)
+   */
+  outgoing: { transfer: PropTransfer; item: PropItem; asCoHolder: boolean }[];
   /** 自分が受け取る予定(pending)。ready=false は前の受け渡し待ち */
   incoming: { transfer: PropTransfer; item: PropItem; ready: boolean }[];
   names: Map<string, string>;
@@ -176,6 +200,16 @@ export async function loadPropUserData(serial: string): Promise<PropUserData> {
     listPendingTransfers(),
     loadDisplayNames(),
   ]);
+  return buildPropUserData(serial, items, pending, names);
+}
+
+/** 小道具と受け渡し予定から、その人の「保管中・渡す・受け取る」を組み立てる */
+export function buildPropUserData(
+  serial: string,
+  items: PropItem[],
+  pending: PropTransfer[],
+  names: Map<string, string>,
+): PropUserData {
   const itemById = new Map(items.map((i) => [i.id, i]));
   const withItem = (t: PropTransfer) => {
     const item = itemById.get(t.propItemId);
@@ -202,12 +236,24 @@ export async function loadPropUserData(serial: string): Promise<PropUserData> {
   ) =>
     bySchedule(a, b) ||
     (a.transfer.createdAt < b.transfer.createdAt ? -1 : 1);
+  // 共同保有者が関わるのは、今の保有者からの受け渡し(鎖の先頭)だけ。
+  // その先の受け渡しは、保有者が替わって共同保有者が外れたあとの話になる
+  const asCoHolder = (t: PropTransfer) => {
+    const item = itemById.get(t.propItemId);
+    return (
+      item != null &&
+      item.coHolderSerials.includes(serial) &&
+      t.fromSerial === item.currentHolderSerial &&
+      t.fromSerial !== serial
+    );
+  };
   return {
-    holding: items.filter((i) => i.currentHolderSerial === serial),
+    holding: items.filter((i) => holdsProp(i, serial)),
     outgoing: pending
-      .filter((t) => t.fromSerial === serial)
+      .filter((t) => t.fromSerial === serial || asCoHolder(t))
       .map(withItem)
       .filter(isPair)
+      .map((v) => ({ ...v, asCoHolder: v.transfer.fromSerial !== serial }))
       .sort(byScheduleThenChain),
     incoming: pending
       .filter((t) => t.toSerial === serial)

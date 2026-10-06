@@ -32,7 +32,19 @@ export interface PropItem {
   note?: string;
   /** 現在の保有者シリアル(未設定あり) */
   currentHolderSerial?: string;
+  /**
+   * 共同保有者のシリアル(0人以上)。現在の保有者とは別に、一緒に持っている人。
+   * 受け渡しが完了して保有者が替わると外れる
+   */
+  coHolderSerials: string[];
   isArchived: boolean;
+}
+
+/** その人が保有者または共同保有者か */
+export function holdsProp(item: PropItem, serial: string): boolean {
+  return (
+    item.currentHolderSerial === serial || item.coHolderSerials.includes(serial)
+  );
 }
 
 export type PropTransferStatus = "pending" | "completed" | "cancelled";
@@ -85,7 +97,8 @@ export type PropHistoryAction =
   | "transfer_cancelled"
   | "holder_changed_by_admin"
   | "condition_changed"
-  | "assignment_changed";
+  | "assignment_changed"
+  | "co_holders_changed";
 
 export interface PropHistoryEntry {
   id: string;
@@ -109,6 +122,7 @@ const ACTION_LABELS: Record<PropHistoryAction, string> = {
   holder_changed_by_admin: "管理者による保有者変更",
   condition_changed: "状態を変更",
   assignment_changed: "使用予定者を変更",
+  co_holders_changed: "共同保有者を変更",
 };
 
 export function historyActionLabel(action: string): string {
