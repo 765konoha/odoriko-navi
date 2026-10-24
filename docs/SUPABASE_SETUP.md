@@ -30,6 +30,8 @@
 2. このリポジトリの `supabase/migrations/0001_init.sql` の内容を全文コピーして貼り付け、
    右下の **Run** をクリック。
    → 「Success. No rows returned」と出れば成功。
+   続けて `0002` 以降も番号順に1本ずつ同じように流す(最後の方の
+   `0025_explicit_grants.sql` でアプリが使う権限が付く。7 を参照)。
 3. 続けて動作確認用データを入れる場合は、同様に `supabase/seed/test_seed.sql` を
    貼り付けて Run(実行した日を「本祭1日目」としたテストデータが入る)。
 
@@ -70,3 +72,35 @@ service_role キーは全保護を無視できる。
   祭りの前日には必ずアプリを開いて動作確認すること。
   休止していた場合はダッシュボードの **Restore** で数分で復帰できる。
 - 無料枠(DB 500MB・帯域 5GB/月 等)はこのアプリの規模なら十分。
+
+## 7. テーブルを追加するとき(権限の書き方)
+
+Supabase は **2026-10-30 から、`public` スキーマに新しく作ったテーブルへ
+Data API の権限を自動で付けなくなった。** 付け忘れると、アプリからその表を
+読み書きしたときに `permission denied` になる。
+
+テーブルを作る migration には、必ず同じファイルの中で権限を書く。
+
+```sql
+create table new_table ( ... );
+alter table new_table enable row level security;
+-- (ポリシーもいつもどおり作る)
+
+-- 運営(authenticated)と Edge Function(service_role)
+grant select, insert, update, delete on new_table to authenticated, service_role;
+-- 踊り子が読む表なら
+grant select on new_table to anon;
+-- 踊り子が書く表なら(push_subscriptions のように、本当に必要なときだけ)
+-- grant insert, update, delete on new_table to anon;
+```
+
+- 踊り子に見せない表(利用状況など)には、`anon` の権限を付けない。
+- 行ごとの見え方・書き込みの可否は、これまでどおり RLS のポリシーで決まる。
+  権限は「その表に触れてよいか」だけを決める。
+- ビューを作ったときも、同じように `grant select` を書く。
+
+### プロジェクトを作り直すとき
+
+`supabase/migrations/` を番号順に流し直すと、`0025_explicit_grants.sql` で
+既存のテーブル全部に今と同じ権限が付く。それより後に足したテーブルは、
+上のとおりそれぞれの migration に権限を書いておくこと。
