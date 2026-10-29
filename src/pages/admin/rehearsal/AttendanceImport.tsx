@@ -114,6 +114,9 @@ export default function AttendanceImport({
               : "") +
             (p.result.errors.length > 0
               ? ` / 解釈できない値 ${p.result.errors.length}件`
+              : "") +
+            (p.result.duplicates.length > 0
+              ? ` / 回答が複数ある人 ${p.result.duplicates.length}件(下の行を採用: ${p.result.duplicates.join("、")})`
               : ""),
         );
         for (const e of p.result.errors) {
@@ -261,6 +264,12 @@ export default function AttendanceImport({
                         <span className="font-bold text-red-600">
                           {" "}
                           / 解釈できない値 {p.result.errors.length}件
+                        </span>
+                      )}
+                      {p.result.duplicates.length > 0 && (
+                        <span className="text-slate-500">
+                          {" "}
+                          / 回答が複数ある人 {p.result.duplicates.length}件(下の行を採用)
                         </span>
                       )}
                     </li>
