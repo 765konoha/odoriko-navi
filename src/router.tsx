@@ -13,6 +13,7 @@ import ScheduleAdminPage from "./pages/admin/ScheduleAdminPage";
 import LocationAdminPage from "./pages/admin/LocationAdminPage";
 import AnnouncementAdminPage from "./pages/admin/AnnouncementAdminPage";
 import ParticipantAdminPage from "./pages/admin/ParticipantAdminPage";
+import ParticipantMasterPage from "./pages/admin/ParticipantMasterPage";
 import BaggageAdminPage from "./pages/admin/BaggageAdminPage";
 import PropsAdminPage from "./pages/admin/props/PropsAdminPage";
 import FestivalListPage from "./pages/admin/festival/FestivalListPage";
@@ -48,6 +49,7 @@ export const router = createHashRouter([
         children: [
           { index: true, element: <FestivalListPage /> },
           { path: "props", element: <PropsAdminPage /> },
+          { path: "dancers", element: <ParticipantMasterPage /> },
         ],
       },
       // 祭りごとのワークスペース(操作対象は URL の slug で決まる)

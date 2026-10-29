@@ -6,10 +6,11 @@ import {
   SIGN_OUT_ERROR_MESSAGE,
 } from "../../lib/adminError";
 
-// 祭りを選ばずに使う画面(祭り一覧・小道具)
+// 祭りを選ばずに使う画面(祭り一覧・小道具・踊り子マスタ)
 const TABS: AdminTab[] = [
   { to: "/admin", end: true, label: "祭り一覧" },
   { to: "/admin/props", end: false, label: "小道具" },
+  { to: "/admin/dancers", end: false, label: "踊り子マスタ" },
 ];
 
 export default function CrossFestivalShell() {

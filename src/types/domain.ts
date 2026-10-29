@@ -29,6 +29,25 @@ export interface FestivalRole {
   sortOrder: number;
 }
 
+/** 踊り子マスタの1件と、そのシリアルがどこで使われているか(運営の画面用) */
+export interface ParticipantMasterEntry {
+  serial: string;
+  /** 最後に登録された祭りの名簿の名前(どの名簿にも無ければ null) */
+  name: string | null;
+  nickname: string | null;
+  /** 名簿に載っている祭り */
+  festivalNames: string[];
+  attendanceCount: number;
+  /** 持っている(一緒に持っている)小道具の数 */
+  propCount: number;
+  /** 渡す側・受け取る側として関わった受け渡しの数 */
+  transferCount: number;
+  /** このシリアル宛てのプッシュ通知を受け取る端末の数 */
+  pushCount: number;
+  /** 最後にアプリを開いた時刻(目安) */
+  lastSeenAt: string | null;
+}
+
 /** 祭りごとの参加者(シリアルは参加者マスターと紐付く文字列) */
 export interface FestivalParticipant {
   id: string;

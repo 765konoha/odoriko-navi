@@ -1,5 +1,6 @@
 import { kochi2026 } from "./kochi2026";
 import { harajuku2026 } from "./harajuku2026";
+import type { ParticipantMasterEntry } from "../../types/domain";
 
 // Supabase 未設定(mock モード)で、祭りに依存しない名簿を使う画面のためのダミー。
 // 本番では participant_display / festival_participants を読む。
@@ -67,4 +68,39 @@ export function mockRosters(
     );
   }
   return result;
+}
+
+/**
+ * 踊り子マスタの一覧(使われ方つき)。本番では admin_participant_master() を呼ぶ。
+ * 打ち間違いの例として、祭りに載っていない似たシリアル(K-10)も混ぜている。
+ */
+export function mockParticipantMaster(): ParticipantMasterEntry[] {
+  const bySerial = new Map<string, ParticipantMasterEntry>();
+  for (const f of FESTIVALS) {
+    for (const p of f.participants) {
+      const entry = bySerial.get(p.serial) ?? blankEntry(p.serial);
+      entry.name = p.name;
+      entry.nickname = p.nickname;
+      entry.festivalNames.push(f.festival.name);
+      bySerial.set(p.serial, entry);
+    }
+  }
+  // マスターにだけあるシリアル("406" "s1321" は mockRepository と同じ)
+  for (const serial of ["406", "s1321"]) bySerial.set(serial, blankEntry(serial));
+  bySerial.set("K-10", { ...blankEntry("K-10"), attendanceCount: 2, pushCount: 1 });
+  return [...bySerial.values()];
+}
+
+function blankEntry(serial: string): ParticipantMasterEntry {
+  return {
+    serial,
+    name: null,
+    nickname: null,
+    festivalNames: [],
+    attendanceCount: 0,
+    propCount: 0,
+    transferCount: 0,
+    pushCount: 0,
+    lastSeenAt: null,
+  };
 }
