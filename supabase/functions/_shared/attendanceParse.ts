@@ -179,15 +179,23 @@ export interface ImportRow {
 }
 
 export interface ImportResult {
+  /** 1シリアル1行(同じシリアルが複数行あれば下の行を採用済み) */
   rows: ImportRow[];
   /** 参加者マスターとの照合は呼び出し側で行う */
   blankCount: number;
   errors: { line: number; serial: string; value: string }[];
+  /** 回答が2行以上あったシリアル(下の行を採用した) */
+  duplicates: string[];
 }
 
 /**
  * 1つのリハについて、出欠列と時刻メモ列から取り込む行を組み立てる。
  * 空欄は「未回答」として記録せず読み飛ばす(既存の回答を消さない)。
+ *
+ * 同じシリアルの回答が2行以上あるときは、下の行(フォームの後の回答)を
+ * 採用する。フォームに回答し直す人がいるほか、表記ゆれ(Ｋ－０１５ と
+ * K-015)をそろえると同じシリアルになることがある。そのまま保存すると
+ * 1回の保存で同じ行を2度書くことになり、その日の保存が丸ごと失敗する。
  */
 export function buildImportRows(
   sheet: Sheet,
@@ -195,7 +203,8 @@ export function buildImportRows(
   statusColumn: number,
   timeNoteColumn: number | null,
 ): ImportResult {
-  const rows: ImportRow[] = [];
+  const bySerial = new Map<string, ImportRow>();
+  const duplicates = new Set<string>();
   const errors: ImportResult["errors"] = [];
   let blankCount = 0;
 
@@ -218,8 +227,18 @@ export function buildImportRows(
     }
     const note =
       timeNoteColumn != null ? (cells[timeNoteColumn] ?? "").trim() : "";
-    rows.push({ serial, status, timeNote: note === "" ? undefined : note });
+    if (bySerial.has(serial)) duplicates.add(serial);
+    bySerial.set(serial, {
+      serial,
+      status,
+      timeNote: note === "" ? undefined : note,
+    });
   });
 
-  return { rows, blankCount, errors };
+  return {
+    rows: [...bySerial.values()],
+    blankCount,
+    errors,
+    duplicates: [...duplicates],
+  };
 }

@@ -26,7 +26,7 @@ import {
 
 // 差し替えたことを画面から確かめられるようにする。
 // 結果の文言に出るので、古い関数が動いたままかどうかが分かる。
-const FUNCTION_VERSION = "2026-09-04b";
+const FUNCTION_VERSION = "2026-10-29a";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -210,6 +210,9 @@ async function syncFestival(
         (skipped > 0 ? ` / 参加者に無いシリアル ${skipped}件` : "") +
         (result.errors.length > 0
           ? ` / 解釈できない値 ${result.errors.length}件`
+          : "") +
+        (result.duplicates.length > 0
+          ? ` / 回答が複数ある人 ${result.duplicates.length}件(下の行を採用: ${result.duplicates.join("、")})`
           : ""),
     );
   }
