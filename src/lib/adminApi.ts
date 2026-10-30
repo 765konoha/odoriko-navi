@@ -99,7 +99,8 @@ const DEFAULT_ROLES = [
   { name: "リーダー", is_default: false, sort_order: 1 },
   { name: "踊り子一般", is_default: true, sort_order: 2 },
   { name: "マネージャー", is_default: false, sort_order: 3 },
-  { name: "歌い手・煽り", is_default: false, sort_order: 4 },
+  { name: "歌い手", is_default: false, sort_order: 4 },
+  { name: "煽り", is_default: false, sort_order: 5 },
 ];
 
 /** 予報地点の変更を次回取得で確実に反映させるため天気キャッシュを消す */
