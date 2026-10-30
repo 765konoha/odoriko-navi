@@ -104,3 +104,22 @@ function blankEntry(serial: string): ParticipantMasterEntry {
     lastSeenAt: null,
   };
 }
+
+/** あるシリアルの、祭りごとの名簿の登録。本番では festival_participants を読む */
+export function mockRegistrations(serial: string): {
+  id: string;
+  festivalName: string;
+  name: string;
+  nickname: string;
+}[] {
+  return FESTIVALS.flatMap((f) =>
+    f.participants
+      .filter((p) => p.serial === serial)
+      .map((p) => ({
+        id: p.id,
+        festivalName: f.festival.name,
+        name: p.name,
+        nickname: p.nickname,
+      })),
+  );
+}

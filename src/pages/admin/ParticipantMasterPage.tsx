@@ -3,9 +3,14 @@ import type { ParticipantMasterEntry } from "../../types/domain";
 import {
   deleteMasterParticipant,
   listParticipantMaster,
+  listRegistrations,
   mergeParticipant,
+  renameParticipant,
+  updateRegistrations,
   type MasterChangeLine,
+  type MasterRegistration,
 } from "../../lib/participantMasterApi";
+import { normalizeSerial } from "../../lib/serial";
 import { findSimilarSerials } from "../../lib/serialSimilarity";
 import { compareSerial } from "../../lib/audience";
 import { toDateString } from "../../lib/time";
@@ -79,8 +84,227 @@ function ChangeLines({ lines }: { lines: MasterChangeLine[] }) {
 }
 
 type Action =
+  | { kind: "edit"; serial: string }
   | { kind: "merge"; serial: string }
   | { kind: "delete"; serial: string };
+
+/**
+ * シリアルと名前の編集。
+ * 名前・ニックネームはマスタではなく祭りごとの名簿が持っているので、
+ * 名簿ごとに並べて直せるようにする(祭りによって呼び名が違うこともある)。
+ */
+function EditPanel({
+  entry,
+  onDone,
+  onCancel,
+}: {
+  entry: ParticipantMasterEntry;
+  onDone: (message: string) => void;
+  onCancel: () => void;
+}) {
+  const [serial, setSerial] = useState(entry.serial);
+  const [renameLines, setRenameLines] = useState<MasterChangeLine[] | null>(null);
+  const [original, setOriginal] = useState<MasterRegistration[] | null>(null);
+  const [rows, setRows] = useState<MasterRegistration[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listRegistrations(entry.serial)
+      .then((r) => {
+        if (cancelled) return;
+        setOriginal(r);
+        setRows(r);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(actionErrorMessage("master:registrations", err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entry.serial]);
+
+  const target = normalizeSerial(serial);
+  const serialChanged = target !== "" && target !== entry.serial;
+
+  const changed = rows.filter((r) => {
+    const before = original?.find((o) => o.id === r.id);
+    return before && (before.name !== r.name || before.nickname !== r.nickname);
+  });
+  const hasEmptyName = rows.some((r) => r.name.trim() === "");
+
+  function updateRow(id: string, patch: Partial<MasterRegistration>) {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+
+  async function checkRename() {
+    setBusy(true);
+    setError(null);
+    setRenameLines(null);
+    try {
+      setRenameLines(await renameParticipant(entry.serial, target, false));
+    } catch (err) {
+      setError(actionErrorMessage("master:renamePlan", err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyRename() {
+    setBusy(true);
+    setError(null);
+    try {
+      await renameParticipant(entry.serial, target, true);
+      onDone(
+        `${entry.serial} を ${target} に変更しました。${entry.serial} を選んでいた人は、アプリで ${target} を選び直してもらってください。`,
+      );
+    } catch (err) {
+      setError(actionErrorMessage("master:rename", err));
+      setBusy(false);
+    }
+  }
+
+  async function saveNames() {
+    setBusy(true);
+    setError(null);
+    try {
+      await updateRegistrations(
+        entry.serial,
+        changed.map((r) => ({ ...r, name: r.name.trim(), nickname: r.nickname.trim() })),
+      );
+      onDone(`${entry.serial} の名前を保存しました。`);
+    } catch (err) {
+      setError(actionErrorMessage("master:names", err));
+      setBusy(false);
+    }
+  }
+
+  const renameBlocked = renameLines?.some((l) => l.level === "error") ?? false;
+
+  return (
+    <div className="mt-3 space-y-4 border-t border-slate-100 pt-3">
+      <section className="space-y-2">
+        <label className="block">
+          <span className="text-sm font-medium text-slate-600">シリアル</span>
+          <input
+            value={serial}
+            onChange={(e) => {
+              setSerial(e.target.value);
+              setRenameLines(null);
+            }}
+            className={`${inputClass} font-mono`}
+          />
+        </label>
+        {serialChanged && target !== serial.trim() && (
+          <p className="text-xs text-slate-500">「{target}」として登録します。</p>
+        )}
+        {renameLines && <ChangeLines lines={renameLines} />}
+        {serialChanged && !renameLines && (
+          <button
+            type="button"
+            onClick={() => void checkRename()}
+            disabled={busy}
+            className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-40"
+          >
+            シリアルの変更内容を確認
+          </button>
+        )}
+        {serialChanged && renameLines && (
+          <button
+            type="button"
+            onClick={() => void applyRename()}
+            disabled={busy || renameBlocked}
+            className="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+          >
+            {target} に変更する
+          </button>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <p className="text-sm font-medium text-slate-600">
+          名前・ニックネーム(祭りごとの名簿)
+        </p>
+        {original === null && !error && (
+          <p className="text-sm text-slate-500">読み込み中…</p>
+        )}
+        {original !== null && rows.length === 0 && (
+          <p className="text-xs text-slate-500">
+            どの祭りの名簿にも載っていないため、名前はありません。
+            名前は祭りの「参加者」で名簿に登録すると付きます。
+          </p>
+        )}
+        {rows.map((r) => (
+          <div key={r.id} className="rounded-lg bg-slate-50 p-3">
+            <p className="text-xs font-bold text-slate-500">{r.festivalName}</p>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-xs text-slate-500">名前</span>
+                <input
+                  value={r.name}
+                  onChange={(e) => updateRow(r.id, { name: e.target.value })}
+                  className={inputClass}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-500">ニックネーム</span>
+                <input
+                  value={r.nickname}
+                  onChange={(e) => updateRow(r.id, { nickname: e.target.value })}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+          </div>
+        ))}
+        {rows.length > 1 && (
+          <button
+            type="button"
+            onClick={() =>
+              setRows((prev) =>
+                prev.map((r) => ({
+                  ...r,
+                  name: prev[0].name,
+                  nickname: prev[0].nickname,
+                })),
+              )
+            }
+            className="text-xs font-bold text-blue-700"
+          >
+            1つ目の名前・ニックネームを全部の祭りにそろえる
+          </button>
+        )}
+        {hasEmptyName && (
+          <p className="text-xs font-bold text-red-600">名前は空にできません。</p>
+        )}
+        {rows.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void saveNames()}
+            disabled={busy || changed.length === 0 || hasEmptyName}
+            className="w-full rounded-xl bg-emerald-700 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+          >
+            名前を保存{changed.length > 0 ? `(${changed.length}件)` : ""}
+          </button>
+        )}
+      </section>
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={onCancel}
+        className="w-full rounded-xl border border-slate-300 py-2.5 text-sm font-bold text-slate-600"
+      >
+        閉じる
+      </button>
+    </div>
+  );
+}
 
 function MergePanel({
   entry,
@@ -373,7 +597,7 @@ export default function ParticipantMasterPage() {
         <h1 className="text-lg font-bold text-slate-800">踊り子マスタ</h1>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
           全部の祭りで共通のシリアルの一覧です(シリアル選択画面にもこの一覧が出ます)。
-          打ち間違いで増えたシリアルは、正しいシリアルへ統合するか削除してください。
+          シリアルや名前の間違いは「編集」で直せます。打ち間違いで増えたシリアルは、正しいシリアルへ統合するか削除してください。
         </p>
       </div>
 
@@ -464,6 +688,16 @@ export default function ParticipantMasterPage() {
                     type="button"
                     onClick={() => {
                       setNotice(null);
+                      setAction({ kind: "edit", serial: e.serial });
+                    }}
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white"
+                  >
+                    編集
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotice(null);
                       setAction({ kind: "merge", serial: e.serial });
                     }}
                     className="flex-1 rounded-xl border border-slate-300 py-2 text-sm font-bold text-slate-700"
@@ -481,6 +715,13 @@ export default function ParticipantMasterPage() {
                     削除…
                   </button>
                 </div>
+              )}
+              {open?.kind === "edit" && (
+                <EditPanel
+                  entry={e}
+                  onDone={handleDone}
+                  onCancel={() => setAction(null)}
+                />
               )}
               {open?.kind === "merge" && (
                 <MergePanel
