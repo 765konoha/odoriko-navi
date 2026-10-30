@@ -35,7 +35,8 @@ export const harajuku2026: FestivalData = {
     { id: "hj-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },
     { id: "hj-role-dancer", festivalId, name: "踊り子一般", isDefault: true, sortOrder: 2 },
     { id: "hj-role-manager", festivalId, name: "マネージャー", isDefault: false, sortOrder: 3 },
-    { id: "hj-role-singer", festivalId, name: "歌い手・煽り", isDefault: false, sortOrder: 4 },
+    { id: "hj-role-singer", festivalId, name: "歌い手", isDefault: false, sortOrder: 4 },
+    { id: "hj-role-aori", festivalId, name: "煽り", isDefault: false, sortOrder: 5 },
   ],
   participants: [
     // 615=荷物グループ3のリーダー / 706・402=同グループの一般メンバー / 216=未配属

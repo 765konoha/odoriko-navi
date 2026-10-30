@@ -37,7 +37,8 @@ export const kochi2026: FestivalData = {
     { id: "k-role-leader", festivalId, name: "リーダー", isDefault: false, sortOrder: 1 },
     { id: "k-role-dancer", festivalId, name: "踊り子一般", isDefault: true, sortOrder: 2 },
     { id: "k-role-manager", festivalId, name: "マネージャー", isDefault: false, sortOrder: 3 },
-    { id: "k-role-singer", festivalId, name: "歌い手・煽り", isDefault: false, sortOrder: 4 },
+    { id: "k-role-singer", festivalId, name: "歌い手", isDefault: false, sortOrder: 4 },
+    { id: "k-role-aori", festivalId, name: "煽り", isDefault: false, sortOrder: 5 },
   ],
   participants: [
     { id: "k-p-615", festivalId, serial: "615", name: "宮本祥平", nickname: "みや", roleIds: ["k-role-leader"] },
