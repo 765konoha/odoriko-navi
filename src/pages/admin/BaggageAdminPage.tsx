@@ -4,12 +4,17 @@ import type { BaggageGroup, FestivalParticipant } from "../../types/domain";
 import {
   assignBaggageGroup,
   createBaggageGroup,
+  createBaggageGroups,
   deleteBaggageGroup,
   listBaggageGroups,
   listParticipants,
   setBaggageGroupLeader,
 } from "../../lib/adminApi";
 import { compareSerial } from "../../lib/audience";
+import {
+  MAX_BAGGAGE_GROUPS,
+  missingBaggageGroupCodes,
+} from "../../lib/baggage";
 import { loadAdminCache, saveAdminCache } from "../../lib/adminCache";
 
 function label(p: FestivalParticipant): string {
@@ -33,6 +38,8 @@ export default function BaggageAdminPage() {
 
   // グループ追加・アコーディオン開閉
   const [addingGroup, setAddingGroup] = useState(false);
+  // グループ数を指定してまとめて追加
+  const [bulkCount, setBulkCount] = useState("");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   // キャッシュ即時表示済みの祭りID
@@ -163,6 +170,25 @@ export default function BaggageAdminPage() {
     } finally {
       setAddingGroup(false);
     }
+  }
+
+  const bulkNumber = Number(bulkCount);
+  const bulkCodes = missingBaggageGroupCodes(
+    groups.map((g) => g.groupCode),
+    bulkNumber,
+  );
+  const bulkTooMany = bulkNumber > MAX_BAGGAGE_GROUPS;
+
+  async function handleBulkAdd() {
+    if (bulkCodes.length === 0) return;
+    setAddingGroup(true);
+    const codes = bulkCodes;
+    await run(
+      () => createBaggageGroups(festival!.id, codes),
+      `荷物グループ${codes.length === 1 ? codes[0] : `${codes[0]}〜${codes[codes.length - 1]}`}を追加しました(${codes.length}グループ)。`,
+    );
+    setBulkCount("");
+    setAddingGroup(false);
   }
 
   async function handleDeleteGroup(group: BaggageGroup) {
@@ -411,9 +437,50 @@ export default function BaggageAdminPage() {
 
       {groups.length === 0 && (
         <p className="rounded-xl bg-white p-4 text-sm text-slate-500">
-          荷物グループはまだありません。下の「+ 荷物グループ追加」から作成してください。
+          荷物グループはまだありません。下でグループ数を指定してまとめて作るか、「+ 荷物グループ追加」で1つずつ作成してください。
         </p>
       )}
+
+      {/* グループ数を指定してまとめて追加(1〜N のうち無い番号だけ作る) */}
+      <section className="space-y-2 rounded-2xl bg-white p-4 shadow-sm">
+        <p className="text-sm font-bold text-slate-700">グループ数を指定して追加</p>
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-sm text-slate-600">全部で</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={MAX_BAGGAGE_GROUPS}
+            value={bulkCount}
+            onChange={(e) => setBulkCount(e.target.value)}
+            placeholder="例: 10"
+            aria-label="グループ数"
+            className="w-24 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+          />
+          <span className="shrink-0 text-sm text-slate-600">グループ</span>
+          <button
+            type="button"
+            onClick={() => void handleBulkAdd()}
+            disabled={addingGroup || bulkCodes.length === 0 || bulkTooMany}
+            className="ml-auto shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
+          >
+            作成
+          </button>
+        </div>
+        {bulkCount !== "" && (
+          <p className="text-xs text-slate-500">
+            {bulkTooMany
+              ? `一度に作れるのは${MAX_BAGGAGE_GROUPS}グループまでです。`
+              : bulkCodes.length > 0
+                ? bulkCodes.length <= 8
+                  ? `グループ${bulkCodes.join("・")}を追加します(${bulkCodes.length}グループ)。`
+                  : `グループ1〜${bulkNumber}のうち、まだ無い${bulkCodes.length}グループを追加します。`
+                : Number.isInteger(bulkNumber) && bulkNumber >= 1
+                  ? `グループ1〜${bulkNumber}は全部あります。`
+                  : "1以上の数を入れてください。"}
+          </p>
+        )}
+      </section>
 
       {/* グループ追加(番号は自動採番) */}
       <button
