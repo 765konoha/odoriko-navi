@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAdminFestival } from "../../../context/AdminFestivalContext";
-import { listParticipants } from "../../../lib/adminApi";
+import { listParticipants, listRoles } from "../../../lib/adminApi";
 import {
   deleteRehearsal,
   listAttendances,
@@ -8,16 +8,18 @@ import {
 } from "../../../lib/rehearsalsAdminApi";
 import {
   isPastRehearsal,
+  listRehearsalCountRoleIds,
   rehearsalLabel,
   venueMapUrl,
 } from "../../../lib/rehearsals";
+import { countedSerials } from "../../../lib/rehearsalCount";
 import {
   ATTENDANCE_LABELS,
   ATTENDANCE_ORDER,
   type Attendance,
   type Rehearsal,
 } from "../../../types/rehearsal";
-import type { FestivalParticipant } from "../../../types/domain";
+import type { FestivalParticipant, FestivalRole } from "../../../types/domain";
 import { formatDateLabel, formatTime, toDateString } from "../../../lib/time";
 import { compareSerial } from "../../../lib/audience";
 import {
@@ -40,6 +42,9 @@ export default function RehearsalAdminPage() {
   const [rehearsals, setRehearsals] = useState<Rehearsal[]>([]);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [participants, setParticipants] = useState<FestivalParticipant[]>([]);
+  const [roles, setRoles] = useState<FestivalRole[]>([]);
+  // リハ集計に含める役職(null = 設定を読めないので名簿の全員を数える)
+  const [countRoleIds, setCountRoleIds] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -71,12 +76,16 @@ export default function RehearsalAdminPage() {
       setLoading(true);
     }
     try {
-      const [list, people] = await Promise.all([
+      const [list, people, roleList, countIds] = await Promise.all([
         listRehearsalsForAdmin(festivalId),
         listParticipants(festivalId),
+        listRoles(festivalId),
+        listRehearsalCountRoleIds([festivalId]),
       ]);
       setRehearsals(list);
       setParticipants(people);
+      setRoles(roleList);
+      setCountRoleIds(countIds);
       setAttendances(await listAttendances(list.map((r) => r.id)));
       setLoaded(true);
       setLoadError(null);
@@ -97,6 +106,14 @@ export default function RehearsalAdminPage() {
     () => new Set(participants.map((p) => p.serial)),
     [participants],
   );
+  // マネージャーなどリハに出ない役職の人は、出欠の集計・未回答に入れない
+  const counted = useMemo(
+    () => countedSerials(participants, countRoleIds),
+    [participants, countRoleIds],
+  );
+  const countRoleNames = roles
+    .filter((r) => countRoleIds?.has(r.id))
+    .map((r) => r.name);
   const nameBySerial = useMemo(
     () => new Map(participants.map((p) => [p.serial, p.nickname || p.name])),
     [participants],
@@ -216,9 +233,19 @@ export default function RehearsalAdminPage() {
         </p>
       )}
 
+      {rehearsals.length > 0 && countRoleIds != null && (
+        <p className="text-xs text-slate-500">
+          出欠の集計・未回答は「
+          {countRoleNames.length > 0 ? countRoleNames.join("・") : "なし"}
+          」の人({counted.size}人)で数えています。対象の役職は「参加者」の役職で変えられます。
+        </p>
+      )}
+
       <div className="space-y-2">
         {rehearsals.map((r) => {
-          const rows = attendances.filter((a) => a.rehearsalId === r.id);
+          const rows = attendances.filter(
+            (a) => a.rehearsalId === r.id && counted.has(a.serial),
+          );
           const byStatus = new Map(
             ATTENDANCE_ORDER.map((s) => [
               s,
@@ -227,7 +254,7 @@ export default function RehearsalAdminPage() {
           );
           const answered = new Set(rows.map((a) => a.serial));
           const noAnswer = participants
-            .filter((p) => !answered.has(p.serial))
+            .filter((p) => counted.has(p.serial) && !answered.has(p.serial))
             .sort((a, b) => compareSerial(a.serial, b.serial));
           const open = openId === r.id;
 

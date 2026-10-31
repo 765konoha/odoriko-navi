@@ -21,6 +21,7 @@ import type {
 } from "../../types/rehearsal";
 import { formatDateLabel, formatTime, toDateString } from "../../lib/time";
 import { compareSerial } from "../../lib/audience";
+import { tallyAttendances } from "../../lib/rehearsalCount";
 
 /**
  * 当日その場にいない人の一覧。
@@ -29,15 +30,20 @@ import { compareSerial } from "../../lib/audience";
 function AttendanceBreakdown({
   attendances,
   nameBySerial,
+  counted,
 }: {
   attendances: Attendance[];
   nameBySerial: Map<string, string>;
+  /** リハ集計に入れる人(null なら名簿の全員) */
+  counted: Set<string> | null;
 }) {
-  const total = nameBySerial.size;
-  const answered = new Set(attendances.map((a) => a.serial));
-  const noAnswer = [...nameBySerial.keys()].filter((x) => !answered.has(x));
+  // マネージャーなどリハに出ない役職の人は数えない
+  const target = counted ?? new Set(nameBySerial.keys());
+  const total = target.size;
+  const tally = tallyAttendances(attendances, target);
+  const noAnswer = tally.noAnswer;
   const byStatus = new Map<AttendanceStatus, Attendance[]>();
-  for (const a of attendances) {
+  for (const a of tally.counted) {
     byStatus.set(a.status, [...(byStatus.get(a.status) ?? []), a]);
   }
   const present = byStatus.get("present")?.length ?? 0;
@@ -96,6 +102,7 @@ function RehearsalCard({
   past,
   all,
   nameBySerial,
+  counted,
 }: {
   rehearsal: Rehearsal;
   festivalName: string | null;
@@ -103,6 +110,7 @@ function RehearsalCard({
   past: boolean;
   all: Attendance[];
   nameBySerial: Map<string, string>;
+  counted: Set<string> | null;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -195,6 +203,7 @@ function RehearsalCard({
             <AttendanceBreakdown
               attendances={all}
               nameBySerial={nameBySerial}
+              counted={counted}
             />
           )}
         </>
@@ -255,6 +264,8 @@ export default function RehearsalPage() {
       all: byRehearsal.get(r.id) ?? [],
       // 未回答が誰かは祭りごとの名簿で決まる
       nameBySerial: board?.rosterByFestival.get(r.festivalId) ?? new Map(),
+      // 数えるのはリハ集計に含める役職の人だけ
+      counted: board?.countedByFestival?.get(r.festivalId) ?? null,
     };
   }
 

@@ -50,6 +50,7 @@ export function useNextRehearsal(): NextRehearsalState {
             rehearsals: [],
             festivalNameById: new Map(),
             rosterByFestival: new Map(),
+            countedByFestival: null,
             mine: new Map(),
             all: [],
             filteredBySerial: serial != null,

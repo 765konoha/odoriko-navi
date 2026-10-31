@@ -103,6 +103,9 @@ const DEFAULT_ROLES = [
   { name: "煽り", is_default: false, sort_order: 5 },
 ];
 
+/** 新規の祭りで、リハの出欠集計に含める初期役職 */
+const REHEARSAL_COUNT_ROLE_NAMES = ["リーダー", "踊り子一般"];
+
 /** 予報地点の変更を次回取得で確実に反映させるため天気キャッシュを消す */
 async function clearWeatherCache(festivalId: string): Promise<void> {
   await client().from("weather_hourly").delete().eq("festival_id", festivalId);
@@ -122,6 +125,13 @@ export async function createFestival(input: FestivalInput): Promise<string> {
     .from("festival_roles")
     .insert(DEFAULT_ROLES.map((r) => ({ ...r, festival_id: festivalId })));
   if (roleError) throw roleError;
+  // リハ集計は「踊り子一般」と「リーダー」だけ(0029)。
+  // 列がまだ無い環境でも祭りは作れるよう、失敗しても止めない
+  await client()
+    .from("festival_roles")
+    .update({ counts_in_rehearsal: true })
+    .eq("festival_id", festivalId)
+    .in("name", REHEARSAL_COUNT_ROLE_NAMES);
   return festivalId;
 }
 
@@ -599,6 +609,19 @@ export async function createRole(
     name,
     sort_order: sortOrder,
   });
+  if (error) throw error;
+}
+
+/** 役職をリハの出欠集計に含めるかを切り替える */
+export async function setRoleCountsInRehearsal(
+  roleId: string,
+  counts: boolean,
+): Promise<void> {
+  if (!supabase) return; // mock モードでは画面の切替だけ確かめる
+  const { error } = await client()
+    .from("festival_roles")
+    .update({ counts_in_rehearsal: counts })
+    .eq("id", roleId);
   if (error) throw error;
 }
 

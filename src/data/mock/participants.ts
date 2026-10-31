@@ -123,3 +123,32 @@ export function mockRegistrations(serial: string): {
       })),
   );
 }
+
+/**
+ * リハ集計に含める役職(本番では festival_roles.counts_in_rehearsal)。
+ * mock では初期設定と同じく「踊り子一般」(既定)と「リーダー」。
+ */
+export function mockRehearsalCountRoleIds(festivalIds: string[]): Set<string> {
+  const wanted = new Set(festivalIds);
+  return new Set(
+    FESTIVALS.filter((f) => wanted.has(f.festival.id)).flatMap((f) =>
+      f.roles
+        .filter((r) => r.isDefault || r.name === "リーダー")
+        .map((r) => r.id),
+    ),
+  );
+}
+
+/** 祭りごとの名簿(シリアルと役職)。リハ集計の対象を決めるのに使う */
+export function mockRosterRoles(
+  festivalIds: string[],
+): { festivalId: string; serial: string; roleIds: string[] }[] {
+  const wanted = new Set(festivalIds);
+  return FESTIVALS.filter((f) => wanted.has(f.festival.id)).flatMap((f) =>
+    f.participants.map((p) => ({
+      festivalId: f.festival.id,
+      serial: p.serial,
+      roleIds: p.roleIds,
+    })),
+  );
+}
