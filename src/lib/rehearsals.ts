@@ -4,7 +4,12 @@ import {
   mockListAllAttendances,
   mockListAllRehearsals,
 } from "../data/mock/rehearsals";
-import { mockRosters } from "../data/mock/participants";
+import {
+  mockRehearsalCountRoleIds,
+  mockRosterRoles,
+  mockRosters,
+} from "../data/mock/participants";
+import { countedSerials } from "./rehearsalCount";
 import { repository } from "../repositories";
 import { formatDuration, minutesUntil, toDateString } from "./time";
 
@@ -100,6 +105,69 @@ export async function loadRosters(
   return result;
 }
 
+/**
+ * リハ集計に含める役職の id。
+ * 設定の列がまだ無い(migration 0029 の前)などで読めないときは null
+ * (今までどおり名簿の全員を数える)。
+ */
+export async function listRehearsalCountRoleIds(
+  festivalIds: string[],
+): Promise<Set<string> | null> {
+  if (festivalIds.length === 0) return new Set();
+  if (!supabase) return mockRehearsalCountRoleIds(festivalIds);
+  const { data, error } = await supabase
+    .from("festival_roles")
+    .select("id")
+    .eq("counts_in_rehearsal", true)
+    .in("festival_id", festivalIds);
+  if (error) return null;
+  return new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
+}
+
+/**
+ * 祭りごとの、リハ集計に入れる人(シリアル)。
+ * 読めないときは null(名簿の全員を数える)。
+ */
+export async function loadCountedSerials(
+  festivalIds: string[],
+): Promise<Map<string, Set<string>> | null> {
+  if (festivalIds.length === 0) return new Map();
+  const roleIds = await listRehearsalCountRoleIds(festivalIds);
+  if (roleIds == null) return null;
+  let people: { festivalId: string; serial: string; roleIds: string[] }[];
+  if (!supabase) {
+    people = mockRosterRoles(festivalIds);
+  } else {
+    const { data, error } = await supabase
+      .from("festival_participants")
+      .select("festival_id, serial, festival_participant_roles(role_id)")
+      .in("festival_id", festivalIds);
+    if (error) return null;
+    people = (
+      (data ?? []) as {
+        festival_id: string;
+        serial: string;
+        festival_participant_roles: { role_id: string }[] | null;
+      }[]
+    ).map((r) => ({
+      festivalId: r.festival_id,
+      serial: r.serial,
+      roleIds: (r.festival_participant_roles ?? []).map((x) => x.role_id),
+    }));
+  }
+  const result = new Map<string, Set<string>>();
+  for (const id of festivalIds) {
+    result.set(
+      id,
+      countedSerials(
+        people.filter((p) => p.festivalId === id),
+        roleIds,
+      ),
+    );
+  }
+  return result;
+}
+
 /** 踊り子の画面が必要とするものを一度にまとめたもの */
 export interface RehearsalBoard {
   /** 表示するリハ(開始時刻の昇順)。自分が参加する祭りのものだけ */
@@ -108,6 +176,11 @@ export interface RehearsalBoard {
   festivalNameById: Map<string, string>;
   /** 祭りごとの名簿(シリアル → 表示名) */
   rosterByFestival: Map<string, Map<string, string>>;
+  /**
+   * 祭りごとの、リハ集計に入れる人(シリアル)。
+   * null なら名簿の全員を数える(設定を読めなかったとき)
+   */
+  countedByFestival: Map<string, Set<string>> | null;
   /** 自分の出欠(リハID → 出欠)。シリアル未選択なら空 */
   mine: Map<string, Attendance>;
   /** 全員の出欠 */
@@ -127,8 +200,9 @@ export async function loadRehearsalBoard(
     repository.listFestivals(),
   ]);
   const festivalIds = [...new Set(rehearsals.map((r) => r.festivalId))];
-  const [rosterByFestival, all, mine] = await Promise.all([
+  const [rosterByFestival, countedByFestival, all, mine] = await Promise.all([
     loadRosters(festivalIds),
+    loadCountedSerials(festivalIds),
     listAllAttendances(),
     serial
       ? listMyAttendances(serial)
@@ -146,6 +220,7 @@ export async function loadRehearsalBoard(
     rehearsals: visible,
     festivalNameById: new Map(festivals.map((f) => [f.id, f.name])),
     rosterByFestival,
+    countedByFestival,
     mine,
     all,
     filteredBySerial: serial != null,

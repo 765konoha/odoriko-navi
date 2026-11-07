@@ -21,9 +21,11 @@ import {
   listParticipants,
   listRoles,
   setParticipantRoles,
+  setRoleCountsInRehearsal,
   updateParticipant,
   type ParticipantImportRow,
 } from "../../lib/adminApi";
+import { listRehearsalCountRoleIds } from "../../lib/rehearsals";
 import { cohortLabelOf, groupByCohort } from "../../lib/cohort";
 import { parseParticipantPaste } from "../../lib/participantImport";
 import { normalizeSerial } from "../../lib/serial";
@@ -771,6 +773,9 @@ export default function ParticipantAdminPage() {
   >(null);
   const [newRoleName, setNewRoleName] = useState("");
   const [addingRole, setAddingRole] = useState(false);
+  // リハ集計に含める役職(null = 設定を読めない。切替は出さない)
+  const [countRoleIds, setCountRoleIds] = useState<Set<string> | null>(null);
+  const [savingCountRole, setSavingCountRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -805,10 +810,12 @@ export default function ParticipantAdminPage() {
       }
     }
     try {
-      const [participantList, roleList] = await Promise.all([
+      const [participantList, roleList, countIds] = await Promise.all([
         listParticipants(festival.id),
         listRoles(festival.id),
+        listRehearsalCountRoleIds([festival.id]),
       ]);
+      setCountRoleIds(countIds);
       const sorted = [...participantList].sort((a, b) =>
         compareSerial(a.serial, b.serial),
       );
@@ -939,6 +946,25 @@ export default function ParticipantAdminPage() {
       );
     } finally {
       setAddingRole(false);
+    }
+  }
+
+  async function handleToggleCountRole(roleId: string, counts: boolean) {
+    setSavingCountRole(roleId);
+    setActionError(null);
+    try {
+      await setRoleCountsInRehearsal(roleId, counts);
+      setCountRoleIds((prev) => {
+        const next = new Set(prev ?? []);
+        if (counts) next.add(roleId);
+        else next.delete(roleId);
+        return next;
+      });
+    } catch (err) {
+      reportAdminError("participants:countRole", err);
+      setActionError("保存できませんでした。通信環境を確認して、もう一度お試しください。");
+    } finally {
+      setSavingCountRole(null);
     }
   }
 
@@ -1133,6 +1159,32 @@ export default function ParticipantAdminPage() {
             </span>
           ))}
         </div>
+        {countRoleIds != null && roles.length > 0 && (
+          <div className="space-y-1.5 border-t border-slate-100 pt-2">
+            <p className="text-sm font-bold text-slate-700">
+              リハの出欠集計に含める役職
+            </p>
+            <p className="text-xs text-slate-500">
+              チェックした役職の人だけを、リハの出欠の人数・未回答で数えます(マネージャーなどリハに出ない人を外すため)。
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {roles.map((r) => (
+                <label key={r.id} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={countRoleIds.has(r.id)}
+                    disabled={savingCountRole != null}
+                    onChange={(e) =>
+                      void handleToggleCountRole(r.id, e.target.checked)
+                    }
+                    className="h-4 w-4"
+                  />
+                  {r.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <form onSubmit={handleAddRole} className="flex gap-2">
           <input
             value={newRoleName}
