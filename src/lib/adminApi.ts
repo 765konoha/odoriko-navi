@@ -839,9 +839,22 @@ export async function deleteAllParticipants(festivalId: string): Promise<void> {
 
 // ---------- 荷物グループ ----------
 
+// mock モード(Supabase 未設定)で荷物グループの一覧・追加を確かめるための置き場
+const mockBaggageGroups = new Map<string, BaggageGroup[]>();
+
+function addMockBaggageGroups(festivalId: string, codes: string[]): void {
+  const list = mockBaggageGroups.get(festivalId) ?? [];
+  for (const code of codes) {
+    if (list.some((g) => g.groupCode === code)) continue;
+    list.push({ id: `mock-bg-${festivalId}-${code}`, festivalId, groupCode: code });
+  }
+  mockBaggageGroups.set(festivalId, list);
+}
+
 export async function listBaggageGroups(
   festivalId: string,
 ): Promise<BaggageGroup[]> {
+  if (!supabase) return [...(mockBaggageGroups.get(festivalId) ?? [])];
   const { data, error } = await client()
     .from("baggage_groups")
     .select(BAGGAGE_GROUP_COLUMNS)
@@ -855,10 +868,30 @@ export async function createBaggageGroup(
   festivalId: string,
   groupCode: string,
 ): Promise<void> {
+  if (!supabase) return addMockBaggageGroups(festivalId, [groupCode]);
   const { error } = await client().from("baggage_groups").insert({
     festival_id: festivalId,
     group_code: groupCode,
   });
+  if (error) throw error;
+}
+
+/**
+ * 荷物グループをまとめて追加する。
+ * 既にある番号は飛ばす(何度押しても同じ番号が増えない)。
+ */
+export async function createBaggageGroups(
+  festivalId: string,
+  groupCodes: string[],
+): Promise<void> {
+  if (groupCodes.length === 0) return;
+  if (!supabase) return addMockBaggageGroups(festivalId, groupCodes);
+  const { error } = await client()
+    .from("baggage_groups")
+    .upsert(
+      groupCodes.map((code) => ({ festival_id: festivalId, group_code: code })),
+      { onConflict: "festival_id,group_code", ignoreDuplicates: true },
+    );
   if (error) throw error;
 }
 
