@@ -33,14 +33,23 @@ export function displayTime(item: ScheduleItem): string | undefined {
 /**
  * 予定は集合時間の昇順で並べる。
  * 集合時間が無いものは開始時間で代用し、どちらも無いものは末尾に置く。
- * 同じ集合時間なら開始時間で比べる(集合が同じで演舞が別時間のケース)。
+ * 同じ時刻の「集合」と「演舞」は、集合を先にする(集まってから踊るため)。
+ * それ以外で同じ集合時間なら開始時間で比べる(集合が同じで演舞が別時間のケース)。
  */
 export function sortItems(items: ScheduleItem[]): ScheduleItem[] {
   return [...items].sort(
     (a, b) =>
       compareTime(effectiveTime(a), effectiveTime(b)) ||
+      compareGatherFirst(a, b) ||
       compareTime(a.startTime, b.startTime),
   );
+}
+
+/** 同じ時刻なら、予定種「集合」を「演舞」より先にする */
+function compareGatherFirst(a: ScheduleItem, b: ScheduleItem): number {
+  if (a.category === "gather" && b.category === "performance") return -1;
+  if (a.category === "performance" && b.category === "gather") return 1;
+  return 0;
 }
 
 /** 時刻の昇順。未設定は末尾 */
