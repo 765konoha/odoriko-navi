@@ -16,6 +16,26 @@ export type PropCondition = (typeof PROP_CONDITIONS)[number]["value"];
 /** 新規の受け渡しを開始できない状態(保有者・履歴は残す) */
 export const BLOCKED_CONDITIONS: PropCondition[] = ["lost", "retired"];
 
+/**
+ * 状態の札の色。小道具担当のスプレッドシートの色分けとそろえる
+ * (故障・破損=赤、修理中=黄、紛失=紫、使用停止=灰)
+ */
+export function conditionBadgeClass(condition: string): string {
+  switch (condition) {
+    case "damaged":
+    case "broken":
+      return "bg-red-100 text-red-800";
+    case "repairing":
+      return "bg-amber-100 text-amber-800";
+    case "lost":
+      return "bg-purple-100 text-purple-800";
+    case "retired":
+      return "bg-slate-200 text-slate-600";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
 export function conditionLabel(condition: string): string {
   return (
     PROP_CONDITIONS.find((c) => c.value === condition)?.label ?? condition
@@ -88,6 +108,13 @@ export interface PropTransfer {
   completedAt?: string;
   cancelledAt?: string;
   cancelledReason?: string;
+  /**
+   * 小道具担当のスプレッドシートの何日のお祭りから作った予定か
+   * (手作業の予定は undefined)。変更はスプレッドシートで行う
+   */
+  sheetDate?: string;
+  /** 画面に出す渡す人(お祭りで使った人)。無ければ今の保有者 */
+  giverSerials?: string[];
 }
 
 export type PropEventKind = "festival" | "project" | "practice" | "other";

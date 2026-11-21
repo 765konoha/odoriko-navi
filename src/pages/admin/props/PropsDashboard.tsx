@@ -1,5 +1,58 @@
+import { useEffect, useState } from "react";
 import type { PropsAdminData } from "./PropsAdminPage";
 import { giversOf, serialsLabel } from "../../../lib/props";
+import { listSheetSyncRuns, type SheetSyncRun } from "../../../lib/propsAdminApi";
+import { formatDateLabel, formatTime, toDateString } from "../../../lib/time";
+
+const SYNC_ACTION_LABEL: Record<SheetSyncRun["action"], string> = {
+  holders: "保有者・状態を更新",
+  handovers: "受け渡し予定を反映",
+};
+
+/** スプレッドシートからの最後の反映(小道具担当がシートのボタンで行う) */
+function SheetSyncStatus() {
+  const [runs, setRuns] = useState<SheetSyncRun[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void listSheetSyncRuns().then((r) => {
+      if (!cancelled) setRuns(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!runs || runs.length === 0) return null;
+  return (
+    <section>
+      <h2 className="mb-2 text-base font-bold text-slate-700">
+        スプレッドシートからの反映
+      </h2>
+      <div className="space-y-2">
+        {runs.map((r) => (
+          <details key={r.id} className="rounded-xl bg-white p-3 shadow-sm">
+            <summary className="cursor-pointer text-sm">
+              <span className="font-bold text-slate-900">
+                {formatDateLabel(toDateString(r.createdAt))} {formatTime(r.createdAt)}{" "}
+                {SYNC_ACTION_LABEL[r.action]}
+              </span>
+              <span className="text-slate-600">
+                {r.target ? `（${r.target}）` : ""} {r.appliedCount}件
+              </span>
+              {r.errorCount > 0 && (
+                <span className="font-bold text-red-600"> / エラー {r.errorCount}件</span>
+              )}
+            </summary>
+            {r.summary && (
+              <p className="mt-2 whitespace-pre-wrap text-xs text-slate-600">
+                {r.summary}
+              </p>
+            )}
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function PropsDashboard({ data }: { data: PropsAdminData }) {
   const active = data.items.filter((i) => !i.isArchived);
@@ -61,6 +114,8 @@ export default function PropsDashboard({ data }: { data: PropsAdminData }) {
             : "予定されているイベントはありません"}
         </p>
       </div>
+
+      <SheetSyncStatus />
 
       {pending.length > 0 && (
         <section>

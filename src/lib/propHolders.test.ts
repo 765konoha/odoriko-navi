@@ -112,3 +112,26 @@ describe("複数日の鎖(1日目 615・402 → 108・216、2日目 108・216 �
     expect(nextGivers(items[0], [])).toEqual(["402", "615"]);
   });
 });
+
+describe("スプレッドシートから作った予定(お祭りで使った人が渡す)", () => {
+  // 615 が持ってきた旗を 402・108 が使い、216 が持ち帰る
+  const items = [item("a", "615")];
+  const pending = [
+    {
+      ...handover("t1", "a", "615", ["216"], "2026-08-01T00:00:00Z"),
+      sheetDate: "2026-08-30",
+      giverSerials: ["108", "402"],
+    },
+  ];
+
+  it("渡す人は使った人", () => {
+    expect(giversOf(pending[0], items[0], pending)).toEqual(["108", "402"]);
+  });
+
+  it("使った人の画面に「渡す」、持ち帰る人に「受け取る」が出る。持ってきた人には出ない", () => {
+    expect(view("402", items, pending).outgoing).toEqual(["t1"]);
+    expect(view("108", items, pending).outgoing).toEqual(["t1"]);
+    expect(view("216", items, pending).incoming).toEqual(["t1"]);
+    expect(view("615", items, pending).outgoing).toEqual([]);
+  });
+});

@@ -204,3 +204,48 @@ export async function cancelTransfer(transfer: PropTransfer): Promise<void> {
   });
   if (historyError) throw historyError;
 }
+
+// ---------- スプレッドシート連携 ----------
+
+export interface SheetSyncRun {
+  id: string;
+  action: "holders" | "handovers";
+  target: string | null;
+  appliedCount: number;
+  errorCount: number;
+  summary: string | null;
+  createdAt: string;
+}
+
+/**
+ * スプレッドシートからの反映の記録(新しい順)。
+ * 表がまだ無い(migration 0030 の前)・mock モードでは空
+ */
+export async function listSheetSyncRuns(limit = 3): Promise<SheetSyncRun[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("prop_sheet_sync_runs")
+    .select("id, action, target, applied_count, error_count, summary, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (
+    (data ?? []) as {
+      id: string;
+      action: SheetSyncRun["action"];
+      target: string | null;
+      applied_count: number;
+      error_count: number;
+      summary: string | null;
+      created_at: string;
+    }[]
+  ).map((r) => ({
+    id: r.id,
+    action: r.action,
+    target: r.target,
+    appliedCount: r.applied_count,
+    errorCount: r.error_count,
+    summary: r.summary,
+    createdAt: r.created_at,
+  }));
+}
