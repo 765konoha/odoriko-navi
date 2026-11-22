@@ -49,17 +49,29 @@ function onOpen() {
   }
 }
 
-/** 合言葉の登録と、スマホ用(チェックボックス)の仕組みの有効化 */
+/**
+ * 合言葉の登録と、スマホ用(チェックボックス)の仕組みの有効化。
+ * 合言葉を空欄のままにすると新しく作って表示する(Supabase の Secrets に
+ * PROPS_SYNC_TOKEN として同じ値を登録する)。チャットなどに貼らずに済むように。
+ */
 function setup() {
   const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const has = !!props.getProperty('SYNC_TOKEN');
   const res = ui.prompt(
     '初期設定',
-    '踊り子ナビの合言葉（SYNC_TOKEN）を入力してください。\n（設定済みで変えない場合は空欄のまま OK）',
+    '踊り子ナビの合言葉（PROPS_SYNC_TOKEN と同じ値）を入力してください。\n' +
+      (has ? '設定済みの合言葉を変えない場合は、空欄のまま OK。' : '空欄のまま OK を押すと、新しく作って表示します。'),
     ui.ButtonSet.OK_CANCEL,
   );
   if (res.getSelectedButton() !== ui.Button.OK) return;
-  const token = res.getResponseText().trim();
-  if (token) PropertiesService.getScriptProperties().setProperty('SYNC_TOKEN', token);
+  let token = res.getResponseText().trim();
+  let created = false;
+  if (!token && !has) {
+    token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+    created = true;
+  }
+  if (token) props.setProperty('SYNC_TOKEN', token);
 
   const ss = SpreadsheetApp.getActive();
   ScriptApp.getProjectTriggers()
@@ -67,7 +79,11 @@ function setup() {
     .forEach((t) => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('onEditInstalled').forSpreadsheet(ss).onEdit().create();
   refreshColumnChoices();
-  ui.alert('初期設定が終わりました。スマホのチェックボックスからも実行できます。');
+  ui.alert(
+    created
+      ? '初期設定が終わりました。\n\n次の合言葉を、Supabase の Edge Functions → Secrets に PROPS_SYNC_TOKEN として登録してください（この画面を閉じると再表示できません）。\n\n' + token
+      : '初期設定が終わりました。スマホのチェックボックスからも実行できます。',
+  );
 }
 
 // ---------- PC(ボタン) ----------
