@@ -153,20 +153,46 @@ export async function withReceivers(
   transfers: PropTransfer[],
 ): Promise<PropTransfer[]> {
   if (!supabase || transfers.length === 0) return transfers;
-  const { data, error } = await supabase
-    .from("prop_transfer_receivers")
-    .select("transfer_id, serial")
-    .in(
-      "transfer_id",
-      transfers.map((t) => t.id),
-    );
-  if (error) return transfers;
+  const ids = transfers.map((t) => t.id);
+  const [receiverResult, sheetResult] = await Promise.all([
+    supabase
+      .from("prop_transfer_receivers")
+      .select("transfer_id, serial")
+      .in("transfer_id", ids),
+    // スプレッドシート連携の列(migration 0030)。まだ無ければ使わない
+    supabase
+      .from("prop_transfers")
+      .select("id, sheet_date, giver_serials")
+      .in("id", ids),
+  ]);
   const extra = new Map<string, string[]>();
-  for (const row of (data ?? []) as { transfer_id: string; serial: string }[]) {
-    extra.set(row.transfer_id, [...(extra.get(row.transfer_id) ?? []), row.serial]);
+  if (!receiverResult.error) {
+    for (const row of (receiverResult.data ?? []) as {
+      transfer_id: string;
+      serial: string;
+    }[]) {
+      extra.set(row.transfer_id, [...(extra.get(row.transfer_id) ?? []), row.serial]);
+    }
+  }
+  const sheet = new Map<string, { sheetDate?: string; giverSerials?: string[] }>();
+  if (!sheetResult.error) {
+    for (const row of (sheetResult.data ?? []) as {
+      id: string;
+      sheet_date: string | null;
+      giver_serials: string[] | null;
+    }[]) {
+      sheet.set(row.id, {
+        sheetDate: row.sheet_date ?? undefined,
+        giverSerials:
+          row.giver_serials && row.giver_serials.length > 0
+            ? sortSerials(row.giver_serials)
+            : undefined,
+      });
+    }
   }
   return transfers.map((t) => ({
     ...t,
+    ...sheet.get(t.id),
     receivers: sortSerials([t.toSerial, ...(extra.get(t.id) ?? [])]),
   }));
 }
@@ -224,6 +250,10 @@ export function giversOf(
   );
   if (before.length > 0) {
     return before.reduce((a, b) => (a.createdAt < b.createdAt ? b : a)).receivers;
+  }
+  // スプレッドシートの予定は、お祭りで使った人が渡す(今の保有者とは限らない)
+  if (transfer.giverSerials && transfer.giverSerials.length > 0) {
+    return transfer.giverSerials;
   }
   if (transfer.status !== "pending" || !item) {
     return transfer.fromSerial ? [transfer.fromSerial] : [];

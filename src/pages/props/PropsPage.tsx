@@ -16,7 +16,11 @@ import {
   serialsLabel,
   type PropUserData,
 } from "../../lib/props";
-import { conditionLabel, holdersOf } from "../../types/props";
+import {
+  conditionBadgeClass,
+  conditionLabel,
+  holdersOf,
+} from "../../types/props";
 import RefreshIndicator from "../../components/layout/RefreshIndicator";
 
 /**
@@ -263,8 +267,10 @@ export default function PropsPage() {
             // 一緒に持っている人がいれば、誰が持っていっても同じ受け渡し
             const together = givers.filter((s) => s !== serial);
             const multi = givers.length > 1 || transfer.receivers.length > 1;
-            // 踊り子が変えられるのは、受け取る人が1人の予定だけ
-            const canChange = transfer.receivers.length === 1;
+            // 踊り子が変えられるのは、受け取る人が1人の予定だけ。
+            // スプレッドシートから作った予定は、スプレッドシートで変える
+            const fromSheet = transfer.sheetDate != null;
+            const canChange = transfer.receivers.length === 1 && !fromSheet;
             return (
             <div key={transfer.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-base font-bold text-slate-900">
@@ -290,7 +296,9 @@ export default function PropsPage() {
               )}
               {!canChange ? (
                 <p className="mt-2 text-xs text-slate-500">
-                  受け取る人が複数の予定の変更は、小道具担当が行います。
+                  {fromSheet
+                    ? "この予定の変更は、小道具担当がスプレッドシートで行います。"
+                    : "受け取る人が複数の予定の変更は、小道具担当が行います。"}
                 </p>
               ) : changingId === transfer.id ? (
                 <div className="mt-2 space-y-2 rounded-lg bg-slate-50 p-3">
@@ -368,7 +376,9 @@ export default function PropsPage() {
                     {item.displayName}
                   </p>
                   {item.condition !== "normal" && (
-                    <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                    <span
+                      className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${conditionBadgeClass(item.condition)}`}
+                    >
                       {conditionLabel(item.condition)}
                     </span>
                   )}

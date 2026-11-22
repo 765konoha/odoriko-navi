@@ -3,6 +3,7 @@ import type { PropsAdminData } from "./PropsAdminPage";
 import type { PropAssignment, PropCondition, PropItem } from "../../../types/props";
 import {
   PROP_CONDITIONS,
+  conditionBadgeClass,
   conditionLabel,
   holdersOf,
   sortSerials,
@@ -524,7 +525,7 @@ export default function PropItemsTab({ data }: { data: PropsAdminData }) {
                         className={
                           item.condition === "normal"
                             ? "text-slate-500"
-                            : "font-bold text-amber-700"
+                            : `rounded px-1.5 py-0.5 text-xs font-bold ${conditionBadgeClass(item.condition)}`
                         }
                       >
                         {conditionLabel(item.condition)}
